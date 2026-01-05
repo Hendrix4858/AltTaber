@@ -316,12 +316,51 @@ namespace Util {
         return list;
     }
 
+    // 使用 Escape 键,用于关闭 Windows 开始菜单
+    void useEscKey() {
+        INPUT inputs[2] = {};
+        inputs[0].type = INPUT_KEYBOARD;
+        inputs[0].ki.wVk = VK_ESCAPE;
+        inputs[1].type = INPUT_KEYBOARD;
+        inputs[1].ki.wVk = VK_ESCAPE;
+        inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+        SendInput(2, inputs, sizeof(INPUT));
+    }
+
+    bool isStartMenuForeground() {
+        HWND foreground = GetForegroundWindow();
+        if (!foreground) {
+            return false;
+        }
+
+        QString className = getClassName(foreground);
+        QString title = getWindowTitle(foreground);
+
+        // 开始菜单的类名
+        if (className == "Windows.UI.Core.CoreWindow") {
+            QString path = getWindowProcessPath(foreground);
+            // 开始菜单程序名和搜索程序名
+            if (path.contains("SearchHost.exe") ||
+                path.contains("StartMenuExperienceHost.exe")) {
+                return true;
+                }
+        }
+
+        return false;
+    }
+
     // about 2ms
     QList<HWND> listValidWindows() {
-        qDebug() << "#List Valid Windows";
+        qInfo() << "#List Valid Windows";
         static const bool isUserAdmin = IsUserAnAdmin(); // 和 isProcessElevated(GetCurrentProcess()) 好像没区别？
         using namespace AppUtil;
         QList<HWND> list;
+        // 检测并关闭开始菜单.
+        if (isStartMenuForeground())
+        {
+            useEscKey();
+        }
         const auto winList = Util::enumWindows();
         for (auto hwnd: winList) {
             if (!hwnd) continue;
@@ -332,7 +371,7 @@ namespace Util {
                 // PostMessage可以，但是无法使用NOACTIVE版本，窗口必被激活
                 // 此时由于权限不足，Hook失效，无法进一步检测 Alt or 任务栏滚轮，导致非常鸡肋
                 // https://stackoverflow.com/questions/13468331/showwindow-function-doesnt-work-when-target-application-is-run-as-administrator
-                qDebug() << "#ignore elevated:" << hwnd << getWindowTitle(hwnd);
+                qInfo() << "#ignore elevated:" << hwnd << getWindowTitle(hwnd);
                 continue;
             }
 
@@ -521,12 +560,12 @@ namespace Util {
             if (isBottomRightTransparent(icon)) {
                 // 对于不包含大图标的exe，例如[Follower]获取64x64的图标，但只有左上角有8x8图标，其余透明）
                 // 通过检测右下角1/4区域来判定这种小图标情况，改为获取小号size图标，则会正常（如48x48）（也许需要向下遍历，但是一般情况下够用了）
-                qDebug() << "-- BottomRight is transparent, fallback to 48x48" << path;
+                qInfo() << "-- BottomRight is transparent, fallback to 48x48" << path;
                 icon = QFileIconProvider().icon(QFileInfo(path)).pixmap(48);
             }
         }
         IconCache.insert(path, icon);
-        qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
+        qInfo() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
         return icon;
     }
 

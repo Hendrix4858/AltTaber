@@ -225,7 +225,7 @@ void Widget::notifyForegroundChanged(HWND hwnd, ForegroundChangeSource source) {
     winActiveOrder[path].insert(hwnd, QDateTime::currentDateTime());
 
     auto sourceStr = QMetaEnum::fromType<ForegroundChangeSource>().valueToKey(source);
-    qDebug() << qUtf8Printable(QString("*ForeWin changed (%1):").arg(sourceStr)) // qUtf8Printable removes quotes ""
+    qInfo() << qUtf8Printable(QString("*ForeWin changed (%1):").arg(sourceStr)) // qUtf8Printable removes quotes ""
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path << Util::getFileDescription(path);
 } // TODO 控制面板 和 资源管理器 exe是同一个，如何区分图标
 

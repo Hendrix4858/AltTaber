@@ -21,7 +21,7 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             if (isAltPressed && Hooker::receiver) {
                 if (pKeyBoard->vkCode == VK_TAB) {
-                    qDebug() << "Alt+Tab detected!";
+                    qInfo() << "Alt+Tab detected!";
                     if ((HWND) Hooker::receiver->winId() != GetForegroundWindow()) { // not Foreground
                         // 异步，防止阻塞；超过1s会导致被系统强制绕过，传递给下一个钩子
                         QMetaObject::invokeMethod(Hooker::receiver, "requestShow", Qt::QueuedConnection);
@@ -44,7 +44,7 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             auto* pKeyBoard = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
             if (pKeyBoard->vkCode == VK_LMENU && Hooker::receiver) {
                 // BUG: Alt + 方向键 长按，过一秒会触发Alt release，而Alt + 其他键则不会，可能是Windows保护机制或键盘问题？
-                qDebug() << "Alt released!";
+                qInfo() << "Alt released!";
                 auto event = new QKeyEvent(QEvent::KeyRelease, Qt::Key_Alt, Qt::NoModifier);
                 QApplication::postEvent(Hooker::receiver, event); // async
                 // not block
