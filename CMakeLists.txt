@@ -98,6 +98,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         QT_DEPRECATED_WARNINGS
         UNICODE # for Windows API，使用W版本
         _UNICODE # for C/C++ 标准库
+         $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT;QT_NO_INFO_OUTPUT>
 )
 
 if (MSVC)
