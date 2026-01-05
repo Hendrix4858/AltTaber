@@ -6,17 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH "$ENV{QT_DIR}/lib/cmake")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
-set(CMAKE_AUTOUIC_SEARCH_PATHS "${CMAKE_SOURCE_DIR}/ui") # 如果.ui文件不在.cpp同一目录下，需要添加搜索路径
-
-if(MSVC)
-    include(CheckIncludeFile)
-    # 或者使用环境变量
-    if(NOT DEFINED ENV{WindowsSDKDir})
-        message(FATAL_ERROR "请设置环境变量 WindowsSDKDir 指向 Windows SDK 根目录")
-    endif()
-    set(CMAKE_SYSTEM_INCLUDE_PATH "$ENV{WindowsSDKDir}/Include")
-endif()
+list(APPEND CMAKE_AUTOUIC_SEARCH_PATHS ui) # 如果.ui文件不在.cpp同一目录下，需要添加搜索路径
 
 # 设置版本信息变量
 set(VERSION_MAJOR 0)
