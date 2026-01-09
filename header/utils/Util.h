@@ -20,6 +20,7 @@ namespace Util {
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false);
     QList<HWND> enumWindows();
     QList<HWND> enumChildWindows(HWND hwnd);
+    void closeStartMenu();
     void useEscKey();
     bool isStartMenuForeground();
     QList<HWND> listValidWindows();

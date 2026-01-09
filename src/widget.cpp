@@ -348,7 +348,8 @@ bool Widget::prepareListWidget() {
     return true;
 }
 
-bool Widget::requestShow() { // TODO 当前台是开始菜单（Win）时，会导致显示 但无法操控
+bool Widget::requestShow() {
+    Util::closeStartMenu();
     return prepareListWidget() && forceShow();
 }
 

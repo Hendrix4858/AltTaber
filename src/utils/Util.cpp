@@ -316,6 +316,21 @@ namespace Util {
         return list;
     }
 
+    void closeStartMenu() {
+        HWND hwnd = GetForegroundWindow();
+        QString className = getClassName(hwnd);
+        QString title = getWindowTitle(hwnd);
+
+        // 开始菜单的类名
+        if (className == "Windows.UI.Core.CoreWindow") {
+            QString path = getWindowProcessPath(hwnd);
+            // 开始菜单程序名和搜索程序名
+            if (path.contains("SearchHost.exe") || path.contains("StartMenuExperienceHost.exe")) {
+                PostMessage(hwnd, WM_CLOSE, 0, 0);
+                }
+        }
+    }
+
     // 使用 Escape 键,用于关闭 Windows 开始菜单
     void useEscKey() {
         INPUT inputs[2] = {};
@@ -341,8 +356,7 @@ namespace Util {
         if (className == "Windows.UI.Core.CoreWindow") {
             QString path = getWindowProcessPath(foreground);
             // 开始菜单程序名和搜索程序名
-            if (path.contains("SearchHost.exe") ||
-                path.contains("StartMenuExperienceHost.exe")) {
+            if (path.contains("SearchHost.exe") || path.contains("StartMenuExperienceHost.exe")) {
                 return true;
                 }
         }
@@ -356,12 +370,8 @@ namespace Util {
         static const bool isUserAdmin = IsUserAnAdmin(); // 和 isProcessElevated(GetCurrentProcess()) 好像没区别？
         using namespace AppUtil;
         QList<HWND> list;
-        // 检测并关闭开始菜单.
-        if (isStartMenuForeground())
-        {
-            useEscKey();
-        }
         const auto winList = Util::enumWindows();
+
         for (auto hwnd: winList) {
             if (!hwnd) continue;
             // 忽略权限高于自身的窗口
