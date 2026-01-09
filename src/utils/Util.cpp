@@ -331,39 +331,6 @@ namespace Util {
         }
     }
 
-    // 使用 Escape 键,用于关闭 Windows 开始菜单
-    void useEscKey() {
-        INPUT inputs[2] = {};
-        inputs[0].type = INPUT_KEYBOARD;
-        inputs[0].ki.wVk = VK_ESCAPE;
-        inputs[1].type = INPUT_KEYBOARD;
-        inputs[1].ki.wVk = VK_ESCAPE;
-        inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
-
-        SendInput(2, inputs, sizeof(INPUT));
-    }
-
-    bool isStartMenuForeground() {
-        HWND foreground = GetForegroundWindow();
-        if (!foreground) {
-            return false;
-        }
-
-        QString className = getClassName(foreground);
-        QString title = getWindowTitle(foreground);
-
-        // 开始菜单的类名
-        if (className == "Windows.UI.Core.CoreWindow") {
-            QString path = getWindowProcessPath(foreground);
-            // 开始菜单程序名和搜索程序名
-            if (path.contains("SearchHost.exe") || path.contains("StartMenuExperienceHost.exe")) {
-                return true;
-                }
-        }
-
-        return false;
-    }
-
     // about 2ms
     QList<HWND> listValidWindows() {
         qInfo() << "#List Valid Windows";
