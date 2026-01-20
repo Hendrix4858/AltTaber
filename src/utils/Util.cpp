@@ -316,19 +316,27 @@ namespace Util {
         return list;
     }
 
+    void closeWindowedPopupClass() {
+        HWND hwnd = GetForegroundWindow();
+        QString className = getClassName(hwnd);
+        // win + x 弹出的窗口类名.
+        if (className == "Xaml_WindowedPopupClass") {
+            PostMessage(hwnd, WM_CLOSE, 0, 0);
+        }
+    }
+
     void closeStartMenu() {
         HWND hwnd = GetForegroundWindow();
         QString className = getClassName(hwnd);
-        QString title = getWindowTitle(hwnd);
-
         // 开始菜单的类名
         if (className == "Windows.UI.Core.CoreWindow") {
-            QString path = getWindowProcessPath(hwnd);
-            // 开始菜单程序名和搜索程序名
-            if (path.contains("SearchHost.exe") || path.contains("StartMenuExperienceHost.exe")) {
-                PostMessage(hwnd, WM_CLOSE, 0, 0);
-                }
+            PostMessage(hwnd, WM_CLOSE, 0, 0);
         }
+    }
+
+    void closeSystemWindows() {
+        closeStartMenu();
+        closeWindowedPopupClass();
     }
 
     // about 2ms

@@ -349,7 +349,7 @@ bool Widget::prepareListWidget() {
 }
 
 bool Widget::requestShow() {
-    Util::closeStartMenu();
+    Util::closeSystemWindows();
     return prepareListWidget() && forceShow();
 }
 
