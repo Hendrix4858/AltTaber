@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <QListWidget>
 #include <QDebug>
+#include <QTimer>
 
 struct WindowGroup;
 
@@ -93,6 +94,17 @@ private:
     /// exePath -> (HWND, time)
     QHash<QString, QHash<HWND, QDateTime>> winActiveOrder;
     QList<HWND> groupWindowOrder; // for Alt+` 同组窗口切换
+
+    // eventFilter state (replaces static locals)
+    QListWidgetItem* lastWheelItem = nullptr;
+    HWND lastWheelHwnd = nullptr;
+    bool lastWheelIsRollUp = true;
+
+    // rotateTaskbarWindowInGroup state (replaces static locals)
+    QString lastTaskbarPath;
+    HWND lastTaskbarHwnd = nullptr;
+    bool lastTaskbarForward = true;
+    QTimer* taskbarTimer = nullptr;
 };
 
 
