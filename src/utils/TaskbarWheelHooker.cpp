@@ -18,7 +18,7 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 // 当所有窗口最小化后，会出现这种情况，但是焦点和前台都不是他，离谱
                 qDebug() << "detect CEF, try active taskbar";
                 Util::switchToWindow(topLevelHwnd, true); // 只能通过变焦到Taskbar使Element正常检测
-                el = std::move(UIAutomation::getElementUnderMouse());
+                el = UIAutomation::getElementUnderMouse();
                 qDebug() << (el.getClassName() != "CEF-OSC-WIDGET" ? "successful!" : "failed");
             }
             if (el.getClassName() == "Taskbar.TaskListButtonAutomationPeer") {

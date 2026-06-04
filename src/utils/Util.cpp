@@ -360,34 +360,10 @@ namespace Util {
                 continue;
             }
 
-            /* fix `isWindowCloaked()`之后，以下代码无用
-            auto className = Util::getClassName(hwnd);
-            // ref: https://blog.csdn.net/qq_59075481/article/details/139574981
-            if (className == AppFrameWindowClass) { // UWP的父窗口
-                const auto childList = Util::enumChildWindows(hwnd);
-                auto title = getWindowTitle(hwnd);
-                HWND coreChild = nullptr;
-                for (HWND child: childList) {
-                    // UWP的本体应该是`Windows.UI.Core.CoreWindow`，但是enumWindows有时候枚举不到 [因为只能枚举顶层窗口]
-                    // 只能通过`ApplicationFrameWindow`曲线救国 [正道]
-                    // 但是有些情况下（最小化），UWP的本体又会从`ApplicationFrameWindow`中分离出来，不属于子窗口，两种情况都要处理
-                    if (getWindowTitle(child) == title && getClassName(child) == AppCoreWindowClass) {
-                        coreChild = child;
-                        break;
-                    }
-                }
-                if (!coreChild) {
-                    // 对于正常UWP窗口，Core只在Frame最小化时脱离AppFrame，变成top-level
-                    // 如果Core是顶层，且AppFrame不是最小化，那么就是非正常窗口，舍弃
-                    // ！！有个例外，对于"便笺"不适用，会误判：便笺的Core的标题和Frame不同，不是"便笺"是"Title"，同时存在另一个"便签"Core (顶层)
-                    if (!IsIconic(hwnd) || !FindWindowW(LPCWSTR(AppCoreWindowClass.utf16()), LPCWSTR(title.utf16()))) {
-                        // 本来可以用于排除不可见的"设置" & "电影和电视" & "Realtek Audio Console"
-                        // ！！但是fix `isWindowCloaked()`之后，已经可以被其正确过滤了...
-                        qDebug() << "#ignore UWP:" << title << hwnd;
-                        continue;
-                    }
-                }
-            }*/
+#if 0
+            // fix `isWindowCloaked()`之后，以下代码无用
+            // UWP handling (disabled since isWindowCloaked() handles it)
+#endif
 
             list << hwnd;
         }

@@ -23,7 +23,10 @@ QPair<QString, QString> ScheduledTask::queryAuthorUserId() {
 
     const auto output = process.readAllStandardOutput();
     const auto list = QString(output).replace("\r\n", "\n").split('\n', Qt::SkipEmptyParts);
-    Q_ASSERT(list.size() == 2);
+    if (list.size() != 2) {
+        qWarning() << "[ScheduledTask] Failed to parse PowerShell output for author/userId, size:" << list.size();
+        return {};
+    }
     return {list.at(0), list.at(1)};
 }
 
