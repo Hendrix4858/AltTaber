@@ -23,6 +23,7 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     }
                     return 1;
                 } else if (pKeyBoard->vkCode == VK_OEM_3) {
+                    qDebug() << "[Alt+`] Detected, isAltPressed:" << isAltPressed << "foreground:" << Util::getWindowTitle(GetForegroundWindow());
                     auto shiftModifier = Util::isKeyPressed(VK_SHIFT) ? Qt::ShiftModifier : Qt::NoModifier;
                     emit s_instance->altGravePressed(shiftModifier);
                     return 1;

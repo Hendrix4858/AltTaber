@@ -1,4 +1,4 @@
-﻿#ifndef WIN_SWITCHER_SYSTEMTRAY_H
+#ifndef WIN_SWITCHER_SYSTEMTRAY_H
 #define WIN_SWITCHER_SYSTEMTRAY_H
 
 #include <QAction>
@@ -6,6 +6,9 @@
 #include <QMenu>
 #include <QSystemTrayIcon>
 #include <QActionGroup>
+#include <QProcess>
+#include <windows.h>
+#include <shellapi.h>
 #include "Startup.h"
 #include "ConfigManager.h"
 #include "UpdateDialog.h"
@@ -25,6 +28,7 @@ public:
     void retranslateMenu() {
         m_actUpdate->setText(tr("Check for Updates"));
         m_actSettings->setText(tr("Settings"));
+        m_actRestartAdmin->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
         m_startupBaseText = tr("Start with Windows");
         m_menuMonitor->setTitle(tr("Display Monitor"));
         auto actions = m_monitorGroup->actions();
@@ -59,6 +63,7 @@ private:
 
         m_actUpdate = new QAction(m_menu);
         m_actSettings = new QAction(m_menu);
+        m_actRestartAdmin = new QAction(m_menu);
         m_actStartup = new QAction(m_menu);
         m_actStartup->setCheckable(true);
         m_menuMonitor = new QMenu(m_menu);
@@ -88,16 +93,25 @@ private:
             dlg->activateWindow();
         });
 
+        connect(m_actRestartAdmin, &QAction::triggered, this, [] {
+            QString appPath = QApplication::applicationFilePath();
+            ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
+            QApplication::quit();
+        });
+
         connect(m_actStartup, &QAction::triggered, this, [this](bool checked) {
             Startup::toggle();
             if (Startup::isOn() == checked)
-                this->showMessage(tr("auto Startup mode"), checked ? tr("ON √") : tr("OFF ×"));
+                this->showMessage(tr("auto Startup mode"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
             else
                 this->showMessage(tr("Action Failed"), tr("Failed to change Startup mode"), Warning);
         });
 
         connect(m_menu, &QMenu::aboutToShow, this, [this] {
             m_actStartup->setChecked(Startup::isOn());
+            bool isAdmin = IsUserAnAdmin();
+            m_actRestartAdmin->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
+            m_actRestartAdmin->setEnabled(!isAdmin);
             updateStartupText();
         });
 
@@ -132,6 +146,7 @@ private:
 
         m_menu->addAction(m_actUpdate);
         m_menu->addAction(m_actSettings);
+        m_menu->addAction(m_actRestartAdmin);
         m_menu->addAction(m_actStartup);
         m_menu->addMenu(m_menuMonitor);
         m_menu->addAction(m_actQuit);
@@ -143,6 +158,7 @@ private:
     QMenu* m_menu = nullptr;
     QAction* m_actUpdate = nullptr;
     QAction* m_actSettings = nullptr;
+    QAction* m_actRestartAdmin = nullptr;
     QAction* m_actStartup = nullptr;
     QMenu* m_menuMonitor = nullptr;
     QActionGroup* m_monitorGroup = nullptr;

@@ -1,4 +1,4 @@
-﻿#include "widget.h"
+#include "widget.h"
 #include "WindowGroupModel.h"
 #include "WindowManager.h"
 #include "ui_Widget.h"
@@ -89,21 +89,33 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         auto index = (i - (2 * isShiftPressed - 1) + count) % count;
         lv->setCurrentIndex(m_model->index(index));
     } else if (key == Qt::Key_QuoteLeft && (modifiers & Qt::AltModifier)) { // Alt + `, 在前台窗口同组窗口内切换
+        qDebug() << "[Alt+`] keyPressEvent triggered, isVisible:" << this->isVisible() << "isMinimized:" << this->isMinimized();
         if (this->isVisible() && !this->isMinimized()) {
             // isVisible() == true if minimized
             // 不使用`isForeground()`，即使`bringWindowToTop`(without active)，少数窗口也可能抢夺焦点，如`CAJViewer`
+            qDebug() << "[Alt+`] Switcher is visible, hiding and returning";
             hide();
             return;
         }
         auto foreWin = GetForegroundWindow();
+        qDebug() << "[Alt+`] Foreground window:" << foreWin << Util::getWindowTitle(foreWin) << Util::getClassName(foreWin);
         auto& order = m_wm->groupWindowOrder();
+        qDebug() << "[Alt+`] Existing order count:" << order.size();
         if (order.isEmpty()) {
             auto targetExe = Util::getWindowProcessPath(foreWin);
+            qDebug() << "[Alt+`] Building order for exe:" << targetExe;
             order = m_wm->buildGroupWindowOrder(targetExe);
+            qDebug() << "[Alt+`] Built order count:" << order.size();
+            for (auto h : order) {
+                qDebug() << "[Alt+`]   -" << h << Util::getWindowTitle(h) << Util::getClassName(h);
+            }
         }
         if (auto nextWin = WindowManager::rotateWindowInGroup(order, foreWin, !(modifiers & Qt::ShiftModifier))) {
+            qDebug() << "[Alt+`] Next window:" << nextWin << Util::getWindowTitle(nextWin) << Util::getClassName(nextWin);
             Util::switchToWindow(nextWin, true);
             qInfo() << "(Alt+`)Switch to" << Util::getWindowTitle(nextWin) << Util::getClassName(nextWin);
+        } else {
+            qWarning() << "[Alt+`] rotateWindowInGroup returned null! order count:" << order.size();
         }
     } else if (key == Qt::Key_Up || key == Qt::Key_Down) {
         if (auto index = lv->currentIndex(); index.isValid()) {

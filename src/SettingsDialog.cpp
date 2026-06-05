@@ -351,6 +351,7 @@ void SettingsDialog::applySettings() {
 
     auto monitor = static_cast<DisplayMonitor>(m_monitorCombo->currentData().toInt());
     cfg().setDisplayMonitor(monitor);
+
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {

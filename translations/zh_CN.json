@@ -22,14 +22,16 @@
   "SystemTray": {
     "Check for Updates": "检查更新",
     "Settings": "设置",
+    "Restart as Administrator": "以管理员身份重新启动",
+    "Running as Administrator": "当前为管理员",
     "Start with Windows": "开机自启",
     "Display Monitor": "显示监视器",
     "Primary Monitor": "主显示器",
     "Mouse Monitor": "跟随鼠标",
     "Quit >": "退出 >",
     "auto Startup mode": "自动启动模式",
-    "ON √": "已开 √",
-    "OFF ×": "已关 ×",
+    "ON \u2713": "已开 \u2713",
+    "OFF \u00d7": "已关 \u00d7",
     "Action Failed": "操作失败",
     "Failed to change Startup mode": "更改自动启动模式失败",
     "Display Monitor Changed": "显示监视器已更改"

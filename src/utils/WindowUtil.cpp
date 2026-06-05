@@ -104,7 +104,7 @@ namespace Util {
             }
 
 #if 0
-            // fix `isWindowCloaked()`之后，以下代码无用
+            // fix isWindowCloaked()之后，以下代码无用
             // UWP handling (disabled since isWindowCloaked() handles it)
 #endif
 
