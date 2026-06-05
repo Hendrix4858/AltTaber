@@ -17,6 +17,7 @@
 #include "utils/SystemTray.h"
 #include "utils/LanguageManager.h"
 #include "utils/Logger.h"
+#include <shellapi.h>
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
@@ -37,6 +38,12 @@ int main(int argc, char* argv[]) {
     sysTray().show(); // show之后才能使用系统通知
     UpdateDialog::verifyUpdate(a); // 验证更新
     initLanguage();
+
+    if (cfg().getAlwaysRunAsAdmin() && !IsUserAnAdmin()) {
+        QString appPath = QApplication::applicationFilePath();
+        ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
+        return 0;
+    }
 
     // 默认情况下，会根据系统主题自动切换; 但是一旦自定义qss，自动切换就会失效; 只好固定为Dark/Light
     QApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);

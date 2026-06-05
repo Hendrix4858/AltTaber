@@ -188,6 +188,13 @@ void SettingsDialog::setupGeneralPage() {
         "QCheckBox::indicator { width: 16px; height: 16px; }"
     ).arg(TextColor.name()));
     layout->addWidget(m_startupCheck);
+
+    m_adminCheck = new QCheckBox(m_generalPage);
+    m_adminCheck->setStyleSheet(QString(
+        "QCheckBox { color: %1; font-size: 13px; spacing: 8px; }"
+        "QCheckBox::indicator { width: 16px; height: 16px; }"
+    ).arg(TextColor.name()));
+    layout->addWidget(m_adminCheck);
     layout->addStretch();
     m_stackedWidget->addWidget(m_generalPage);
 }
@@ -285,6 +292,7 @@ void SettingsDialog::retranslateUi() {
     if (idx >= 0) m_langCombo->setCurrentIndex(idx);
 
     m_startupCheck->setText(tr("Start with Windows"));
+    m_adminCheck->setText(tr("Always run as administrator"));
 
     auto displayGroup = m_displayPage->findChild<QGroupBox*>("displayGroup");
     if (displayGroup) {
@@ -339,6 +347,8 @@ void SettingsDialog::loadSettings() {
 
     m_startupCheck->setChecked(Startup::isOn());
 
+    m_adminCheck->setChecked(cfg().getAlwaysRunAsAdmin());
+
     idx = m_monitorCombo->findData(cfg().getDisplayMonitor());
     if (idx >= 0) m_monitorCombo->setCurrentIndex(idx);
 
@@ -356,6 +366,8 @@ void SettingsDialog::applySettings() {
     bool startup = m_startupCheck->isChecked();
     if (startup != Startup::isOn())
         Startup::toggle();
+
+    cfg().setAlwaysRunAsAdmin(m_adminCheck->isChecked());
 
     auto monitor = static_cast<DisplayMonitor>(m_monitorCombo->currentData().toInt());
     cfg().setDisplayMonitor(monitor);

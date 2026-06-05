@@ -46,6 +46,14 @@ public:
         set("Language", lang);
     }
 
+    bool getAlwaysRunAsAdmin() {
+        return get("AlwaysRunAsAdmin", false).toBool();
+    }
+
+    void setAlwaysRunAsAdmin(bool enabled) {
+        set("AlwaysRunAsAdmin", enabled);
+    }
+
 private:
     explicit ConfigManager(const QString& filename) : ConfigManagerBase(filename) {}
 };

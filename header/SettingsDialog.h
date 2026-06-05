@@ -39,6 +39,7 @@ private:
 
     QComboBox* m_langCombo;
     QCheckBox* m_startupCheck;
+    QCheckBox* m_adminCheck;
     QComboBox* m_monitorCombo;
     QLabel* m_aboutDesc;
     QLabel* m_titleLabel;
