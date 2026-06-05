@@ -15,7 +15,6 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             if (isAltPressed && s_instance) {
                 if (pKeyBoard->vkCode == VK_TAB) {
-                    qInfo() << "Alt+Tab detected!";
                     if (s_ownerHwnd != GetForegroundWindow()) {
                         emit s_instance->requestShow();
                     } else {
@@ -24,7 +23,6 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     }
                     return 1;
                 } else if (pKeyBoard->vkCode == VK_OEM_3) {
-                    qDebug() << "Alt+` detected!";
                     auto shiftModifier = Util::isKeyPressed(VK_SHIFT) ? Qt::ShiftModifier : Qt::NoModifier;
                     emit s_instance->altGravePressed(shiftModifier);
                     return 1;
@@ -33,7 +31,6 @@ LRESULT keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         } else if (wParam == WM_KEYUP) {
             auto* pKeyBoard = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
             if (pKeyBoard->vkCode == VK_LMENU && s_instance) {
-                qInfo() << "Alt released!";
                 emit s_instance->altReleased();
             }
         }

@@ -45,8 +45,6 @@ namespace Util {
                 desc = QString::fromWCharArray(pValue);
             else
                 qWarning() << "No FileDescription, fallback to file name:" << desc;
-        } else {
-            qWarning() << "SHCreateItemFromParsingName() failed";
         }
         return desc;
     }

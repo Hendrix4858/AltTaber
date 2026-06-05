@@ -94,7 +94,9 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/LanguageManager.h
         src/utils/LanguageManager.cpp
         header/utils/JsonTranslator.h
-        src/utils/JsonTranslator.cpp)
+        src/utils/JsonTranslator.cpp
+        header/utils/Logger.h
+        src/utils/Logger.cpp)
 target_link_libraries(Win_Switcher
         Qt::Core
         Qt::Gui
@@ -116,7 +118,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         QT_DEPRECATED_WARNINGS
         UNICODE # for Windows API，使用W版本
         _UNICODE # for C/C++ 标准库
-         $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT;QT_NO_INFO_OUTPUT>
 )
 
 if (MSVC)

@@ -65,9 +65,6 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
         if (focusWindow == nullptr) {
             if (!this->underMouse()) // hide when lost focus & mouse outside (means user choose to)
                 hide();
-            else { // Windows Terminal will do
-                qWarning() << "Someone tried to steal focus!";
-            }
         }
     });
 }
@@ -238,7 +235,6 @@ bool Widget::prepareListWidget() {
             screen = QApplication::primaryScreen();
         }
         if (!screen) {
-            qWarning() << "Screen nullptr!";
             sysTray().showMessage("Error", "Screen nullptr!");
             return false;
         }
@@ -385,10 +381,8 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
         // TODO 有可能a进程开启b进程之后，a就关闭了，他俩也没有真的父子关系
         //  例如：ksolaunch.exe -> wps.exe
         //  此时只能通过File Description来匹配，均为“WPS Office”
-        if (tbOrder.isEmpty()) { // 无力回天
-            qCritical() << "もうおしまいだ！";
+        if (tbOrder.isEmpty()) // 无力回天
             return;
-        }
     }
 
     HWND hwnd = nullptr;

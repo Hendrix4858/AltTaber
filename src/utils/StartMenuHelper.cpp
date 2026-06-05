@@ -30,8 +30,7 @@ namespace AppUtil {
                     if (SUCCEEDED(hr_path) && SUCCEEDED(hr_name)) {
                         name = QString::fromWCharArray(_displayName);
                         relPath = QString::fromWCharArray(_relativePath);
-                    } else
-                        qWarning() << "Failed to get display name or relPath.";
+                    }
 
                     CComPtr<IPropertyStore> store;
                     hr = pChildItem->BindToHandler(nullptr, BHID_PropertyStore, IID_PPV_ARGS(&store));
@@ -46,8 +45,7 @@ namespace AppUtil {
                             exePath = AppUtil::getUwpExePathByAUMID(relPath);
                         }
                         PropVariantClear(&var);
-                    } else
-                        qWarning() << "Failed to get property store.";
+                    }
 
                     appList.append({name, relPath, exePath});
 

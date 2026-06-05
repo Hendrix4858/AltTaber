@@ -68,8 +68,6 @@ namespace Util {
         WCHAR packageFullName[PACKAGE_FULL_NAME_MAX_LENGTH + 1] = {0};
         UINT32 length = _countof(packageFullName);
         if (auto result = GetPackageFullName(hProcess, &length, packageFullName); result != ERROR_SUCCESS) {
-            if (result == ERROR_INSUFFICIENT_BUFFER)
-                qWarning() << "Buffer too small for packageFullName";
             CloseHandle(hProcess);
             return {};
         }

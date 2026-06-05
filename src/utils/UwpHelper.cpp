@@ -98,8 +98,6 @@ namespace AppUtil {
             qDebug() << "Found matching file:" << matchingFiles.first();
             QString logoFile = dir.absoluteFilePath(matchingFiles.first());
             return QIcon(logoFile);
-        } else {
-            qWarning() << "No matching files found!";
         }
         return {};
     }
@@ -181,16 +179,12 @@ namespace AppUtil {
         QString exe;
 
         QFile file(manifestPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Failed to open AppxManifest.xml";
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return exe;
-        }
 
         QDomDocument doc;
-        if (!doc.setContent(&file)) {
-            qWarning() << "Failed to parse XML content";
+        if (!doc.setContent(&file))
             return exe;
-        }
         file.close();
 
         QDomElement root = doc.documentElement();

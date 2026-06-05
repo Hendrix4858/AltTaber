@@ -15,10 +15,8 @@ void CALLBACK WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd, 
 }
 
 bool setWinEventHook(WinEventCallback _callback) {
-    if (handler) {
-        qWarning() << "WinEventHook already set. Unhook first.";
+    if (handler)
         return false;
-    }
 
     ::callback = std::move(_callback);
 

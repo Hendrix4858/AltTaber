@@ -49,7 +49,6 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
                 QDesktopServices::openUrl(QUrl::fromLocalFile(batPath));
                 qApp->quit();
             } else {
-                qWarning() << "Extract failed";
                 ui->textBrowser->setMarkdown("## Extract failed");
             }
         } else {

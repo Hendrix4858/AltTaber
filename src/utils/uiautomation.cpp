@@ -20,10 +20,8 @@ bool UIAutomation::init() {
 /// based on physical cursor position
 UIElement UIAutomation::getElementUnderMouse() {
     if (!pAutomation) {
-        if (!init()) {
-            qWarning() << "Failed to initialize UIAutomation.";
+        if (!init())
             return {};
-        }
     }
 
     POINT pt;

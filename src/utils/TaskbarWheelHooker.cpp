@@ -60,7 +60,6 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
                 h_mouse = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
                 if (h_mouse == nullptr)
                     qCritical() << "Failed to install h_mouse";
-                qDebug() << "#Enter Taskbar" << QTime::currentTime();
             } else {
                 UnhookWindowsHookEx(h_mouse);
                 h_mouse = nullptr;

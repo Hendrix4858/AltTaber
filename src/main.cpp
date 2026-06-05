@@ -16,9 +16,11 @@
 #include "utils/SingleApp.h"
 #include "utils/SystemTray.h"
 #include "utils/LanguageManager.h"
+#include "utils/Logger.h"
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
+    Util::Logger::init();
     SingleApp singleApp("AltTaber-MrBeanCpp");
     if (singleApp.isRunning()) {
         qWarning() << "Another instance is running! Exit";
@@ -46,6 +48,7 @@ int main(int argc, char* argv[]) {
 
     QObject::connect(&a, &QApplication::aboutToQuit, []() {
         unhookWinEvent();
+        Util::Logger::shutdown();
     });
 
     KeyboardHooker kbHooker((HWND) winSwitcher->winId());
