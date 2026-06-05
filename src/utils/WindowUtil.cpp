@@ -5,8 +5,25 @@
 #include "utils/MiscUtil.h"
 #include "utils/ProcessUtil.h"
 #include "utils/AppUtil.h"
+#include "utils/ConfigManager.h"
 
 namespace Util {
+    static bool isBlockedByUser(HWND hwnd) {
+        auto blocked = cfg().getBlockedWindows();
+        if (blocked.isEmpty()) return false;
+
+        QString title = getWindowTitle(hwnd);
+        QString className = getClassName(hwnd);
+
+        for (const auto& entry : blocked) {
+            bool titleMatch = entry.title.isEmpty() || title.contains(entry.title, Qt::CaseInsensitive);
+            bool classMatch = entry.className.isEmpty() || className.contains(entry.className, Qt::CaseInsensitive);
+            if (titleMatch && classMatch)
+                return true;
+        }
+        return false;
+    }
+
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
         static const QStringList BlackList_ClassName = {
             "Progman",
@@ -34,6 +51,7 @@ namespace Util {
             && (className = getClassName(hwnd)).size() > 0
             && !BlackList_ClassName.contains(className)
             && !className.startsWith("imestatuspop_classname{")
+            && !isBlockedByUser(hwnd)
         ) {
             auto path = getWindowProcessPath(hwnd);
             if (!BlackList_ExePath.contains(path) && !BlackList_FileName.contains(QFileInfo(path).fileName()))

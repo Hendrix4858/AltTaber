@@ -3,12 +3,16 @@
 #include "utils/uiautomation.h"
 #include "utils/AppUtil.h"
 #include "utils/Util.h"
+#include "utils/ConfigManager.h"
 #include <QTime>
 
 namespace { TaskbarWheelHooker* s_instance = nullptr; }
 
 LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION && wParam == WM_MOUSEWHEEL) {
+        if (cfg().getPaused())
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+
         auto* data = (MSLLHOOKSTRUCT*) lParam;
         HWND topLevelHwnd = Util::topWindowFromPoint(data->pt);
         if (Util::isTaskbarWindow(topLevelHwnd)) {

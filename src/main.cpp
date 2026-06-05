@@ -17,6 +17,7 @@
 #include "utils/SystemTray.h"
 #include "utils/LanguageManager.h"
 #include "utils/Logger.h"
+#include "utils/ThemeManager.h"
 #include <shellapi.h>
 
 int main(int argc, char* argv[]) {

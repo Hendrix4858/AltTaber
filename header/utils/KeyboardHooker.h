@@ -19,6 +19,10 @@ signals:
 
 private:
     HHOOK h_keyboard = nullptr;
+    bool m_altDown = false;
+    HWND m_ownerHwnd = nullptr;
+
+    friend LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 };
 
 #endif //WIN_SWITCHER_KEYBOARDHOOKER_H

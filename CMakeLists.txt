@@ -97,7 +97,8 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/JsonTranslator.h
         src/utils/JsonTranslator.cpp
         header/utils/Logger.h
-        src/utils/Logger.cpp)
+        src/utils/Logger.cpp
+        header/utils/ThemeManager.h)
 target_link_libraries(Win_Switcher
         Qt::Core
         Qt::Gui

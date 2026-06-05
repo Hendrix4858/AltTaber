@@ -56,6 +56,10 @@ private:
     void showLabelForItem(const QModelIndex& index, QString text = QString());
     void setupLabelFont();
 
+    void enterGroupWindowMode();
+    void exitGroupWindowMode(bool activateSelected);
+    void recalculateGeometry(QScreen* screen = nullptr);
+
 private:
     Ui::Widget* ui;
     QListView* lv = nullptr;
@@ -71,6 +75,11 @@ private:
     // Letter jump state
     QChar m_jumpLastLetter;
     int m_jumpLastIndex = -1;
+
+    // Alt+` window focus mode state
+    bool m_isInGroupWindowMode = false;
+    QList<WindowGroup> m_backupGroupList;
+    int m_backupGroupIndex = 0;
 
     // rotateTaskbarWindowInGroup state (replaces static locals)
     QString lastTaskbarPath;

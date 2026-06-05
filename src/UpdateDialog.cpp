@@ -11,6 +11,7 @@
 #include <QDesktopServices>
 #include <QDir>
 #include "utils/SystemTray.h"
+#include "utils/ThemeManager.h"
 #include <QProcess>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
@@ -18,6 +19,10 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     setWindowFlag(Qt::WindowStaysOnTopHint);
     setWindowTitle("AltTaber Updater[GitHub]");
     qDebug() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::supportsSsl();
+
+    applyThemeStyle();
+
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, &UpdateDialog::applyThemeStyle);
 
     manager.setTransferTimeout(10000); // 10s -> Operation canceled
     ui->progressBar->hide();
@@ -62,6 +67,30 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
 UpdateDialog::~UpdateDialog() {
     delete ui;
     qDebug() << "UpdateDialog destroyed";
+}
+
+void UpdateDialog::applyThemeStyle() {
+    const auto& c = ThemeManager::current();
+    setStyleSheet(QString("QDialog { background-color: %1; color: %2; }")
+                  .arg(c.bgColor.name(), c.textColor.name()));
+    ui->textBrowser->setStyleSheet(QString(
+        "QTextBrowser {"
+        "  font: 10pt \"Microsoft YaHei\";"
+        "  padding: 5px; border-radius: 5px;"
+        "  background-color: %1; color: %2;"
+        "}"
+    ).arg(c.updateBg.name(), c.updateText.name()));
+    ui->label_newVer->setStyleSheet(QString("color: %1;").arg(c.textColor.name()));
+    ui->label_ver->setStyleSheet(QString("color: %1;").arg(c.disabledText.name()));
+    const QString btnStyle = QString(
+        "QPushButton { padding: 4px 16px; border: 1px solid %1; border-radius: 4px;"
+        "  background-color: %2; color: %3; }"
+        "QPushButton:hover { background-color: %4; }"
+        "QPushButton:disabled { color: %5; }"
+    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(),
+          c.highlightColor.name(), c.disabledText.name());
+    ui->btn_recheck->setStyleSheet(btnStyle);
+    ui->btn_update->setStyleSheet(btnStyle);
 }
 
 void UpdateDialog::fetchGithubReleaseInfo() {

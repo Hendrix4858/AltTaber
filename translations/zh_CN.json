@@ -5,6 +5,7 @@
     "General": "常规",
     "Display": "显示",
     "Hotkeys": "快捷键",
+    "Blocked Windows": "屏蔽窗口",
     "About": "关于",
     "OK": "确定",
     "Cancel": "取消",
@@ -18,8 +19,21 @@
     "Display Monitor:": "显示监视器:",
     "Primary Monitor": "主显示器",
     "Mouse Monitor": "跟随鼠标",
+    "Theme:": "主题:",
+    "Dark": "深色",
+    "Light": "浅色",
+    "Min Icon Size:": "最小图标尺寸:",
     "Letter Jump": "字母跳转",
     "Enable letter jump (A-Z)": "启用字母跳转 (A-Z)",
+    "Blocked Windows": "屏蔽窗口",
+    "Window Title": "窗口标题",
+    "Class Name": "类名",
+    "Add": "添加",
+    "Remove": "删除",
+    "Add Blocked Window": "添加屏蔽窗口",
+    "Window Title (leave empty to match any):": "窗口标题（留空则匹配任意）:",
+    "Class Name (leave empty to match any):": "类名（留空则匹配任意）:",
+    "At least one of Title or Class Name must be filled.": "标题和类名至少填写一项。",
 
     "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>"
   },
@@ -29,6 +43,8 @@
     "Restart as Administrator": "以管理员身份重新启动",
     "Running as Administrator": "当前为管理员",
     "Start with Windows": "开机自启",
+    "Pause": "暂停",
+    "Resume": "恢复",
     "Display Monitor": "显示监视器",
     "Primary Monitor": "主显示器",
     "Mouse Monitor": "跟随鼠标",
@@ -38,6 +54,10 @@
     "OFF \u00d7": "已关 \u00d7",
     "Action Failed": "操作失败",
     "Failed to change Startup mode": "更改自动启动模式失败",
-    "Display Monitor Changed": "显示监视器已更改"
+    "Display Monitor Changed": "显示监视器已更改",
+    "AltTaber Paused": "AltTaber 已暂停",
+    "AltTaber Resumed": "AltTaber 已恢复",
+    "Switcher is paused": "切换器已暂停",
+    "Switcher is active": "切换器已激活"
   }
 }

@@ -24,6 +24,7 @@ public:
     static void verifyUpdate(const QCoreApplication& app);
 
 private:
+    void applyThemeStyle();
     void fetchGithubReleaseInfo();
     void download(const QString& url, const QString& savePath);
     QString writeBat(const QString& sourceDir, const QString& targetDir = qApp->applicationDirPath()) const;

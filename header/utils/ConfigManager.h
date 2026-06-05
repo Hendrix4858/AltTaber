@@ -6,9 +6,14 @@
 #include "ConfigManagerBase.h"
 
 enum DisplayMonitor {
-    PrimaryMonitor, // 0 主显示器
-    MouseMonitor, // 1 跟随鼠标
-    EnumCount // Just for count
+    PrimaryMonitor,
+    MouseMonitor,
+    EnumCount
+};
+
+struct BlockedWindowEntry {
+    QString title;
+    QString className;
 };
 
 class ConfigManager : public ConfigManagerBase {
@@ -20,7 +25,7 @@ public:
 
     static ConfigManager& instance() {
         static const auto filePath = QApplication::applicationDirPath() + "/" + FileName;
-        static ConfigManager instance{filePath}; // multiple threads safe
+        static ConfigManager instance{filePath};
         return instance;
     }
 
@@ -60,6 +65,52 @@ public:
 
     void setLetterJumpEnabled(bool enabled) {
         set("LetterJumpEnabled", enabled);
+    }
+
+    int getTheme() {
+        return get("Theme", 0).toInt();
+    }
+
+    void setTheme(int theme) {
+        set("Theme", theme);
+    }
+
+    bool getPaused() {
+        return get("Paused", false).toBool();
+    }
+
+    void setPaused(bool paused) {
+        set("Paused", paused);
+    }
+
+    int getMinIconSize() {
+        return get("MinIconSize", 32).toInt();
+    }
+
+    void setMinIconSize(int size) {
+        set("MinIconSize", size);
+    }
+
+    QList<BlockedWindowEntry> getBlockedWindows() {
+        QList<BlockedWindowEntry> list;
+        int count = get("BlockedWindows/count", 0).toInt();
+        for (int i = 0; i < count; ++i) {
+            BlockedWindowEntry entry;
+            entry.title = get(QString("BlockedWindows/%1_title").arg(i), "").toString();
+            entry.className = get(QString("BlockedWindows/%1_class").arg(i), "").toString();
+            if (!entry.title.isEmpty() || !entry.className.isEmpty())
+                list.append(entry);
+        }
+        return list;
+    }
+
+    void setBlockedWindows(const QList<BlockedWindowEntry>& list) {
+        remove("BlockedWindows");
+        set("BlockedWindows/count", list.size());
+        for (int i = 0; i < list.size(); ++i) {
+            set(QString("BlockedWindows/%1_title").arg(i), list[i].title);
+            set(QString("BlockedWindows/%1_class").arg(i), list[i].className);
+        }
     }
 
 private:

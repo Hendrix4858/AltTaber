@@ -15,6 +15,7 @@
 #include <QMetaEnum>
 #include "utils/SystemTray.h"
 #include "utils/ConfigManager.h"
+#include "utils/ThemeManager.h"
 
 Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui::Widget), m_wm(wm) {
     ui->setupUi(this);
@@ -63,8 +64,12 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
 
     connect(qApp, &QApplication::focusWindowChanged, this, [this](QWindow* focusWindow) {
         if (focusWindow == nullptr) {
-            if (!this->underMouse()) // hide when lost focus & mouse outside (means user choose to)
+            if (!this->underMouse()) {
+                m_isInGroupWindowMode = false;
+                m_backupGroupList.clear();
+                m_backupGroupIndex = 0;
                 hide();
+            }
         }
     });
 }
@@ -76,40 +81,37 @@ Widget::~Widget() {
 void Widget::keyPressEvent(QKeyEvent* event) {
     auto key = event->key();
     auto modifiers = event->modifiers();
-    if (key == Qt::Key_Tab) { // switch to next or prev
+    if (key == Qt::Key_Tab) {
+        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
+            exitGroupWindowMode(false);
+            return;
+        }
+        // switch to next or prev
         auto i = lv->currentIndex().row();
         bool isShiftPressed = (modifiers & Qt::ShiftModifier);
         auto count = m_model->groupCount();
         auto index = (i - (2 * isShiftPressed - 1) + count) % count;
         lv->setCurrentIndex(m_model->index(index));
-    } else if (key == Qt::Key_QuoteLeft && (modifiers & Qt::AltModifier)) { // Alt + `, 在前台窗口同组窗口内切换
-        qDebug() << "[Alt+`] keyPressEvent triggered, isVisible:" << this->isVisible() << "isMinimized:" << this->isMinimized();
+    } else if (key == Qt::Key_QuoteLeft && (modifiers & Qt::AltModifier)) { // Alt + `
         if (this->isVisible() && !this->isMinimized()) {
-            // isVisible() == true if minimized
-            // 不使用`isForeground()`，即使`bringWindowToTop`(without active)，少数窗口也可能抢夺焦点，如`CAJViewer`
-            qDebug() << "[Alt+`] Switcher is visible, hiding and returning";
-            hide();
+            if (m_isInGroupWindowMode) {
+                auto count = m_model->groupCount();
+                auto next = (lv->currentIndex().row() + 1) % count;
+                lv->setCurrentIndex(m_model->index(next));
+            } else {
+                enterGroupWindowMode();
+            }
             return;
         }
+        // Switcher not visible: cycle foreground app windows directly
         auto foreWin = GetForegroundWindow();
-        qDebug() << "[Alt+`] Foreground window:" << foreWin << Util::getWindowTitle(foreWin) << Util::getClassName(foreWin);
         auto& order = m_wm->groupWindowOrder();
-        qDebug() << "[Alt+`] Existing order count:" << order.size();
         if (order.isEmpty()) {
             auto targetExe = Util::getWindowProcessPath(foreWin);
-            qDebug() << "[Alt+`] Building order for exe:" << targetExe;
             order = m_wm->buildGroupWindowOrder(targetExe);
-            qDebug() << "[Alt+`] Built order count:" << order.size();
-            for (auto h : order) {
-                qDebug() << "[Alt+`]   -" << h << Util::getWindowTitle(h) << Util::getClassName(h);
-            }
         }
         if (auto nextWin = WindowManager::rotateWindowInGroup(order, foreWin, !(modifiers & Qt::ShiftModifier))) {
-            qDebug() << "[Alt+`] Next window:" << nextWin << Util::getWindowTitle(nextWin) << Util::getClassName(nextWin);
             Util::switchToWindow(nextWin, true);
-            qInfo() << "(Alt+`)Switch to" << Util::getWindowTitle(nextWin) << Util::getClassName(nextWin);
-        } else {
-            qWarning() << "[Alt+`] rotateWindowInGroup returned null! order count:" << order.size();
         }
     } else if (key == Qt::Key_Up || key == Qt::Key_Down) {
         if (auto index = lv->currentIndex(); index.isValid()) {
@@ -165,8 +167,15 @@ void Widget::showLabelForItem(const QModelIndex& index, QString text) {
     if (!index.isValid()) return;
 
     if (text.isNull()) {
-        auto path = m_model->groupAt(index.row()).exePath;
-        text = Util::getFileDescription(path);
+        if (m_isInGroupWindowMode) {
+            auto& group = m_model->groupAt(index.row());
+            if (!group.windows.isEmpty())
+                text = group.windows.first().title;
+        }
+        if (text.isNull()) {
+            auto path = m_model->groupAt(index.row()).exePath;
+            text = Util::getFileDescription(path);
+        }
     }
     ui->label->setText(text);
     ui->label->adjustSize();
@@ -203,33 +212,145 @@ void Widget::setupLabelFont() {
     });
 }
 
+void Widget::recalculateGeometry(QScreen* screen) {
+    if (!screen) {
+        screen = this->screen();
+        if (!screen) screen = QGuiApplication::primaryScreen();
+    }
+    if (!screen) return;
+
+    auto screenGeo = screen->geometry();
+    int maxWidth = screenGeo.width() - ListWidgetMargin.left() - ListWidgetMargin.right();
+    int iconSize = lv->iconSize().width();
+    int gridWidth = lv->gridSize().width();
+    int totalNeeded = gridWidth * m_model->groupCount();
+    int minIcon = cfg().getMinIconSize();
+
+    if (totalNeeded > maxWidth) {
+        int newGridWidth = maxWidth / m_model->groupCount();
+        int padding = gridWidth - iconSize;
+        int newIconSize = qMax(minIcon, newGridWidth - padding);
+        int finalGridWidth = newIconSize + padding;
+
+        lv->setIconSize({newIconSize, newIconSize});
+        lv->setGridSize({finalGridWidth, lv->gridSize().height()});
+    } else {
+        lv->setIconSize({64, 64});
+        lv->setGridSize({80, 80});
+    }
+
+    auto firstIndex = m_model->index(0);
+    auto firstRect = lv->visualRect(firstIndex);
+    auto width = lv->gridSize().width() * m_model->groupCount() + (firstRect.x() - lv->frameWidth());
+    lv->setFixedWidth(width);
+
+    auto lvRect = lv->rect();
+    auto thisRect = lvRect.marginsAdded(ListWidgetMargin);
+    thisRect.moveCenter(screenGeo.center());
+
+    this->setGeometry(thisRect);
+
+    lvRect.moveCenter(this->rect().center());
+    lv->move(lvRect.topLeft());
+}
+
+void Widget::enterGroupWindowMode() {
+    auto index = lv->currentIndex();
+    if (!index.isValid()) return;
+
+    auto group = m_model->groupAt(index.row());
+    if (group.windows.size() <= 1) return;
+
+    m_backupGroupList = m_model->groups();
+    m_backupGroupIndex = index.row();
+
+    QList<WindowGroup> filtered;
+    for (const auto& win : group.windows) {
+        WindowGroup g;
+        g.exePath = group.exePath;
+        g.icon = group.icon;
+        g.addWindow(win);
+        filtered.append(g);
+    }
+
+    m_model->setGroups(filtered);
+    m_isInGroupWindowMode = true;
+
+    recalculateGeometry();
+    lv->setCurrentIndex(m_model->index(0));
+    showLabelForItem(m_model->index(0), group.windows.first().title);
+    qInfo() << "(Alt+`)Window focus:" << group.exePath << filtered.size() << "windows";
+}
+
+void Widget::exitGroupWindowMode(bool activateSelected) {
+    if (!m_isInGroupWindowMode) return;
+    m_isInGroupWindowMode = false;
+
+    if (activateSelected && this->isVisible()) {
+        if (auto index = lv->currentIndex(); index.isValid()) {
+            if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                Util::switchToWindow(group.windows.first().hwnd, true);
+            }
+        }
+        hide();
+    }
+
+    m_model->setGroups(m_backupGroupList);
+    m_backupGroupList.clear();
+
+    recalculateGeometry();
+    int restoreIndex = qMin(m_backupGroupIndex, m_model->groupCount() - 1);
+    lv->setCurrentIndex(m_model->index(restoreIndex));
+    showLabelForItem(m_model->index(restoreIndex));
+    m_backupGroupIndex = 0;
+
+    qInfo() << "(Alt+`)Exit window focus mode";
+}
+
 void Widget::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt) {
         m_jumpLastLetter = {};
         m_jumpLastIndex = -1;
         m_wm->clearGroupWindowOrder(); // for Alt + `
         if (this->isVisible()) {
-            // active selected window
-            if (auto index = lv->currentIndex(); index.isValid()) {
-                if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                    WindowInfo targetWin = group.windows.at(0);
-                    if (targetWin.hwnd) {
-                        Util::switchToWindow(targetWin.hwnd);
-                        qInfo() << "Switch to" << targetWin << group.exePath;
+            if (m_isInGroupWindowMode) {
+                // Window focus mode: get selected window before restoring model
+                HWND targetHwnd = nullptr;
+                QString targetExe;
+                if (auto index = lv->currentIndex(); index.isValid()) {
+                    if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                        targetHwnd = group.windows.first().hwnd;
+                        targetExe = group.exePath;
+                    }
+                }
+                exitGroupWindowMode(false); // restore full list
+                if (targetHwnd) {
+                    Util::switchToWindow(targetHwnd);
+                    qInfo() << "Switch to" << WindowInfo{{}, {}, targetHwnd} << targetExe;
+                }
+            } else {
+                // active selected window
+                if (auto index = lv->currentIndex(); index.isValid()) {
+                    if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                        WindowInfo targetWin = group.windows.at(0);
+                        if (targetWin.hwnd) {
+                            Util::switchToWindow(targetWin.hwnd);
+                            qInfo() << "Switch to" << targetWin << group.exePath;
+                        }
                     }
                 }
             }
-            hide(); //! must hide after active target window, or focus may fallback to prev foreground window (like 网易云音乐)
+            hide(); //! must hide after active target window, or focus may fallback to prev foreground window
         }
     }
     QWidget::keyReleaseEvent(event);
 }
 
-void Widget::paintEvent(QPaintEvent*) { //不绘制会导致鼠标穿透背景
+void Widget::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(Qt::NoPen); //取消边框//pen决定边框颜色
-    painter.setBrush(QColor(25, 25, 25, 100));
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(ThemeManager::current().widgetBg);
     painter.drawRect(rect());
 }
 
@@ -245,22 +366,19 @@ void Widget::notifyForegroundChanged(HWND hwnd) {
 bool Widget::prepareListWidget() {
     m_jumpLastLetter = {};
     m_jumpLastIndex = -1;
+    m_isInGroupWindowMode = false;
+    m_backupGroupList.clear();
+    m_backupGroupIndex = 0;
     auto winGroupList = m_wm->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 
     // calculate Geometry
     if (m_model->groupCount() > 0) {
-        auto firstIndex = m_model->index(0);
-        auto firstRect = lv->visualRect(firstIndex);
-        auto width = lv->gridSize().width() * m_model->groupCount() + (firstRect.x() - lv->frameWidth());
-        lv->setFixedWidth(width);
-
-        // get screen
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
         auto screen = displayOnPrimary ?
                       QGuiApplication::primaryScreen() :
-                      QGuiApplication::screenAt(QCursor::pos()); // multi-screen support
-        if (!screen && !displayOnPrimary) { // fallback to primary screen
+                      QGuiApplication::screenAt(QCursor::pos());
+        if (!screen && !displayOnPrimary) {
             qWarning() << "Cursor Screen nullptr! Fallback to primary";
             screen = QApplication::primaryScreen();
         }
@@ -268,17 +386,7 @@ bool Widget::prepareListWidget() {
             sysTray().showMessage("Error", "Screen nullptr!");
             return false;
         }
-
-        // move to scrren center
-        qDebug() << "Screen:" << screen->name();
-        auto lvRect = lv->rect();
-        auto thisRect = lvRect.marginsAdded(ListWidgetMargin);
-        thisRect.moveCenter(screen->geometry().center());
-
-        this->setGeometry(thisRect);
-
-        lvRect.moveCenter(this->rect().center()); // local pos
-        lv->move(lvRect.topLeft());
+        recalculateGeometry(screen);
     } else {
         // no item, hide ? TODO
         return false;
