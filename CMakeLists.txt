@@ -91,6 +91,7 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/ScheduledTask.h
         header/SettingsDialog.h
         src/SettingsDialog.cpp
+        ui/SettingsDialog.ui
         header/utils/LanguageManager.h
         src/utils/LanguageManager.cpp
         header/utils/JsonTranslator.h

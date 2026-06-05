@@ -2,13 +2,13 @@
 #define WIN_SWITCHER_SETTINGSDIALOG_H
 
 #include <QDialog>
-#include <QListWidget>
-#include <QStackedWidget>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QPushButton>
-#include <QLabel>
+#include <QEvent>
+
+QT_BEGIN_NAMESPACE
+namespace Ui {
+    class SettingsDialog;
+}
+QT_END_NAMESPACE
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
@@ -20,38 +20,13 @@ protected:
     void changeEvent(QEvent* event) override;
 
 private:
-    void setupUi();
     void retranslateUi();
-    void setupGeneralPage();
-    void setupDisplayPage();
-    void setupHotkeyPage();
-    void setupAboutPage();
     void filterPages(const QString& text);
     void loadSettings();
     void applySettings();
+    void applyStyleSheet();
 
-    QLineEdit* m_searchEdit;
-    QListWidget* m_navList;
-    QStackedWidget* m_stackedWidget;
-    QPushButton* m_btnOk;
-    QPushButton* m_btnCancel;
-    QPushButton* m_btnApply;
-
-    QComboBox* m_langCombo;
-    QCheckBox* m_startupCheck;
-    QCheckBox* m_adminCheck;
-    QComboBox* m_monitorCombo;
-    QLabel* m_aboutDesc;
-    QLabel* m_titleLabel;
-    QWidget* m_generalPage;
-    QWidget* m_displayPage;
-    QWidget* m_hotkeyPage;
-    QWidget* m_aboutPage;
-
-    struct NavItem {
-        int pageIndex;
-    };
-    QList<NavItem> m_navItems;
+    Ui::SettingsDialog* ui;
     bool m_loadingSettings = false;
 };
 
