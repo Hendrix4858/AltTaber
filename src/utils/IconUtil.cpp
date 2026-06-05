@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include "utils/QtWin.h"
 #include "utils/AppUtil.h"
+#include "utils/WindowUtil.h"
 #include <ShObjIdl_core.h>
 #include <commoncontrols.h>
 #include <atlbase.h>
@@ -54,11 +55,32 @@ namespace Util {
     }
 
     QString getUwpInstallDirFromHwnd(HWND hwnd) {
-        if (AppUtil::isAppFrameWindow(hwnd))
-            hwnd = AppUtil::getAppCoreWindow(hwnd);
+        auto originalHwnd = hwnd;
+        HWND coreHwnd = nullptr;
+        DWORD pid = 0;
 
-        DWORD pid;
-        GetWindowThreadProcessId(hwnd, &pid);
+        if (AppUtil::isAppFrameWindow(hwnd))
+            coreHwnd = AppUtil::getAppCoreWindow(hwnd);
+
+        if (coreHwnd) {
+            GetWindowThreadProcessId(coreHwnd, &pid);
+        } else if (AppUtil::isAppFrameWindow(originalHwnd)) {
+            DWORD framePid = 0;
+            GetWindowThreadProcessId(originalHwnd, &framePid);
+            for (auto child : Util::enumChildWindows(originalHwnd)) {
+                DWORD childPid = 0;
+                GetWindowThreadProcessId(child, &childPid);
+                if (childPid != 0 && childPid != framePid) {
+                    pid = childPid;
+                    break;
+                }
+            }
+            if (!pid)
+                GetWindowThreadProcessId(originalHwnd, &pid);
+        } else {
+            GetWindowThreadProcessId(originalHwnd, &pid);
+        }
+
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
         if (!hProcess) {
             qWarning() << "OpenProcess failed" << GetLastError();

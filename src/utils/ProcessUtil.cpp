@@ -6,6 +6,7 @@
 #include <QApplication>
 #include "utils/AppUtil.h"
 #include "utils/MiscUtil.h"
+#include "utils/WindowUtil.h"
 
 namespace Util {
     bool isProcessElevated(HANDLE hProcess) {
@@ -64,13 +65,37 @@ namespace Util {
     }
 
     QString getWindowProcessPath(HWND hwnd) {
-        if (AppUtil::isAppFrameWindow(hwnd))
-            hwnd = AppUtil::getAppCoreWindow(hwnd);
-
+        auto originalHwnd = hwnd;
+        HWND coreHwnd = nullptr;
         DWORD pid = 0;
-        GetWindowThreadProcessId(hwnd, &pid);
-        if (pid)
-            return getProcessPath(pid);
+
+        if (AppUtil::isAppFrameWindow(hwnd))
+            coreHwnd = AppUtil::getAppCoreWindow(hwnd);
+
+        // Strategy 1: CoreWindow found — use its PID directly
+        if (coreHwnd) {
+            GetWindowThreadProcessId(coreHwnd, &pid);
+            if (pid) return getProcessPath(pid);
+        }
+
+        // Strategy 2: Enumerate child windows to find one from a different process
+        if (AppUtil::isAppFrameWindow(originalHwnd)) {
+            DWORD framePid = 0;
+            GetWindowThreadProcessId(originalHwnd, &framePid);
+            for (auto child : Util::enumChildWindows(originalHwnd)) {
+                DWORD childPid = 0;
+                GetWindowThreadProcessId(child, &childPid);
+                if (childPid != 0 && childPid != framePid) {
+                    auto childPath = getProcessPath(childPid);
+                    if (!childPath.isEmpty()) return childPath;
+                }
+            }
+        }
+
+        // Strategy 3: Fallback to original window's PID
+        GetWindowThreadProcessId(originalHwnd, &pid);
+        if (pid) return getProcessPath(pid);
+
         return {};
     }
 

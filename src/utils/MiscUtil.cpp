@@ -35,6 +35,7 @@ namespace Util {
     }
 
     QString getFileDescription(const QString& path) {
+        if (path.isEmpty()) return {};
         QString desc = QFileInfo(path).completeBaseName();
         CComPtr<IShellItem2> pItem;
         HRESULT hr = SHCreateItemFromParsingName(path.toStdWString().c_str(), nullptr, IID_PPV_ARGS(&pItem));
