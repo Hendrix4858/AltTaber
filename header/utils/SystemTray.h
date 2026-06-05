@@ -9,16 +9,29 @@
 #include "Startup.h"
 #include "ConfigManager.h"
 #include "UpdateDialog.h"
+#include "SettingsDialog.h"
 
 class SystemTray : public QSystemTrayIcon {
+    Q_OBJECT
 public:
     SystemTray(const SystemTray&) = delete;
     SystemTray& operator=(const SystemTray&) = delete;
 
     static SystemTray& instance() {
-        // 第一次调用时 才会构造
         static SystemTray instance;
         return instance;
+    }
+
+    void retranslateMenu() {
+        m_actUpdate->setText(tr("Check for Updates"));
+        m_actSettings->setText(tr("Settings"));
+        m_startupBaseText = tr("Start with Windows");
+        m_menuMonitor->setTitle(tr("Display Monitor"));
+        auto actions = m_monitorGroup->actions();
+        actions[PrimaryMonitor]->setText(tr("Primary Monitor"));
+        actions[MouseMonitor]->setText(tr("Mouse Monitor"));
+        m_actQuit->setText(tr("Quit >"));
+        updateStartupText();
     }
 
 private:
@@ -28,22 +41,30 @@ private:
         setToolTip(IsUserAnAdmin() ? "AltTaber (admin)" : "AltTaber");
     }
 
+    void updateStartupText() {
+        auto text = m_startupBaseText;
+        if (IsUserAnAdmin() && !Startup::isOn_reg())
+            text += QString::fromUtf8("\xF0\x9F\x94\x91");
+        m_actStartup->setText(text);
+    }
+
     void setMenu(QWidget* parent = nullptr) {
-        auto* menu = new QMenu(parent);
-        menu->setStyleSheet("QMenu{"
+        m_menu = new QMenu(parent);
+        m_menu->setStyleSheet("QMenu{"
             "background-color:rgb(45,45,45);"
             "color:rgb(220,220,220);"
             "border:1px solid black;"
             "}"
             "QMenu:selected{ background-color:rgb(60,60,60); }");
 
-        auto* act_update = new QAction("Check for Updates", menu);
-        auto* act_settings = new QAction("Settings", menu);
-        auto* act_startup = new QAction("Start with Windows", menu);
-        auto* menu_monitor = new QMenu("Display Monitor", menu);
-        auto* act_quit = new QAction("Quit >", menu);
+        m_actUpdate = new QAction(m_menu);
+        m_actSettings = new QAction(m_menu);
+        m_actStartup = new QAction(m_menu);
+        m_actStartup->setCheckable(true);
+        m_menuMonitor = new QMenu(m_menu);
+        m_actQuit = new QAction(m_menu);
 
-        connect(act_update, &QAction::triggered, this, [] {
+        connect(m_actUpdate, &QAction::triggered, this, [] {
             static UpdateDialog* dlg = nullptr;
             if (!dlg) {
                 dlg = new UpdateDialog;
@@ -55,71 +76,80 @@ private:
             dlg->activateWindow();
         });
 
-        connect(act_settings, &QAction::triggered, this, [] {
-            cfg().editConfigFile();
-        });
-        connect(&cfg(), &ConfigManager::configEdited, this, [this] {
-            this->showMessage("Config Edited", "auto reloaded");
+        connect(m_actSettings, &QAction::triggered, this, [] {
+            static SettingsDialog* dlg = nullptr;
+            if (!dlg) {
+                dlg = new SettingsDialog;
+                dlg->setAttribute(Qt::WA_DeleteOnClose);
+                QObject::connect(dlg, &QObject::destroyed, [] { dlg = nullptr; });
+            }
+            dlg->show();
+            dlg->raise();
+            dlg->activateWindow();
         });
 
-        act_startup->setCheckable(true);
-        // triggered vs toggled: setChecked() will emit `toggled`, but not `triggered` (which is pure user action)
-        connect(act_startup, &QAction::triggered, this, [this](bool checked) {
+        connect(m_actStartup, &QAction::triggered, this, [this](bool checked) {
             Startup::toggle();
             if (Startup::isOn() == checked)
-                this->showMessage("auto Startup mode", checked ? "ON √" : "OFF ×");
+                this->showMessage(tr("auto Startup mode"), checked ? tr("ON √") : tr("OFF ×"));
             else
-                this->showMessage("Action Failed", "Failed to change Startup mode", Warning);
-        });
-        // aboutToShow 时查询，反映真实状态
-        connect(menu, &QMenu::aboutToShow, act_startup, [act_startup] {
-            act_startup->setChecked(Startup::isOn()); // 10-30ms
-
-            static auto text = act_startup->text();
-            if (IsUserAnAdmin() && !Startup::isOn_reg())
-                act_startup->setText(text + "🔑️"); // 意味着接下来的操作需要管理员权限（操作schtask）
-            else
-                act_startup->setText(text);
+                this->showMessage(tr("Action Failed"), tr("Failed to change Startup mode"), Warning);
         });
 
-        // menu_monitor
+        connect(m_menu, &QMenu::aboutToShow, this, [this] {
+            m_actStartup->setChecked(Startup::isOn());
+            updateStartupText();
+        });
+
+        // Display Monitor submenu
         {
-            auto* monitorGroup = new QActionGroup(menu_monitor);
-            monitorGroup->addAction("Primary Monitor")->setData(PrimaryMonitor);
-            monitorGroup->addAction("Mouse Monitor")->setData(MouseMonitor);
+            m_monitorGroup = new QActionGroup(m_menuMonitor);
+            auto* actPrimary = m_monitorGroup->addAction(QString());
+            actPrimary->setData(PrimaryMonitor);
+            auto* actMouse = m_monitorGroup->addAction(QString());
+            actMouse->setData(MouseMonitor);
 
-            const auto actions = monitorGroup->actions();
-            for (auto* act: actions)
+            const auto actions = m_monitorGroup->actions();
+            for (auto* act : actions)
                 act->setCheckable(true);
 
             Q_ASSERT(actions.size() == DisplayMonitor::EnumCount);
-            menu_monitor->addActions(actions);
+            m_menuMonitor->addActions(actions);
 
-            // 动态响应配置文件修改
-            connect(menu_monitor, &QMenu::aboutToShow, this, [monitorGroup] {
-                qDebug() << "menu_monitor aboutToShow";
-                const auto actions = monitorGroup->actions();
+            connect(m_menuMonitor, &QMenu::aboutToShow, this, [this] {
+                const auto actions = m_monitorGroup->actions();
                 actions[cfg().getDisplayMonitor()]->setChecked(true);
             });
 
-            connect(monitorGroup, &QActionGroup::triggered, this, [this](QAction* act) {
+            connect(m_monitorGroup, &QActionGroup::triggered, this, [this](QAction* act) {
                 auto monitor = static_cast<DisplayMonitor>(act->data().toInt());
                 cfg().setDisplayMonitor(monitor);
-                this->showMessage("Display Monitor Changed", act->text());
+                this->showMessage(tr("Display Monitor Changed"), act->text());
             });
         }
 
-        connect(act_quit, &QAction::triggered, qApp, &QApplication::quit);
+        connect(m_actQuit, &QAction::triggered, qApp, &QApplication::quit);
 
-        menu->addAction(act_update);
-        menu->addAction(act_settings);
-        menu->addAction(act_startup);
-        menu->addMenu(menu_monitor);
-        menu->addAction(act_quit);
-        this->setContextMenu(menu);
+        m_menu->addAction(m_actUpdate);
+        m_menu->addAction(m_actSettings);
+        m_menu->addAction(m_actStartup);
+        m_menu->addMenu(m_menuMonitor);
+        m_menu->addAction(m_actQuit);
+        this->setContextMenu(m_menu);
+
+        retranslateMenu();
     }
+
+    QMenu* m_menu = nullptr;
+    QAction* m_actUpdate = nullptr;
+    QAction* m_actSettings = nullptr;
+    QAction* m_actStartup = nullptr;
+    QMenu* m_menuMonitor = nullptr;
+    QActionGroup* m_monitorGroup = nullptr;
+    QAction* m_actQuit = nullptr;
+    QString m_startupBaseText;
 };
 
 inline SystemTray& sysTray() { return SystemTray::instance(); }
 
-#endif //WIN_SWITCHER_SYSTEMTRAY_H
+#endif

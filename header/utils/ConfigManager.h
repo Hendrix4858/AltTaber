@@ -38,6 +38,14 @@ public:
         set("DisplayMonitor", monitor);
     }
 
+    QString getLanguage() {
+        return get("Language", "en").toString();
+    }
+
+    void setLanguage(const QString& lang) {
+        set("Language", lang);
+    }
+
 private:
     explicit ConfigManager(const QString& filename) : ConfigManagerBase(filename) {}
 };
