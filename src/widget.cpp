@@ -9,7 +9,6 @@
 #include "utils/setWindowBlur.h"
 #include "utils/IconOnlyDelegate.h"
 #include <QPainter>
-#include <QDateTime>
 #include "utils/QtWin.h"
 #include <QWheelEvent>
 #include <QTimer>
@@ -188,14 +187,7 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
             // active selected window
             if (auto index = lv->currentIndex(); index.isValid()) {
                 if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                    WindowInfo targetWin = group.windows.at(0); // TODO 需要排序（lastActiveWindow 被关闭情况下）
-                    const auto lastActive = m_wm->getLastActiveGroupWindow(group.exePath).first;
-                    for (auto& info: group.windows) {
-                        if (info.hwnd == lastActive) {
-                            targetWin = info;
-                            break;
-                        }
-                    }
+                    WindowInfo targetWin = group.windows.at(0);
                     if (targetWin.hwnd) {
                         Util::switchToWindow(targetWin.hwnd);
                         qInfo() << "Switch to" << targetWin << group.exePath;
@@ -221,8 +213,6 @@ void Widget::notifyForegroundChanged(HWND hwnd) {
     if (hwnd == this->hWnd()) return;
     if (!Util::isWindowAcceptable(hwnd, true)) return;
     auto path = Util::getWindowProcessPath(hwnd);
-    m_wm->notifyWindowActivated(hwnd, path);
-
     qInfo() << "*ForeWin changed:"
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path << Util::getFileDescription(path);
 }
