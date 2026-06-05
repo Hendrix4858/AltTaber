@@ -1,6 +1,8 @@
 #include "WindowManager.h"
 #include "utils/Util.h"
 #include <QMap>
+#include <QDateTime>
+#include <algorithm>
 
 WindowManager::WindowManager(HWND selfHwnd, QObject* parent)
     : QObject(parent), m_selfHwnd(selfHwnd) {}
@@ -25,11 +27,6 @@ QList<WindowGroup> WindowManager::prepareWindowGroupList() {
             group.exePath = path;
 
             auto icon = Util::getCachedIcon(path, hwnd);
-            if (path.endsWith("QQ\\bin\\QQ.exe", Qt::CaseInsensitive)) {
-                QPixmap overlay = Util::getWindowIcon(hwnd);
-                QPixmap bgPixmap = icon.pixmap(64, 64);
-                icon = Util::overlayIcon(bgPixmap, overlay, {QPoint(32, 32), QSize(32, 32)});
-            }
             group.icon = icon;
 
             group.addWindow(
@@ -38,7 +35,25 @@ QList<WindowGroup> WindowManager::prepareWindowGroupList() {
             result.append(group);
         }
     }
+    // Sort by MRU (most recently activated window first)
+    std::sort(result.begin(), result.end(), [&](const WindowGroup& a, const WindowGroup& b) {
+        auto getLatestActivation = [&](const WindowGroup& g) -> qint64 {
+            qint64 latest = 0;
+            for (const auto& win : g.windows) {
+                auto it = m_windowActivationTimes.find(win.hwnd);
+                if (it != m_windowActivationTimes.end())
+                    latest = qMax(latest, it.value());
+            }
+            return latest;
+        };
+        return getLatestActivation(a) > getLatestActivation(b);
+    });
+
     return result;
+}
+
+void WindowManager::recordWindowActivation(HWND hwnd) {
+    m_windowActivationTimes[hwnd] = QDateTime::currentMSecsSinceEpoch();
 }
 
 QList<HWND> WindowManager::buildGroupWindowOrder(const QString& exePath) const {

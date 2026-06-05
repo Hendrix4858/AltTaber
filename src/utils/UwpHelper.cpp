@@ -42,14 +42,14 @@ namespace AppUtil {
     QString getLogoPathFromAppxManifest(const QString& manifestPath) {
         QFile file(manifestPath);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qDebug() << "Failed to open AppxManifest.xml" << manifestPath;
+            qWarning() << "Failed to open AppxManifest.xml" << manifestPath;
             return {};
         }
 
         QDomDocument doc;
         if (!doc.setContent(&file)) {
             file.close();
-            qDebug() << "Failed to parse XML";
+            qWarning() << "Failed to parse XML";
             return {};
         }
         file.close();
@@ -81,7 +81,7 @@ namespace AppUtil {
         QString wildcard = fileInfo.baseName() + "*." + fileInfo.suffix();
 
         if (!dir.exists()) {
-            qDebug() << "Directory does not exist!";
+            qWarning() << "Directory does not exist";
             return {};
         }
 

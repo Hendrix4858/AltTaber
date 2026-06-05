@@ -34,7 +34,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         download(url, qApp->applicationDirPath() + '/' + archive.fileName);
     });
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
-        qDebug() << "Download succeed" << filePath;
+        qInfo() << "Download succeed" << filePath;
         if (filePath.endsWith(".zip")) {
             auto relDir = QDir(qApp->applicationDirPath() + '/' + archive.extractDir);
             relDir.removeRecursively();
@@ -117,7 +117,7 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         if (const auto assets = obj["assets"].toArray(); !assets.isEmpty())
             relInfo.downloadUrl = assets.first()["browser_download_url"].toString();
 
-        qDebug() << "Update info fetched" << relInfo.ver << relInfo.downloadUrl;
+        qInfo() << "Update info fetched" << relInfo.ver << relInfo.downloadUrl;
         ui->label_newVer->setText(QString("New Version: v%1 (%2)").arg(relInfo.ver.toString(), relInfo.publishTime));
         ui->label_ver->setText(QString("Current Version: v%1").arg(version.toString()));
 
@@ -223,7 +223,7 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
 
             auto vCur = QVersionNumber::fromString(QCoreApplication::applicationVersion());
             if (vCur.normalized() == vTo.normalized()) {
-                qDebug() << "Update success";
+                qInfo() << "Update success";
                 sysTray().showMessage("Verify Update", "Update Success to v" + vTo.toString());
             } else if (vCur.normalized() == vFrom.normalized()) {
                 qWarning() << "Update failed, version not change" << vFrom << vTo << vCur;

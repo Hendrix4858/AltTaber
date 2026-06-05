@@ -45,7 +45,7 @@ namespace Util {
             if (SUCCEEDED(hr))
                 desc = QString::fromWCharArray(pValue);
             else
-                qWarning() << "No FileDescription, fallback to file name:" << desc;
+                qDebug() << "No FileDescription, fallback to file name:" << desc;
         }
         return desc;
     }

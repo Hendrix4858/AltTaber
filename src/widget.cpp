@@ -359,8 +359,9 @@ void Widget::notifyForegroundChanged(HWND hwnd) {
     if (hwnd == this->hWnd()) return;
     if (!Util::isWindowAcceptable(hwnd, true)) return;
     auto path = Util::getWindowProcessPath(hwnd);
-    qInfo() << "*ForeWin changed:"
+    qInfo() << "Foreground window changed:"
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path << Util::getFileDescription(path);
+    m_wm->recordWindowActivation(hwnd);
 }
 
 bool Widget::prepareListWidget() {
@@ -490,7 +491,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
     }
 
     if (tbOrder.isEmpty()) {
-        qCritical() << "No window in group!" << exePath;
+        qWarning() << "No window in group" << exePath;
         // 有些软件的窗口是由子进程创建的，如 steam.exe -> steamwebhelper.exe (持有窗口)
         // 但是在任务栏只能获取到父进程steam.exe
         // 这种情况下，需要查找其子进程的路径
@@ -501,7 +502,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
                 tbOrder = m_wm->buildGroupWindowOrder(childPaths.first());
         } else {
             // 如果有多个子进程路径，就根据validWindows过滤
-            qWarning() << "!Multiple child processes:" << childPaths;
+            qWarning() << "Multiple child processes" << childPaths;
             QSet<QString> validPaths;
             // If range-initializer returns a temporary, its lifetime is extended until the end of the loop
             for (auto hwnd: Util::listValidWindows()) {
@@ -555,7 +556,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
 
             // 只能采用偷鸡hack，按住左键的情况下，预览窗口会消失
             if (HWND thumbnail = Util::getCurrentTaskListThumbnailWnd(); IsWindowVisible(thumbnail)) {
-                qDebug() << "(Taskbar)#Press LButton";
+                qDebug() << "(Taskbar)Press LButton";
                 mouseEvent(MOUSEEVENTF_LEFTDOWN);
                 // 由于本程序hook了mouse，所以必须处理全局鼠标事件（in事件循环）
                 QTimer::singleShot(20, this, [hwnd]() {
@@ -571,7 +572,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
                 // TODO cursor移动后立即释放 防止拖拽
                 connect(taskbarTimer, &QTimer::timeout, this, [this]() {
                     mouseEvent(MOUSEEVENTF_LEFTUP);
-                    qDebug() << "(Taskbar)#Release LButton";
+                    qDebug() << "(Taskbar)Release LButton";
 
                     // 鼠标点击thumbnail之后，其获取焦点，此时若焦点在其窗口组成员中，thumbnail就不会隐藏，这是Windows机制
                     // 只能通过将焦点转移到Taskbar使其隐藏

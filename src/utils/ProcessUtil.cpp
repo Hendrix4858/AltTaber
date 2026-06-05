@@ -12,7 +12,7 @@ namespace Util {
     bool isProcessElevated(HANDLE hProcess) {
         HANDLE hToken = nullptr;
         if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
-            qDebug() << "OpenProcessToken failed" << GetLastError();
+            qWarning() << "OpenProcessToken failed" << GetLastError();
             return false;
         }
 
@@ -23,7 +23,7 @@ namespace Util {
         if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &size)) {
             isElevated = (elevation.TokenIsElevated != 0);
         } else {
-            qDebug() << "GetTokenInformation failed" << GetLastError();
+            qWarning() << "GetTokenInformation failed" << GetLastError();
         }
 
         CloseHandle(hToken);
@@ -36,7 +36,7 @@ namespace Util {
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
         if (hProcess == nullptr) {
-            qDebug() << "OpenProcess failed" << GetLastError();
+            qWarning() << "OpenProcess failed" << GetLastError();
             return false;
         }
 

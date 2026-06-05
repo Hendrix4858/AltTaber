@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include "WindowTypes.h"
 
 class WindowManager : public QObject {
@@ -21,10 +22,12 @@ public:
 
     QList<HWND>& groupWindowOrder();
     void clearGroupWindowOrder();
+    void recordWindowActivation(HWND hwnd);
 
 private:
     HWND m_selfHwnd = nullptr;
     QList<HWND> m_groupWindowOrder;
+    QMap<HWND, qint64> m_windowActivationTimes;
 };
 
 #endif //WIN_SWITCHER_WINDOWMANAGER_H

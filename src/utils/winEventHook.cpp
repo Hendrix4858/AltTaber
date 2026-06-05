@@ -34,7 +34,7 @@ bool setWinEventHook(WinEventCallback _callback) {
         WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS
     );
 
-    qDebug() << "Set WinEventHook.";
+    qInfo() << "Set WinEventHook";
 
     return handler != nullptr;
 }
