@@ -10,8 +10,6 @@
 #include "ConfigManager.h"
 #include "UpdateDialog.h"
 
-#define sysTray SystemTray::instance()
-
 class SystemTray : public QSystemTrayIcon {
 public:
     SystemTray(const SystemTray&) = delete;
@@ -58,9 +56,9 @@ private:
         });
 
         connect(act_settings, &QAction::triggered, this, [] {
-            cfg.editConfigFile();
+            cfg().editConfigFile();
         });
-        connect(&cfg, &ConfigManager::configEdited, this, [this] {
+        connect(&cfg(), &ConfigManager::configEdited, this, [this] {
             this->showMessage("Config Edited", "auto reloaded");
         });
 
@@ -101,12 +99,12 @@ private:
             connect(menu_monitor, &QMenu::aboutToShow, this, [monitorGroup] {
                 qDebug() << "menu_monitor aboutToShow";
                 const auto actions = monitorGroup->actions();
-                actions[cfg.getDisplayMonitor()]->setChecked(true);
+                actions[cfg().getDisplayMonitor()]->setChecked(true);
             });
 
             connect(monitorGroup, &QActionGroup::triggered, this, [this](QAction* act) {
                 auto monitor = static_cast<DisplayMonitor>(act->data().toInt());
-                cfg.setDisplayMonitor(monitor);
+                cfg().setDisplayMonitor(monitor);
                 this->showMessage("Display Monitor Changed", act->text());
             });
         }
@@ -121,5 +119,7 @@ private:
         this->setContextMenu(menu);
     }
 };
+
+inline SystemTray& sysTray() { return SystemTray::instance(); }
 
 #endif //WIN_SWITCHER_SYSTEMTRAY_H

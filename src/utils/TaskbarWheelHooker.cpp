@@ -5,6 +5,8 @@
 #include "utils/Util.h"
 #include <QTime>
 
+namespace { TaskbarWheelHooker* s_instance = nullptr; }
+
 LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION && wParam == WM_MOUSEWHEEL) {
         auto* data = (MSLLHOOKSTRUCT*) lParam;
@@ -12,28 +14,27 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (Util::isTaskbarWindow(topLevelHwnd)) {
             auto delta = (short) HIWORD(data->mouseData);
             qDebug() << "--- Taskbar Mouse Wheel" << (delta > 0 ? "↑" : "↓");
-            auto el = UIAutomation::getElementUnderMouse(); // RVO优化 不会调用移动构造; // this line may bomb TODO 也许可以改成遍历元素
+            auto el = UIAutomation::getElementUnderMouse();
             qDebug() << delta << el.getClassName() << el.getAutomationId() << el.getName();
-            if (el.getClassName() == "CEF-OSC-WIDGET") { // Nvidia Overlay
-                // 当所有窗口最小化后，会出现这种情况，但是焦点和前台都不是他，离谱
+            if (el.getClassName() == "CEF-OSC-WIDGET") {
                 qDebug() << "detect CEF, try active taskbar";
-                Util::switchToWindow(topLevelHwnd, true); // 只能通过变焦到Taskbar使Element正常检测
+                Util::switchToWindow(topLevelHwnd, true);
                 el = UIAutomation::getElementUnderMouse();
                 qDebug() << (el.getClassName() != "CEF-OSC-WIDGET" ? "successful!" : "failed");
             }
             if (el.getClassName() == "Taskbar.TaskListButtonAutomationPeer") {
-                auto appid = el.getAutomationId().mid(QStringLiteral("Appid: ").size()); // TODO 在副屏 有时候会是"TaskbarFrame"
+                auto appid = el.getAutomationId().mid(QStringLiteral("Appid: ").size());
                 auto name = el.getName();
                 int windows = 0;
                 const auto Dash = QStringLiteral(" - ");
-                if (auto dashIdx = name.lastIndexOf(Dash); dashIdx != -1) { // "Clash for Windows - 1 个运行窗口"
+                if (auto dashIdx = name.lastIndexOf(Dash); dashIdx != -1) {
                     std::stringstream ss(name.mid(dashIdx + Dash.size()).toStdString());
-                    ss >> windows; // 从标题手动解析真实窗口数量，程序内部由于过滤逻辑的存在，可能不准确
+                    ss >> windows;
                     name = name.left(dashIdx);
                 }
                 auto exePath = AppUtil::getExePathFromAppIdOrName(appid, name);
-//                qDebug() << name << windows << appid;
-                emit TaskbarWheelHooker::instance->tabWheelEvent(exePath, delta > 0, windows);
+                if (s_instance)
+                    emit s_instance->tabWheelEvent(exePath, delta > 0, windows);
             }
         }
     }
@@ -41,11 +42,11 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 TaskbarWheelHooker::TaskbarWheelHooker() {
-    if (instance) {
+    if (s_instance) {
         qCritical() << "Only one TaskbarWheelHooker can be installed!";
         return;
     }
-    instance = this;
+    s_instance = this;
     AppUtil::getExePathFromAppIdOrName(); // cache
 
     auto* timer = new QTimer(this);
@@ -56,7 +57,6 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
         if (isLastTaskbar != isTaskbar) {
             isLastTaskbar = isTaskbar;
             if (isTaskbar) {
-                // 依赖事件循环
                 h_mouse = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
                 if (h_mouse == nullptr)
                     qCritical() << "Failed to install h_mouse";
@@ -77,6 +77,6 @@ TaskbarWheelHooker::~TaskbarWheelHooker() {
         UnhookWindowsHookEx(h_mouse);
         qDebug() << "MouseHooker uninstalled";
     }
-    TaskbarWheelHooker::instance = nullptr;
+    s_instance = nullptr;
     UIAutomation::cleanup();
 }

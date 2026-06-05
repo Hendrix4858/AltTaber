@@ -5,9 +5,6 @@
 #include <QApplication>
 #include "ConfigManagerBase.h"
 
-// 注意：对于大量使用的类，header-only 模式会导致编译时间过长
-#define cfg ConfigManager::instance()
-
 enum DisplayMonitor {
     PrimaryMonitor, // 0 主显示器
     MouseMonitor, // 1 跟随鼠标
@@ -45,5 +42,6 @@ private:
     explicit ConfigManager(const QString& filename) : ConfigManagerBase(filename) {}
 };
 
+inline ConfigManager& cfg() { return ConfigManager::instance(); }
 
 #endif //WIN_SWITCHER_CONFIGMANAGER_H

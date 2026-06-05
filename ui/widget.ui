@@ -16,7 +16,7 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="QListWidget" name="listWidget">
+  <widget class="QListView" name="listWidget">
    <property name="geometry">
     <rect>
      <x>0</x>

@@ -3,9 +3,11 @@
 
 #include <QWidget>
 #include <Windows.h>
-#include <QListWidget>
+#include <QListView>
 #include <QDebug>
 #include <QTimer>
+
+class WindowGroupModel;
 
 struct WindowGroup;
 
@@ -78,7 +80,7 @@ public:
 
 private:
     bool forceShow();
-    void showLabelForItem(QListWidgetItem* item, QString text = QString());
+    void showLabelForItem(const QModelIndex& index, QString text = QString());
     void setupLabelFont();
     auto getLastActiveGroupWindow(const QString& exePath) -> QPair<HWND, QDateTime>;
     auto getLastValidActiveGroupWindow(const WindowGroup& group) -> QPair<HWND, QDateTime>;
@@ -89,14 +91,15 @@ private:
 
 private:
     Ui::Widget* ui;
-    QListWidget* lw = nullptr;
+    QListView* lv = nullptr;
+    WindowGroupModel* m_model = nullptr;
     const QMargins ListWidgetMargin{24, 24, 24, 24};
     /// exePath -> (HWND, time)
     QHash<QString, QHash<HWND, QDateTime>> winActiveOrder;
     QList<HWND> groupWindowOrder; // for Alt+` 同组窗口切换
 
     // eventFilter state (replaces static locals)
-    QListWidgetItem* lastWheelItem = nullptr;
+    int lastWheelRow = -1;
     HWND lastWheelHwnd = nullptr;
     bool lastWheelIsRollUp = true;
 

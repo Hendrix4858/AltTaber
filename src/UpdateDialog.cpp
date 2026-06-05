@@ -9,8 +9,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDesktopServices>
+#include <QDir>
 #include "utils/SystemTray.h"
-#include "QtCore/private/qzipreader_p.h"
+#include <QProcess>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     ui->setupUi(this);
@@ -32,21 +33,24 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         if (filePath.endsWith(".zip")) {
             auto relDir = QDir(qApp->applicationDirPath() + '/' + archive.extractDir);
             relDir.removeRecursively();
-            if (QZipReader reader(filePath); reader.isReadable() &&
-                                             reader.extractAll(relDir.absolutePath()) &&
-                                             relDir.exists()) {
-                // extractAll 失败 貌似也会返回true (& status() == 0 NoError)？离谱
+            QProcess expandProcess;
+            expandProcess.start("powershell", QStringList()
+                << "-Command"
+                << QString("Expand-Archive -Path '%1' -DestinationPath '%2' -Force")
+                    .arg(filePath).arg(relDir.absolutePath()));
+            expandProcess.waitForFinished();
+            if (expandProcess.exitCode() == 0 && relDir.exists()) {
                 auto entryInfos = relDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
-                if (entryInfos.size() == 1 && entryInfos.first().isDir()) { // 有可能还套了一层根目录
+                if (entryInfos.size() == 1 && entryInfos.first().isDir()) {
                     relDir.cd(entryInfos.first().fileName());
                 }
                 qDebug() << "release extract dir:" << relDir.absolutePath();
                 const auto batPath = writeBat(relDir.absolutePath());
                 QDesktopServices::openUrl(QUrl::fromLocalFile(batPath));
-                qApp->quit(); //
+                qApp->quit();
             } else {
-                qWarning() << "Extract failed" << reader.status();
-                ui->textBrowser->setMarkdown("## Extract failed❎");
+                qWarning() << "Extract failed";
+                ui->textBrowser->setMarkdown("## Extract failed");
             }
         } else {
             // 其他格式可能需要7z.exe支持
@@ -71,7 +75,7 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Failed to fetch update info" << reply->errorString();
             ui->textBrowser->setMarkdown("## Failed to fetch update info❎\n" + reply->errorString());
-            sysTray.showMessage("Failed to fetch update info", reply->errorString());
+            sysTray().showMessage("Failed to fetch update info", reply->errorString());
             return;
         }
         const auto data = reply->readAll();
@@ -131,10 +135,10 @@ void UpdateDialog::download(const QString& url, const QString& savePath) {
         if (!downloadStatus.success || reply->error() != QNetworkReply::NoError) {
             qWarning() << "Download failed" << reply->errorString();
             ui->textBrowser->setMarkdown("## Download failed❎ [" + reply->url().host() + "]\n" + reply->errorString());
-            sysTray.showMessage("Download failed", reply->errorString());
+            sysTray().showMessage("Download failed", reply->errorString());
         } else {
             ui->textBrowser->setMarkdown("## Download success✅");
-            sysTray.showMessage("Download Status", "Success!");
+            sysTray().showMessage("Download Status", "Success!");
             emit downloadSucceed(downloadStatus.file.fileName());
         }
     });
@@ -192,13 +196,13 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
             auto vCur = QVersionNumber::fromString(QCoreApplication::applicationVersion());
             if (vCur.normalized() == vTo.normalized()) {
                 qDebug() << "Update success";
-                sysTray.showMessage("Verify Update", "Update Success to v" + vTo.toString());
+                sysTray().showMessage("Verify Update", "Update Success to v" + vTo.toString());
             } else if (vCur.normalized() == vFrom.normalized()) {
                 qWarning() << "Update failed, version not change" << vFrom << vTo << vCur;
-                sysTray.showMessage("Verify Update", "Update failed, version not change", QSystemTrayIcon::Critical);
+                sysTray().showMessage("Verify Update", "Update failed, version not change", QSystemTrayIcon::Critical);
             } else {
                 qWarning() << "Update may failed, version changed but not to target" << vFrom << vTo << vCur;
-                sysTray.showMessage("Verify Update", "Update may failed, version changed but not to target", QSystemTrayIcon::Warning);
+                sysTray().showMessage("Verify Update", "Update may failed, version changed but not to target", QSystemTrayIcon::Warning);
             }
         } else
             qWarning() << "Invalid version change" << parser.value(versionUpdate);

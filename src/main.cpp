@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <QTimer>
 #include <QMessageBox>
+#include <QKeyEvent>
 #include <qoperatingsystemversion.h>
 #include <QStyleHints>
 #include "UpdateDialog.h"
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     qDebug() << "isUserAdmin" << IsUserAnAdmin();
     qDebug() << "System Version" << QOperatingSystemVersion::current().version();
-    sysTray.show(); // show之后才能使用系统通知
+    sysTray().show(); // show之后才能使用系统通知
     UpdateDialog::verifyUpdate(a); // 验证更新
 
     // 默认情况下，会根据系统主题自动切换; 但是一旦自定义qss，自动切换就会失效; 只好固定为Dark/Light
@@ -42,11 +43,28 @@ int main(int argc, char* argv[]) {
         unhookWinEvent();
     });
 
-    KeyboardHooker kbHooker(winSwitcher);
+    KeyboardHooker kbHooker((HWND) winSwitcher->winId());
+    QObject::connect(&kbHooker, &KeyboardHooker::requestShow,
+                     winSwitcher, &Widget::requestShow, Qt::QueuedConnection);
+    QObject::connect(&kbHooker, &KeyboardHooker::altTabPressed, winSwitcher,
+                     [winSwitcher](Qt::KeyboardModifiers mods) {
+        auto event = new QKeyEvent(QEvent::KeyPress, Qt::Key_Tab, Qt::AltModifier | mods);
+        QApplication::postEvent(winSwitcher, event);
+    }, Qt::QueuedConnection);
+    QObject::connect(&kbHooker, &KeyboardHooker::altGravePressed, winSwitcher,
+                     [winSwitcher](Qt::KeyboardModifiers mods) {
+        auto event = new QKeyEvent(QEvent::KeyPress, Qt::Key_QuoteLeft, Qt::AltModifier | mods);
+        QApplication::postEvent(winSwitcher, event);
+    }, Qt::QueuedConnection);
+    QObject::connect(&kbHooker, &KeyboardHooker::altReleased, winSwitcher,
+                     [winSwitcher]() {
+        auto event = new QKeyEvent(QEvent::KeyRelease, Qt::Key_Alt, Qt::NoModifier);
+        QApplication::postEvent(winSwitcher, event);
+    }, Qt::QueuedConnection);
+
     TaskbarWheelHooker tbHooker;
     QObject::connect(&tbHooker, &TaskbarWheelHooker::tabWheelEvent,
                      winSwitcher, &Widget::rotateTaskbarWindowInGroup, Qt::QueuedConnection);
-    // QueueConnection is important, ensure async, avoiding blocking the hook process
     QObject::connect(&tbHooker, &TaskbarWheelHooker::leaveTaskbar,
                      winSwitcher, &Widget::clearGroupWindowOrder, Qt::QueuedConnection);
 
@@ -73,19 +91,16 @@ int main(int argc, char* argv[]) {
                 // 顺序是ForegroundStaging -> XamlExplorerHostIslandWindow，不需要都检测，否则会重复
                 // 且：XamlExplorerHostIslandWindow 会导致误检测（某些系统版本，任务栏app窗口>1时，点击窗口）
                 qDebug() << "任务切换 detected!" << className;
-                int t = 0;
-                do {
-                    // 等待Windows的任务切换窗口完全获取焦点（显示），再弹出本程序抢夺焦点，否则可能会被抢回去，导致需要retry
-                    // retry会导致一个问题：（VMWare中）Alt+Tab唤出AltTaber导致retry后，AltTaber显示时会同时显示Windows中的最后一个焦点窗口（例如资源管理器）
-                    // ！但是，这个问题只有在Release模式+管理员权限下才会出现，Debug模式下不会出现，离谱
-                    Sleep(10);
-                    // 貌似如果不是本进程第一个窗口的话，这招无法前置，比如你在这里new Widget
-                    winSwitcher->requestShow();
-                    t++;
-                    if (t > 1)
-                        qDebug() << "Retry" << t;
-                    Sleep(10);
-                } while (!winSwitcher->isForeground() && t < 5);
+                // 事件驱动重试，替代原有的 Sleep 忙等
+                auto tryShowSwitcher = [](Widget* w, auto&& self, int retries) -> void {
+                    if (retries <= 0) return;
+                    w->requestShow();
+                    QTimer::singleShot(10, w, [w, self, retries]() {
+                        if (!w->isForeground())
+                            self(w, self, retries - 1);
+                    });
+                };
+                tryShowSwitcher(winSwitcher, tryShowSwitcher, 5);
             }
         }
     });

@@ -44,9 +44,18 @@ add_executable(Win_Switcher src/main.cpp
         src/widget.cpp
         header/widget.h
         ui/widget.ui
+        src/WindowGroupModel.cpp
+        header/WindowGroupModel.h
         src/utils/winEventHook.cpp
         header/utils/winEventHook.h
-        src/utils/Util.cpp
+        src/utils/WindowUtil.cpp
+        header/utils/WindowUtil.h
+        src/utils/ProcessUtil.cpp
+        header/utils/ProcessUtil.h
+        src/utils/IconUtil.cpp
+        header/utils/IconUtil.h
+        src/utils/MiscUtil.cpp
+        header/utils/MiscUtil.h
         header/utils/Util.h
         header/utils/setWindowBlur.h
         src/utils/setWindowBlur.cpp
@@ -54,7 +63,11 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/IconOnlyDelegate.h
         header/utils/uiautomation.h
         src/utils/uiautomation.cpp
-        src/utils/AppUtil.cpp
+        src/utils/UwpHelper.cpp
+        header/utils/UwpHelper.h
+        src/utils/StartMenuHelper.cpp
+        header/utils/StartMenuHelper.h
+        src/utils/AppExeResolver.cpp
         header/utils/AppUtil.h
         src/utils/KeyboardHooker.cpp
         header/utils/KeyboardHooker.h
@@ -84,10 +97,6 @@ target_link_libraries(Win_Switcher
 target_link_libraries(${PROJECT_NAME}
         Dwmapi
 )
-
-# 启用`gui_private`模块
-# 必须放在find_package之后，否则`Qt6Gui_PRIVATE_INCLUDE_DIRS`变量未定义
-target_include_directories(${PROJECT_NAME} PRIVATE ${Qt6Gui_PRIVATE_INCLUDE_DIRS})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "AltTaber") # 设置输出文件名
 if (CMAKE_BUILD_TYPE MATCHES "Release")
