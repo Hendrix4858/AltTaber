@@ -10,6 +10,7 @@ namespace Util {
     QString getClassName(HWND hwnd);
     bool isWindowCloaked(HWND hwnd);
     QString getFileDescription(const QString& path);
+    QChar getDisplayFirstLetter(const QString& text);
     bool isKeyPressed(int vkey);
     bool setWindowRoundCorner(HWND hwnd, DWM_WINDOW_CORNER_PREFERENCE pvAttribute = DWMWCP_ROUND);
     POINT getCursorPos();

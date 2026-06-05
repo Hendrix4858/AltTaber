@@ -91,6 +91,7 @@ void SettingsDialog::applyStyleSheet() {
         "QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }"
     ).arg(TextColor.name(), BorderColor.name());
     ui->langGroup->setStyleSheet(groupBoxStyle);
+    ui->letterJumpGroup->setStyleSheet(groupBoxStyle);
     ui->displayGroup->setStyleSheet(groupBoxStyle);
 
     const QString comboStyle = QString(
@@ -114,8 +115,10 @@ void SettingsDialog::applyStyleSheet() {
     ).arg(TextColor.name());
     ui->startupCheck->setStyleSheet(checkStyle);
     ui->adminCheck->setStyleSheet(checkStyle);
+    ui->letterJumpCheck->setStyleSheet(checkStyle);
 
-    ui->hotkeyPlaceholder->setStyleSheet(QString("color: #888; font-size: 15px;"));
+    const QString placeholderStyle = QString("QLabel { color: #888; font-size: 15px; }");
+    ui->hotkeyPlaceholder->setStyleSheet(placeholderStyle);
 
     ui->aboutDesc->setStyleSheet(QString("color: %1; font-size: 14px;").arg(TextColor.name()));
 
@@ -172,6 +175,8 @@ void SettingsDialog::retranslateUi() {
     idx = ui->monitorCombo->findData(savedMonitor);
     if (idx >= 0) ui->monitorCombo->setCurrentIndex(idx);
 
+    ui->letterJumpGroup->setTitle(tr("Letter Jump"));
+    ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->hotkeyPlaceholder->setText(tr("Hotkey settings coming soon..."));
 
     QString version = QApplication::applicationVersion();
@@ -217,6 +222,8 @@ void SettingsDialog::loadSettings() {
     idx = ui->monitorCombo->findData(cfg().getDisplayMonitor());
     if (idx >= 0) ui->monitorCombo->setCurrentIndex(idx);
 
+    ui->letterJumpCheck->setChecked(cfg().getLetterJumpEnabled());
+
     m_loadingSettings = false;
 
     retranslateUi();
@@ -236,6 +243,8 @@ void SettingsDialog::applySettings() {
 
     auto monitor = static_cast<DisplayMonitor>(ui->monitorCombo->currentData().toInt());
     cfg().setDisplayMonitor(monitor);
+
+    cfg().setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {

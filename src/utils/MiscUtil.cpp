@@ -49,6 +49,22 @@ namespace Util {
         return desc;
     }
 
+#include "utils/PinyinTable.inc"
+
+    QChar getDisplayFirstLetter(const QString& text) {
+        if (text.isEmpty()) return {};
+        auto first = text[0];
+        auto uc = first.unicode();
+
+        if (uc >= 'A' && uc <= 'Z') return first;
+        if (uc >= 'a' && uc <= 'z') return QChar(uc - 32);
+
+        if (uc >= 0x4E00 && uc <= 0x9FFF)
+            return getPinyinInitial(uc);
+
+        return {};
+    }
+
     bool isKeyPressed(int vkey) {
         return GetAsyncKeyState(vkey) & 0x8000;
     }

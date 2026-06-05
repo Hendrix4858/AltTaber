@@ -54,6 +54,14 @@ public:
         set("AlwaysRunAsAdmin", enabled);
     }
 
+    bool getLetterJumpEnabled() {
+        return get("LetterJumpEnabled", false).toBool();
+    }
+
+    void setLetterJumpEnabled(bool enabled) {
+        set("LetterJumpEnabled", enabled);
+    }
+
 private:
     explicit ConfigManager(const QString& filename) : ConfigManagerBase(filename) {}
 };

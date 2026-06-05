@@ -18,7 +18,9 @@
     "Display Monitor:": "显示监视器:",
     "Primary Monitor": "主显示器",
     "Mouse Monitor": "跟随鼠标",
-    "Hotkey settings coming soon...": "快捷键设置即将推出...",
+    "Letter Jump": "字母跳转",
+    "Enable letter jump (A-Z)": "启用字母跳转 (A-Z)",
+
     "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>"
   },
   "SystemTray": {

@@ -144,13 +144,29 @@
            </layout>
           </widget>
          </item>
-         <item>
-          <widget class="QCheckBox" name="startupCheck">
-           <property name="text">
-            <string>Start with Windows</string>
-           </property>
-          </widget>
-         </item>
+          <item>
+           <widget class="QGroupBox" name="letterJumpGroup">
+            <property name="title">
+             <string>Letter Jump</string>
+            </property>
+             <layout class="QVBoxLayout" name="letterJumpLayout">
+              <item>
+               <widget class="QCheckBox" name="letterJumpCheck">
+                <property name="text">
+                 <string>Enable letter jump (A-Z)</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="startupCheck">
+            <property name="text">
+             <string>Start with Windows</string>
+            </property>
+           </widget>
+          </item>
          <item>
           <widget class="QCheckBox" name="adminCheck">
            <property name="text">
@@ -247,6 +263,19 @@
             <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
+         </item>
+         <item>
+          <spacer name="hotkeySpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>

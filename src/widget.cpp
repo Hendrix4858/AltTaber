@@ -76,12 +76,6 @@ Widget::~Widget() {
 void Widget::keyPressEvent(QKeyEvent* event) {
     auto key = event->key();
     auto modifiers = event->modifiers();
-    static const QHash<int, int> VimArrows = {
-        {Qt::Key_K, Qt::Key_Up},    // ↑
-        {Qt::Key_J, Qt::Key_Down},  // ↓
-        {Qt::Key_H, Qt::Key_Left},  // ←
-        {Qt::Key_L, Qt::Key_Right}, // →
-    };
     if (key == Qt::Key_Tab) { // switch to next or prev
         auto i = lv->currentIndex().row();
         bool isShiftPressed = (modifiers & Qt::ShiftModifier);
@@ -132,8 +126,28 @@ void Widget::keyPressEvent(QKeyEvent* event) {
             lv->setCurrentIndex(m_model->index(N - 1));
         else if (key == Qt::Key_Right && i == N - 1)
             lv->setCurrentIndex(m_model->index(0));
-    } else if (VimArrows.contains(key)) { // map [K J H L] to [↑ ↓ ← →]
-        QApplication::postEvent(lv, new QKeyEvent(QEvent::KeyPress, VimArrows.value(key), modifiers));
+    } else if (key >= Qt::Key_A && key <= Qt::Key_Z && cfg().getLetterJumpEnabled()) {
+        QChar pressedLetter = QChar(key).toUpper();
+
+        QList<int> matchingIndices;
+        for (int i = 0; i < m_model->groupCount(); ++i) {
+            const auto& group = m_model->groupAt(i);
+            QString appName = Util::getFileDescription(group.exePath);
+            if (!appName.isEmpty() && Util::getDisplayFirstLetter(appName) == pressedLetter)
+                matchingIndices.append(i);
+        }
+
+        if (matchingIndices.size() >= 1) {
+            int currentPos = matchingIndices.indexOf(m_jumpLastIndex);
+            int newPos = (pressedLetter == m_jumpLastLetter && currentPos >= 0)
+                             ? (currentPos + 1) % matchingIndices.size()
+                             : 0;
+            int targetIndex = matchingIndices[newPos];
+            lv->setCurrentIndex(m_model->index(targetIndex));
+            showLabelForItem(m_model->index(targetIndex));
+            m_jumpLastLetter = pressedLetter;
+            m_jumpLastIndex = targetIndex;
+        }
     }
     QWidget::keyPressEvent(event);
 }
@@ -191,6 +205,8 @@ void Widget::setupLabelFont() {
 
 void Widget::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt) {
+        m_jumpLastLetter = {};
+        m_jumpLastIndex = -1;
         m_wm->clearGroupWindowOrder(); // for Alt + `
         if (this->isVisible()) {
             // active selected window
@@ -227,6 +243,8 @@ void Widget::notifyForegroundChanged(HWND hwnd) {
 }
 
 bool Widget::prepareListWidget() {
+    m_jumpLastLetter = {};
+    m_jumpLastIndex = -1;
     auto winGroupList = m_wm->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 

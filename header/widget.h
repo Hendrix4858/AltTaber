@@ -68,6 +68,10 @@ private:
     HWND lastWheelHwnd = nullptr;
     bool lastWheelIsRollUp = true;
 
+    // Letter jump state
+    QChar m_jumpLastLetter;
+    int m_jumpLastIndex = -1;
+
     // rotateTaskbarWindowInGroup state (replaces static locals)
     QString lastTaskbarPath;
     HWND lastTaskbarHwnd = nullptr;
