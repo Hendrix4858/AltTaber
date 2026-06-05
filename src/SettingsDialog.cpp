@@ -277,6 +277,13 @@ void SettingsDialog::retranslateUi() {
         if (!labels.isEmpty()) labels.first()->setText(tr("Language:"));
     }
 
+    QString savedLang = m_langCombo->currentData().toString();
+    m_langCombo->clear();
+    m_langCombo->addItem(tr("English"), "en");
+    m_langCombo->addItem("中文", "zh_CN");
+    int idx = m_langCombo->findData(savedLang);
+    if (idx >= 0) m_langCombo->setCurrentIndex(idx);
+
     m_startupCheck->setText(tr("Start with Windows"));
 
     auto displayGroup = m_displayPage->findChild<QGroupBox*>("displayGroup");
@@ -290,7 +297,7 @@ void SettingsDialog::retranslateUi() {
     m_monitorCombo->clear();
     m_monitorCombo->addItem(tr("Primary Monitor"), PrimaryMonitor);
     m_monitorCombo->addItem(tr("Mouse Monitor"), MouseMonitor);
-    int idx = m_monitorCombo->findData(savedMonitor);
+    idx = m_monitorCombo->findData(savedMonitor);
     if (idx >= 0) m_monitorCombo->setCurrentIndex(idx);
 
     auto hotkeyPlaceholder = m_hotkeyPage->findChildren<QLabel*>();
@@ -344,6 +351,7 @@ void SettingsDialog::applySettings() {
     QString lang = m_langCombo->currentData().toString();
     cfg().setLanguage(lang);
     switchLanguage(lang);
+    retranslateUi();
 
     bool startup = m_startupCheck->isChecked();
     if (startup != Startup::isOn())
