@@ -7,6 +7,7 @@
 #include <QStyleHints>
 #include "UpdateDialog.h"
 #include "widget.h"
+#include "WindowManager.h"
 #include "utils/winEventHook.h"
 #include "utils/Util.h"
 #include "utils/TaskbarWheelHooker.h"
@@ -36,7 +37,9 @@ int main(int argc, char* argv[]) {
     // 默认情况下，会根据系统主题自动切换; 但是一旦自定义qss，自动切换就会失效; 只好固定为Dark/Light
     QApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     qApp->setQuitOnLastWindowClosed(false);
-    auto* winSwitcher = new Widget;
+    auto* wm = new WindowManager;
+    auto* winSwitcher = new Widget(wm);
+    wm->setSelfHwnd((HWND) winSwitcher->winId());
     winSwitcher->prepareListWidget(); // 优化：对ListWidget进行预先初始化，首次执行`setCurrentRow`特别耗时(472ms)
 
     QObject::connect(&a, &QApplication::aboutToQuit, []() {
@@ -82,7 +85,7 @@ int main(int argc, char* argv[]) {
             // 对于Follower启动的CMD，由于Follower先行隐藏，会导致焦点先回落到上个窗口，再到新窗口 （但是用Win键打开的cmd没事）
             // 但是此时GetForegroundWindow()还是上个窗口，可能是更新不及时，所以 ^1-1 处的方案不可行
             // 问题不大，本程序hook了Alt+Tab，已经不会出现两次Event了
-            winSwitcher->notifyForegroundChanged(hwnd, Widget::WinEvent);
+            winSwitcher->notifyForegroundChanged(hwnd);
             auto className = Util::getClassName(hwnd);
             // ForegroundStaging貌似是辅助过渡动画
             // 检测 Alt 按下，防止误判 Win+Tab (任务视图)

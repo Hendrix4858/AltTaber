@@ -46,6 +46,9 @@ add_executable(Win_Switcher src/main.cpp
         ui/widget.ui
         src/WindowGroupModel.cpp
         header/WindowGroupModel.h
+        src/WindowManager.cpp
+        header/WindowManager.h
+        header/WindowTypes.h
         src/utils/winEventHook.cpp
         header/utils/winEventHook.h
         src/utils/WindowUtil.cpp

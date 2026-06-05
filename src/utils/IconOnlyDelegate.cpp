@@ -1,5 +1,5 @@
 ﻿#include "utils/IconOnlyDelegate.h"
-#include "widget.h"
+#include "WindowTypes.h"
 
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     painter->setRenderHint(QPainter::Antialiasing);

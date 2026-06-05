@@ -1,5 +1,5 @@
 #include "WindowGroupModel.h"
-#include "widget.h"
+#include "WindowTypes.h"
 
 WindowGroupModel::WindowGroupModel(QObject* parent)
     : QAbstractListModel(parent) {}

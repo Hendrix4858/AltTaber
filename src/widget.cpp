@@ -1,5 +1,6 @@
 ﻿#include "widget.h"
 #include "WindowGroupModel.h"
+#include "WindowManager.h"
 #include "ui_Widget.h"
 #include "utils/Util.h"
 #include <QDebug>
@@ -16,7 +17,7 @@
 #include "utils/SystemTray.h"
 #include "utils/ConfigManager.h"
 
-Widget::Widget(QWidget* parent) : QWidget(parent), ui(new Ui::Widget) {
+Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui::Widget), m_wm(wm) {
     ui->setupUi(this);
     lv = ui->listWidget;
     m_model = new WindowGroupModel(this);
@@ -99,11 +100,12 @@ void Widget::keyPressEvent(QKeyEvent* event) {
             return;
         }
         auto foreWin = GetForegroundWindow();
-        if (groupWindowOrder.isEmpty()) {
+        auto& order = m_wm->groupWindowOrder();
+        if (order.isEmpty()) {
             auto targetExe = Util::getWindowProcessPath(foreWin);
-            groupWindowOrder = buildGroupWindowOrder(targetExe);
+            order = m_wm->buildGroupWindowOrder(targetExe);
         }
-        if (auto nextWin = rotateWindowInGroup(groupWindowOrder, foreWin, !(modifiers & Qt::ShiftModifier))) {
+        if (auto nextWin = WindowManager::rotateWindowInGroup(order, foreWin, !(modifiers & Qt::ShiftModifier))) {
             Util::switchToWindow(nextWin, true);
             qInfo() << "(Alt+`)Switch to" << Util::getWindowTitle(nextWin) << Util::getClassName(nextWin);
         }
@@ -181,13 +183,13 @@ void Widget::setupLabelFont() {
 
 void Widget::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt) {
-        groupWindowOrder.clear(); // for Alt + `
+        m_wm->clearGroupWindowOrder(); // for Alt + `
         if (this->isVisible()) {
             // active selected window
             if (auto index = lv->currentIndex(); index.isValid()) {
                 if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
                     WindowInfo targetWin = group.windows.at(0); // TODO 需要排序（lastActiveWindow 被关闭情况下）
-                    const auto lastActive = getLastActiveGroupWindow(group.exePath).first;
+                    const auto lastActive = m_wm->getLastActiveGroupWindow(group.exePath).first;
                     for (auto& info: group.windows) {
                         if (info.hwnd == lastActive) {
                             targetWin = info;
@@ -215,74 +217,18 @@ void Widget::paintEvent(QPaintEvent*) { //不绘制会导致鼠标穿透背景
 }
 
 /// 通知前台窗口变化
-/// @param hwnd 前台窗口句柄
-/// @param source 通知来源, for debug, @b Optional
-void Widget::notifyForegroundChanged(HWND hwnd, ForegroundChangeSource source) { // TODO isVisible or AltDown时，关闭前台更新通知
+void Widget::notifyForegroundChanged(HWND hwnd) {
     if (hwnd == this->hWnd()) return;
-    // （其实监听前台变化只是为了排序，不需要太精确，可以放松限制）
-    // 通过`EVENT_SYSTEM_FOREGROUND`触发时忽略`IsWindowVisible`，因为窗口在创建瞬间可能不可见
-    if (!Util::isWindowAcceptable(hwnd, source == WinEvent)) return;
-    auto path = Util::getWindowProcessPath(hwnd); // TODO 比较耗时，最好仅在单次show期间缓存，同时避免hwnd复用造成缓存错误
-    // TODO 不能让winActiveOrder无限增长，需要定时清理
-    winActiveOrder[path].insert(hwnd, QDateTime::currentDateTime());
+    if (!Util::isWindowAcceptable(hwnd, true)) return;
+    auto path = Util::getWindowProcessPath(hwnd);
+    m_wm->notifyWindowActivated(hwnd, path);
 
-    auto sourceStr = QMetaEnum::fromType<ForegroundChangeSource>().valueToKey(source);
-    qInfo() << qUtf8Printable(QString("*ForeWin changed (%1):").arg(sourceStr)) // qUtf8Printable removes quotes ""
+    qInfo() << "*ForeWin changed:"
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path << Util::getFileDescription(path);
-} // TODO 控制面板 和 资源管理器 exe是同一个，如何区分图标
-
-/// collect, filter, sort Windows for presentation
-QList<WindowGroup> Widget::prepareWindowGroupList() {
-    QMap<QString, WindowGroup> winGroupMap;
-    const auto list = Util::listValidWindows();
-    for (auto hwnd: list) {
-        if (hwnd == this->hWnd()) continue; // skip self
-        auto path = Util::getWindowProcessPath(hwnd);
-        if (path.isEmpty()) continue; // TODO 可能需要管理员权限
-        auto& winGroup = winGroupMap[path];
-        if (winGroup.exePath.isEmpty()) { // QIcon::isNull 判断可能不太准（例如空图标）
-            winGroup.exePath = path;
-            auto icon = Util::getCachedIcon(path, hwnd); // TODO background thread
-            if (path.endsWith("QQ\\bin\\QQ.exe", Qt::CaseInsensitive)) { // draw chat partner for classical QQ
-                QPixmap overlay = Util::getWindowIcon(hwnd);
-                const auto iSize = lv->iconSize();
-                QPixmap bgPixmap = icon.pixmap(iSize);
-                icon = Util::overlayIcon(bgPixmap, overlay, {{iSize.width() / 2, iSize.height() / 2}, iSize / 2});
-            }
-            winGroup.icon = icon;
-        }
-        winGroup.addWindow({Util::getWindowTitle(hwnd), Util::getClassName(hwnd), hwnd});
-    }
-    auto winGroupList = winGroupMap.values();
-    // 按照活跃度排序
-    std::sort(winGroupList.begin(), winGroupList.end(), [this](const WindowGroup& a, const WindowGroup& b) {
-        auto timeA = getLastValidActiveGroupWindow(a).second;
-        auto timeB = getLastValidActiveGroupWindow(b).second;
-        if (timeA.isNull() && timeB.isNull()) return false;
-        if (timeA.isValid() && timeB.isValid()) return timeA > timeB;
-        return timeA.isValid();
-    });
-
-    // 清理 winActiveOrder 中的无效 HWND，防止无限增长
-    for (auto it = winActiveOrder.begin(); it != winActiveOrder.end();) {
-        auto& hwndMap = it.value();
-        for (auto hwndIt = hwndMap.begin(); hwndIt != hwndMap.end();) {
-            if (!IsWindow(hwndIt.key()))
-                hwndIt = hwndMap.erase(hwndIt);
-            else
-                ++hwndIt;
-        }
-        if (hwndMap.isEmpty())
-            it = winActiveOrder.erase(it);
-        else
-            ++it;
-    }
-
-    return winGroupList;
 }
 
 bool Widget::prepareListWidget() {
-    auto winGroupList = prepareWindowGroupList();
+    auto winGroupList = m_wm->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 
     // calculate Geometry
@@ -348,48 +294,6 @@ bool Widget::requestShow() {
     return prepareListWidget() && forceShow();
 }
 
-/// Warning: the `HWND` not guarantee to be valid (may be closed)
-auto Widget::getLastActiveGroupWindow(const QString& exePath) -> QPair<HWND, QDateTime> {
-    auto hwndOrder = winActiveOrder.value(exePath);
-    if (hwndOrder.isEmpty()) return {nullptr, QDateTime()};
-    // QHash & QMap deref to value(QDateTime) rather than QPair
-    auto iter = std::max_element(hwndOrder.begin(), hwndOrder.end());
-    return {iter.key(), iter.value()};
-}
-
-/// return null if no window recorded in group
-auto Widget::getLastValidActiveGroupWindow(const WindowGroup& group) -> QPair<HWND, QDateTime> {
-    auto hwndOrder = winActiveOrder.value(group.exePath);
-    if (hwndOrder.isEmpty()) return {nullptr, QDateTime()};
-
-    QList<HWND> windows;
-    for (auto& info: group.windows)
-        windows << info.hwnd;
-    sortGroupWindows(windows, group.exePath);
-
-    if (auto time = hwndOrder.value(windows.first()); !time.isNull())
-        return {windows.first(), time};
-    else // check if the first HWND is recorded
-        return {nullptr, QDateTime()};
-}
-
-/// sort Windows of [Group specified by exePath], by active order (latest first)
-void Widget::sortGroupWindows(QList<HWND>& windows, const QString& exePath) {
-    auto activeOrdMap = winActiveOrder.value(exePath);
-    if (activeOrdMap.isEmpty()) return;
-    // sort by active order
-    std::sort(windows.begin(), windows.end(), [&activeOrdMap](HWND a, HWND b) {
-        return activeOrdMap.value(a) > activeOrdMap.value(b); // default value if not found
-    }); // TODO update winActiveOrder! (remove invalid HWND)
-}
-
-/// group by exePath, sort by active order (last active first)
-QList<HWND> Widget::buildGroupWindowOrder(const QString& exePath) {
-    auto windows = Util::listValidWindows(exePath); // filter by path
-    sortGroupWindows(windows, exePath);
-    return windows;
-}
-
 bool Widget::eventFilter(QObject* watched, QEvent* event) {
     if (watched == lv && event->type() == QEvent::Wheel) {
         auto* wheelEvent = static_cast<QWheelEvent*>(event);
@@ -403,18 +307,19 @@ bool Widget::eventFilter(QObject* watched, QEvent* event) {
             if (lastWheelRow != index.row()) {
                 lastWheelRow = index.row();
                 lastWheelHwnd = nullptr;
-                groupWindowOrder.clear();
+                m_wm->clearGroupWindowOrder();
             }
             auto targetExe = windowGroup.exePath;
-            bool isRollUp = wheelEvent->angleDelta().x() > 0; // ListWidget的方向改成了从左到右，所以滚轮方向从y()变成x()了
-            if (groupWindowOrder.isEmpty())
-                groupWindowOrder = buildGroupWindowOrder(targetExe); // TODO 其实这里不需要build 直接用lw里的就行...
+            bool isRollUp = wheelEvent->angleDelta().x() > 0;
+            auto& order = m_wm->groupWindowOrder();
+            if (order.isEmpty())
+                order = m_wm->buildGroupWindowOrder(targetExe);
 
             if (!lastWheelHwnd) { // first time
-                lastWheelHwnd = groupWindowOrder.first(); // 选择最后活跃的窗口 TODO 考虑当前窗口就是First的情况，需要跳过，类似WinGroup
-            } else { // select next window
-                if (lastWheelIsRollUp == isRollUp) // 滚轮方向切换时，不轮换窗口
-                    lastWheelHwnd = rotateWindowInGroup(groupWindowOrder, lastWheelHwnd, isRollUp);
+                lastWheelHwnd = order.first();
+            } else {
+                if (lastWheelIsRollUp == isRollUp)
+                    lastWheelHwnd = WindowManager::rotateWindowInGroup(order, lastWheelHwnd, isRollUp);
             }
             lastWheelIsRollUp = isRollUp;
 
@@ -422,15 +327,16 @@ bool Widget::eventFilter(QObject* watched, QEvent* event) {
             if (isRollUp) {
                 Util::bringWindowToTop(lastWheelHwnd, this->hWnd()); // without activate
             } else {
-                if (auto normal = rotateNormalWindowInGroup(groupWindowOrder, lastWheelHwnd, false)) { // skip minimized
+                auto& orderForNormal = m_wm->groupWindowOrder();
+                if (auto normal = WindowManager::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false)) {
                     ShowWindow(normal, SW_SHOWMINNOACTIVE); // minimize
                     lastWheelHwnd = normal;
                     nextFocus = lastWheelHwnd;
                 }
-                if (auto normal = rotateNormalWindowInGroup(groupWindowOrder, lastWheelHwnd, false))
+                if (auto normal = WindowManager::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false))
                     nextFocus = normal; // 备选焦点切换为下一个非最小化窗口 after AltUp
             }
-            notifyForegroundChanged(nextFocus, Inner);
+            notifyForegroundChanged(nextFocus);
             showLabelForItem(index, Util::getWindowTitle(nextFocus));
             qDebug() << "Wheel" << isRollUp << Util::getWindowTitle(nextFocus) << lastWheelHwnd;
 
@@ -451,14 +357,15 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
 
     if (lastTaskbarPath != exePath) {
         lastTaskbarPath = exePath;
-        groupWindowOrder.clear();
+        m_wm->clearGroupWindowOrder();
     }
-    if (groupWindowOrder.isEmpty()) {
-        groupWindowOrder = buildGroupWindowOrder(exePath);
+    auto& tbOrder = m_wm->groupWindowOrder();
+    if (tbOrder.isEmpty()) {
+        tbOrder = m_wm->buildGroupWindowOrder(exePath);
         lastTaskbarHwnd = nullptr;
     }
 
-    if (groupWindowOrder.isEmpty()) {
+    if (tbOrder.isEmpty()) {
         qCritical() << "No window in group!" << exePath;
         // 有些软件的窗口是由子进程创建的，如 steam.exe -> steamwebhelper.exe (持有窗口)
         // 但是在任务栏只能获取到父进程steam.exe
@@ -467,7 +374,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
         if (childPaths.isEmpty()) return;
         if (childPaths.size() == 1) {
             qDebug() << "Try to switch to child process:" << childPaths.first();
-            groupWindowOrder = buildGroupWindowOrder(childPaths.first());
+                tbOrder = m_wm->buildGroupWindowOrder(childPaths.first());
         } else {
             // 如果有多个子进程路径，就根据validWindows过滤
             qWarning() << "!Multiple child processes:" << childPaths;
@@ -480,7 +387,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
             for (auto& path: childPaths) {
                 if (validPaths.contains(path.toLower())) {
                     qDebug() << "Try to switch to valid child process:" << path;
-                    groupWindowOrder = buildGroupWindowOrder(path);
+                    tbOrder = m_wm->buildGroupWindowOrder(path);
                     break;
                 }
             }
@@ -488,7 +395,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
         // TODO 有可能a进程开启b进程之后，a就关闭了，他俩也没有真的父子关系
         //  例如：ksolaunch.exe -> wps.exe
         //  此时只能通过File Description来匹配，均为“WPS Office”
-        if (groupWindowOrder.isEmpty()) { // 无力回天
+        if (tbOrder.isEmpty()) { // 无力回天
             qCritical() << "もうおしまいだ！";
             return;
         }
@@ -496,12 +403,12 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
 
     HWND hwnd = nullptr;
     if (!lastTaskbarHwnd) {
-        hwnd = groupWindowOrder.first();
-        if (forward && hwnd == GetForegroundWindow()) // 如果first是前台窗口且forward，则轮换下一个
-            hwnd = rotateWindowInGroup(groupWindowOrder, hwnd, true);
+        hwnd = tbOrder.first();
+        if (forward && hwnd == GetForegroundWindow())
+            hwnd = WindowManager::rotateWindowInGroup(tbOrder, hwnd, true);
     } else {
         if (lastTaskbarForward == forward)
-            hwnd = rotateWindowInGroup(groupWindowOrder, lastTaskbarHwnd, forward);
+            hwnd = WindowManager::rotateWindowInGroup(tbOrder, lastTaskbarHwnd, forward);
         else
             hwnd = lastTaskbarHwnd;
     }
@@ -561,7 +468,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
         }
         qDebug() << "(Taskbar)Switch to" << hwnd << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd);
     } else {
-        if (auto normal = rotateNormalWindowInGroup(groupWindowOrder, hwnd, false)) { // skip minimized
+        if (auto normal = WindowManager::rotateNormalWindowInGroup(tbOrder, hwnd, false)) {
             if (normal != hwnd)
                 qDebug() << "(Taskbar)Skip minimized" << hwnd << "->" << normal;
             hwnd = normal;
@@ -576,29 +483,6 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
     lastTaskbarHwnd = hwnd;
 }
 
-/// select next(forward)(older) or prev window in group<br>
-/// Do nothing, but select HWND
-HWND Widget::rotateWindowInGroup(const QList<HWND>& windows, HWND current, bool forward) {
-    const auto N = windows.size();
-    if (N == 1) return windows.first();
-    for (int i = 0; i < N; i++) {
-        if (windows.at(i) == current) {
-            auto next_i = forward ? (i + 1) : (i - 1);
-            auto next = windows.at((next_i + N) % N);
-            return next;
-        }
-    }
-    return nullptr;
-}
-
-/// Select next (including `current`) normal (!minimized) window in group<br>
-/// return nullptr if all minimized
-HWND Widget::rotateNormalWindowInGroup(const QList<HWND>& windows, HWND current, bool forward) {
-    for (int i = 0; IsIconic(current) && i < windows.size(); i++) // skip minimized
-        current = rotateWindowInGroup(windows, current, forward);
-    return IsIconic(current) ? nullptr : current;
-}
-
 void Widget::clearGroupWindowOrder() {
-    groupWindowOrder.clear();
+    m_wm->clearGroupWindowOrder();
 }

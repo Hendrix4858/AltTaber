@@ -8,35 +8,8 @@
 #include <QTimer>
 
 class WindowGroupModel;
-
+class WindowManager;
 struct WindowGroup;
-
-struct WindowInfo {
-    QString title;
-    QString className;
-    HWND hwnd = nullptr;
-};
-
-// C++17 inline: 防止重定义
-inline QDebug operator<<(QDebug dbg, const WindowInfo& info) {
-    dbg.nospace() << "WindowInfo(" << info.title << ", " << info.className << ", " << info.hwnd << ")";
-    return dbg.space();
-}
-
-Q_DECLARE_METATYPE(WindowInfo) // for QVariant
-struct WindowGroup {
-    WindowGroup() = default;
-
-    void addWindow(const WindowInfo& window) {
-        windows.append(window);
-    }
-
-    QString exePath;
-    QIcon icon;
-    QList<WindowInfo> windows;
-};
-
-Q_DECLARE_METATYPE(WindowGroup) // for QVariant
 
 QT_BEGIN_NAMESPACE
 
@@ -63,11 +36,10 @@ public:
     Q_ENUM(ForegroundChangeSource) // for QMetaEnum, to QString
 
 public:
-    explicit Widget(QWidget* parent = nullptr);
-    QList<WindowGroup> prepareWindowGroupList();
+    explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     bool prepareListWidget();
     Q_INVOKABLE bool requestShow();
-    void notifyForegroundChanged(HWND hwnd, ForegroundChangeSource source);
+    void notifyForegroundChanged(HWND hwnd);
 
     HWND hWnd() { return (HWND) winId(); }
 
@@ -77,26 +49,19 @@ public:
     bool eventFilter(QObject* watched, QEvent* event) override;
     void rotateTaskbarWindowInGroup(const QString& exePath, bool forward, int windows);
     void clearGroupWindowOrder();
+    WindowManager* windowManager() const { return m_wm; }
 
 private:
     bool forceShow();
     void showLabelForItem(const QModelIndex& index, QString text = QString());
     void setupLabelFont();
-    auto getLastActiveGroupWindow(const QString& exePath) -> QPair<HWND, QDateTime>;
-    auto getLastValidActiveGroupWindow(const WindowGroup& group) -> QPair<HWND, QDateTime>;
-    void sortGroupWindows(QList<HWND>& windows, const QString& exePath);
-    QList<HWND> buildGroupWindowOrder(const QString& exePath);
-    static HWND rotateWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
-    static HWND rotateNormalWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
 
 private:
     Ui::Widget* ui;
     QListView* lv = nullptr;
     WindowGroupModel* m_model = nullptr;
+    WindowManager* m_wm = nullptr;
     const QMargins ListWidgetMargin{24, 24, 24, 24};
-    /// exePath -> (HWND, time)
-    QHash<QString, QHash<HWND, QDateTime>> winActiveOrder;
-    QList<HWND> groupWindowOrder; // for Alt+` 同组窗口切换
 
     // eventFilter state (replaces static locals)
     int lastWheelRow = -1;
