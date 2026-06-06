@@ -91,6 +91,22 @@ public:
         set("MinIconSize", size);
     }
 
+    bool getMouseClickActivateEnabled() {
+        return get("MouseClickActivateEnabled", true).toBool();
+    }
+
+    void setMouseClickActivateEnabled(bool enabled) {
+        set("MouseClickActivateEnabled", enabled);
+    }
+
+    bool getClickShowGroupForMultiWindow() {
+        return get("ClickShowGroupForMultiWindow", true).toBool();
+    }
+
+    void setClickShowGroupForMultiWindow(bool enabled) {
+        set("ClickShowGroupForMultiWindow", enabled);
+    }
+
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
         int count = get("BlockedWindows/count", 0).toInt();

@@ -25,6 +25,8 @@
     "Min Icon Size:": "最小图标尺寸:",
     "Letter Jump": "字母跳转",
     "Enable letter jump (A-Z)": "启用字母跳转 (A-Z)",
+    "Activate window on mouse click": "点击图标激活窗口",
+    "Show window list for multi-window apps": "多窗口时显示窗口列表（如 Alt+`）",
     "Blocked Windows": "屏蔽窗口",
     "Window Title": "窗口标题",
     "Class Name": "类名",

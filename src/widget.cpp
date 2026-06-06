@@ -57,6 +57,8 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     lv->setItemDelegate(new IconOnlyDelegate(lv));
     lv->installEventFilter(this);
 
+    connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
+
     connect(lv->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current, const QModelIndex&) {
         if (current.isValid()) showLabelForItem(current);
@@ -608,4 +610,22 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
 
 void Widget::clearGroupWindowOrder() {
     m_wm->clearGroupWindowOrder();
+}
+
+void Widget::handleListItemClicked(const QModelIndex& index) {
+    if (!cfg().getMouseClickActivateEnabled()) return;
+
+    if (m_isInGroupWindowMode) {
+        exitGroupWindowMode(true);
+        return;
+    }
+
+    auto& group = m_model->groupAt(index.row());
+    if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
+        enterGroupWindowMode();
+    } else {
+        if (!group.windows.empty())
+            Util::switchToWindow(group.windows.first().hwnd, true);
+        hide();
+    }
 }

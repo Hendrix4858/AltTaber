@@ -48,6 +48,11 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     connect(ui->btnCancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->btnApply, &QPushButton::clicked, this, &SettingsDialog::applySettings);
 
+    connect(ui->mouseClickActivateCheck, &QCheckBox::toggled, this, [this](bool checked) {
+        if (!m_loadingSettings)
+            ui->clickShowGroupCheck->setEnabled(checked);
+    });
+
     connect(ui->btnAddBlocked, &QPushButton::clicked, this, [this] {
         bool okTitle;
         QString title = QInputDialog::getText(this, tr("Add Blocked Window"),
@@ -156,6 +161,8 @@ void SettingsDialog::applyStyleSheet() {
     ui->startupCheck->setStyleSheet(checkStyle);
     ui->adminCheck->setStyleSheet(checkStyle);
     ui->letterJumpCheck->setStyleSheet(checkStyle);
+    ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
+    ui->clickShowGroupCheck->setStyleSheet(checkStyle);
 
     const QString placeholderStyle = QString("QLabel { color: %1; font-size: 15px; }").arg(c.disabledText.name());
     ui->hotkeyPlaceholder->setStyleSheet(placeholderStyle);
@@ -255,6 +262,8 @@ void SettingsDialog::retranslateUi() {
 
     ui->letterJumpGroup->setTitle(tr("Letter Jump"));
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
+    ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
+    ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
     ui->hotkeyPlaceholder->setText(tr("Hotkey settings coming soon..."));
 
     QString version = QApplication::applicationVersion();
@@ -307,6 +316,10 @@ void SettingsDialog::loadSettings() {
 
     ui->letterJumpCheck->setChecked(cfg().getLetterJumpEnabled());
 
+    ui->mouseClickActivateCheck->setChecked(cfg().getMouseClickActivateEnabled());
+    ui->clickShowGroupCheck->setChecked(cfg().getClickShowGroupForMultiWindow());
+    ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
+
     // blocked windows
     ui->blockedTable->setRowCount(0);
     auto blocked = cfg().getBlockedWindows();
@@ -347,6 +360,9 @@ void SettingsDialog::applySettings() {
     cfg().setMinIconSize(ui->minIconSizeSpin->value());
 
     cfg().setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
+
+    cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
+    cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
 
     // blocked windows
     QList<BlockedWindowEntry> blocked;

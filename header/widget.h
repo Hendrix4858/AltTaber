@@ -49,6 +49,7 @@ public:
     bool eventFilter(QObject* watched, QEvent* event) override;
     void rotateTaskbarWindowInGroup(const QString& exePath, bool forward, int windows);
     void clearGroupWindowOrder();
+    void handleListItemClicked(const QModelIndex& index);
     WindowManager* windowManager() const { return m_wm; }
 
 private:
