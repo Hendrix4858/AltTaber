@@ -47,7 +47,8 @@ int main(int argc, char* argv[]) {
     }
 
     // 默认情况下，会根据系统主题自动切换; 但是一旦自定义qss，自动切换就会失效; 只好固定为Dark/Light
-    QApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+    QApplication::styleHints()->setColorScheme(
+        ThemeManager::resolveTheme() == Light ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
     qApp->setQuitOnLastWindowClosed(false);
     auto* wm = new WindowManager;
     auto* winSwitcher = new Widget(wm);

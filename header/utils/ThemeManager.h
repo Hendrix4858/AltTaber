@@ -3,11 +3,13 @@
 
 #include <QColor>
 #include <QObject>
+#include <QSettings>
 #include "ConfigManager.h"
 
 enum Theme {
     Dark,
     Light,
+    System,
     ThemeEnumCount
 };
 
@@ -45,8 +47,23 @@ public:
         return inst;
     }
 
+    static Theme resolveTheme() {
+        int saved = cfg().get("Theme", Dark).toInt();
+        if (saved == System)
+            return detectSystemTheme();
+        return static_cast<Theme>(saved);
+    }
+
+    static Theme detectSystemTheme() {
+        QSettings reg(
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            QSettings::NativeFormat);
+        int value = reg.value("AppsUseLightTheme", 1).toInt();
+        return value == 1 ? Light : Dark;
+    }
+
     static const ThemeColors& current() {
-        return instance().colors(static_cast<Theme>(cfg().get("Theme", Dark).toInt()));
+        return instance().colors(resolveTheme());
     }
 
     static const ThemeColors& colors(Theme theme) {
@@ -75,7 +92,7 @@ public:
         static const ThemeColors light = {
             .bgColor           = QColor(245, 245, 245),
             .panelColor        = QColor(255, 255, 255),
-            .textColor         = QColor(30, 30, 30),
+            .textColor         = QColor(0, 0, 0),
             .highlightColor    = QColor(0, 120, 212),
             .borderColor       = QColor(200, 200, 200),
             .inputBg           = QColor(255, 255, 255),
@@ -87,11 +104,11 @@ public:
             .badgeBg           = QColor(200, 180, 160),
             .badgeText         = QColor(80, 60, 40),
             .trayBg            = QColor(255, 255, 255),
-            .trayText          = QColor(30, 30, 30),
+            .trayText          = QColor(0, 0, 0),
             .trayBorder        = QColor(180, 180, 180),
             .traySelected      = QColor(0, 120, 212),
             .updateBg          = QColor(255, 255, 255),
-            .updateText        = QColor(30, 30, 30),
+            .updateText        = QColor(0, 0, 0),
             .disabledText      = QColor(180, 180, 180),
         };
         return theme == Light ? light : dark;

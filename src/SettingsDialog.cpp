@@ -33,6 +33,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     // theme combo
     ui->themeCombo->addItem(tr("Dark"), Dark);
     ui->themeCombo->addItem(tr("Light"), Light);
+    ui->themeCombo->addItem(tr("Follow System"), System);
 
     // language combo
     ui->langCombo->addItem("English", "en");
@@ -285,6 +286,7 @@ void SettingsDialog::retranslateUi() {
     ui->themeCombo->clear();
     ui->themeCombo->addItem(tr("Dark"), Dark);
     ui->themeCombo->addItem(tr("Light"), Light);
+    ui->themeCombo->addItem(tr("Follow System"), System);
     idx = ui->themeCombo->findData(savedTheme);
     if (idx >= 0) ui->themeCombo->setCurrentIndex(idx);
 

@@ -230,6 +230,8 @@ void Widget::showLabelForItem(const QModelIndex& index, QString text) {
         }
     }
     ui->label->setText(text);
+    ui->label->setStyleSheet(QString("color: %1; background: transparent;")
+                              .arg(ThemeManager::current().textColor.name()));
     ui->label->adjustSize();
 
     auto itemRect = lv->visualRect(index);
