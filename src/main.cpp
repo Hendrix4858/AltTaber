@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     // 其实Qt内部已经初始化了，这里是保险起见
     ComInitializer com; // 初始化COM组件 for 主线程
-    qDebug() << qt_error_string(S_OK); // just for fun
+    qDebug() << qt_error_string(S_OK);
 
     qDebug() << "isUserAdmin" << IsUserAnAdmin();
     qDebug() << "System Version" << QOperatingSystemVersion::current().version();

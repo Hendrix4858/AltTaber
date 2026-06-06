@@ -14,6 +14,12 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         auto* pKB = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
 
+        // 过滤 SendInput 注入的虚假按键事件，防止干扰 Alt 状态追踪
+        if (pKB->flags & LLKHF_INJECTED) {
+            qDebug() << "[KeyHook] Injected event ignored, vkCode=" << pKB->vkCode;
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+        }
+
         if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN) {
             // Track Alt key state internally
             if (pKB->vkCode == VK_LMENU) {

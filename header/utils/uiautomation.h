@@ -6,7 +6,7 @@
 #include <QRect>
 #include <QDebug>
 
-class UIElement; // forward declaration
+class UIElement;
 /// simplify UIAutomation Library
 ///
 /// [UIAutomation](https://learn.microsoft.com/zh-cn/windows/win32/winauto/uiauto-uiautomationoverview)

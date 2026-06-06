@@ -55,6 +55,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     // 但是采用delegate后，就没必要了
     // will not take ownership of delegate
     lv->setItemDelegate(new IconOnlyDelegate(lv));
+    lv->setFocusPolicy(Qt::NoFocus); // 防止点击图标后 QListView 抢走焦点，导致方向键无法切换
     lv->installEventFilter(this);
 
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
@@ -65,8 +66,12 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     });
 
     connect(qApp, &QApplication::focusWindowChanged, this, [this](QWindow* focusWindow) {
+        qDebug() << "[Focus] focusWindowChanged focusWindow=" << focusWindow
+                 << "underMouse=" << this->underMouse()
+                 << "isVisible=" << isVisible();
         if (focusWindow == nullptr) {
             if (!this->underMouse()) {
+                qDebug() << "[Focus] no focus window && not under mouse -> hide";
                 m_isInGroupWindowMode = false;
                 m_backupGroupList.clear();
                 m_backupGroupIndex = 0;
@@ -95,27 +100,41 @@ void Widget::keyPressEvent(QKeyEvent* event) {
             hide();
             return;
         }
-        if (key == Qt::Key_Tab && !(modifiers & Qt::AltModifier)) {
-            auto i = lv->currentIndex().row();
-            bool isShiftPressed = (modifiers & Qt::ShiftModifier);
-            auto count = m_model->groupCount();
-            auto index = (i - (2 * isShiftPressed - 1) + count) % count;
-            lv->setCurrentIndex(m_model->index(index));
-            return;
-        }
-    }
-
-    if (key == Qt::Key_Tab) {
-        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
-            exitGroupWindowMode(false);
-            return;
-        }
-        // switch to next or prev
+    if (key == Qt::Key_Tab && !(modifiers & Qt::AltModifier)) {
         auto i = lv->currentIndex().row();
         bool isShiftPressed = (modifiers & Qt::ShiftModifier);
         auto count = m_model->groupCount();
         auto index = (i - (2 * isShiftPressed - 1) + count) % count;
         lv->setCurrentIndex(m_model->index(index));
+        qDebug() << "[Switch] StayOpen Tab advance:" << i << "->" << index << "count=" << count;
+        return;
+    }
+    }
+
+    qDebug() << "[Switch] keyPressEvent key=" << key << "modifiers=" << modifiers
+             << "stayOpen=" << m_stayOpenMode << "groupMode=" << m_isInGroupWindowMode
+             << "currentRow=" << lv->currentIndex().row();
+
+    if (key == Qt::Key_Tab) {
+        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
+            int savedIndex = m_backupGroupIndex;
+            bool shiftPressed = (modifiers & Qt::ShiftModifier);
+            exitGroupWindowMode(false);
+            int count = m_model->groupCount();
+            int nextIndex = shiftPressed
+                ? (savedIndex - 1 + count) % count
+                : (savedIndex + 1) % count;
+            lv->setCurrentIndex(m_model->index(nextIndex));
+            showLabelForItem(m_model->index(nextIndex));
+            qDebug() << "[Switch] Tab group exit + advance:" << savedIndex << "->" << nextIndex;
+            return;
+        }
+        auto i = lv->currentIndex().row();
+        bool isShiftPressed = (modifiers & Qt::ShiftModifier);
+        auto count = m_model->groupCount();
+        auto index = (i - (2 * isShiftPressed - 1) + count) % count;
+        lv->setCurrentIndex(m_model->index(index));
+        qDebug() << "[Switch] Tab advance:" << i << "->" << index << "count=" << count;
     } else if (key == Qt::Key_QuoteLeft && (modifiers & Qt::AltModifier)) { // Alt + `
         if (this->isVisible() && !this->isMinimized()) {
             if (m_isInGroupWindowMode) {
@@ -148,10 +167,13 @@ void Widget::keyPressEvent(QKeyEvent* event) {
     } else if (key == Qt::Key_Left || key == Qt::Key_Right) {
         const int N = m_model->groupCount();
         const int i = lv->currentIndex().row();
-        if (key == Qt::Key_Left && i == 0)
-            lv->setCurrentIndex(m_model->index(N - 1));
-        else if (key == Qt::Key_Right && i == N - 1)
-            lv->setCurrentIndex(m_model->index(0));
+        if (N <= 1) return;
+        int nextIndex = (key == Qt::Key_Left)
+            ? (i - 1 + N) % N
+            : (i + 1) % N;
+        lv->setCurrentIndex(m_model->index(nextIndex));
+        showLabelForItem(m_model->index(nextIndex));
+        qDebug() << "[Switch] Arrow" << (key == Qt::Key_Left ? "Left" : "Right") << i << "->" << nextIndex;
     } else if (key >= Qt::Key_A && key <= Qt::Key_Z && cfg().getLetterJumpEnabled()) {
         QChar pressedLetter = QChar(key).toUpper();
 
@@ -280,13 +302,21 @@ void Widget::recalculateGeometry(QScreen* screen) {
 
 void Widget::enterGroupWindowMode() {
     auto index = lv->currentIndex();
-    if (!index.isValid()) return;
+    if (!index.isValid()) {
+        qDebug() << "[GroupMode] enterGroupWindowMode called but currentIndex invalid";
+        return;
+    }
 
     auto group = m_model->groupAt(index.row());
-    if (group.windows.size() <= 1) return;
+    if (group.windows.size() <= 1) {
+        qDebug() << "[GroupMode] enterGroupWindowMode called but only 1 window";
+        return;
+    }
 
     m_backupGroupList = m_model->groups();
     m_backupGroupIndex = index.row();
+    qDebug() << "[GroupMode] Enter, backupIndex=" << m_backupGroupIndex
+             << "windows=" << group.windows.size();
 
     QList<WindowGroup> filtered;
     for (const auto& win : group.windows) {
@@ -307,12 +337,19 @@ void Widget::enterGroupWindowMode() {
 }
 
 void Widget::exitGroupWindowMode(bool activateSelected) {
-    if (!m_isInGroupWindowMode) return;
+    if (!m_isInGroupWindowMode) {
+        qDebug() << "[GroupMode] exitGroupWindowMode called but NOT in group mode";
+        return;
+    }
+    qDebug() << "[GroupMode] exitGroupWindowMode activateSelected=" << activateSelected
+             << "backupIndex=" << m_backupGroupIndex
+             << "backupCount=" << m_backupGroupList.size();
     m_isInGroupWindowMode = false;
 
     if (activateSelected && this->isVisible()) {
         if (auto index = lv->currentIndex(); index.isValid()) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                qDebug() << "[GroupMode] activating window on exit";
                 Util::switchToWindow(group.windows.first().hwnd, true);
             }
         }
@@ -328,10 +365,15 @@ void Widget::exitGroupWindowMode(bool activateSelected) {
     showLabelForItem(m_model->index(restoreIndex));
     m_backupGroupIndex = 0;
 
-    qInfo() << "(Alt+`)Exit window focus mode";
+    qDebug() << "[GroupMode] Exit, restored to index" << restoreIndex;
 }
 
 void Widget::keyReleaseEvent(QKeyEvent* event) {
+    qDebug() << "[Release] keyReleaseEvent key=" << event->key()
+             << "visible=" << isVisible()
+             << "groupMode=" << m_isInGroupWindowMode
+             << "stayOpen=" << m_stayOpenMode
+             << "currentRow=" << lv->currentIndex().row();
     if (event->key() == Qt::Key_Alt) {
         m_jumpLastLetter = {};
         m_jumpLastIndex = -1;
@@ -406,7 +448,6 @@ bool Widget::prepareListWidget() {
     auto winGroupList = m_wm->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 
-    // calculate Geometry
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
         auto screen = displayOnPrimary ?
@@ -422,11 +463,9 @@ bool Widget::prepareListWidget() {
         }
         recalculateGeometry(screen);
     } else {
-        // no item, hide ? TODO
         return false;
     }
 
-    // set current item
     auto count = m_model->groupCount();
     if (count >= 2) {
         auto foreWin = GetForegroundWindow();
@@ -438,23 +477,44 @@ bool Widget::prepareListWidget() {
             }
         }
         lv->setCurrentIndex(m_model->index(isFirstItemForeground ? 1 : 0));
+        qDebug() << "[Show] initIndex=" << (isFirstItemForeground ? 1 : 0)
+                 << "firstIsForeground=" << isFirstItemForeground
+                 << "count=" << count;
     } else if (count == 1) {
         lv->setCurrentIndex(m_model->index(0));
+        qDebug() << "[Show] initIndex=0 count=1";
+    } else {
+        qDebug() << "[Show] no windows!";
     }
-
-    // set current item (handled above)
 
     return true;
 }
 
 bool Widget::requestShow() {
+    qDebug() << "[Show] requestShow called, isVisible=" << isVisible()
+             << "isForeground=" << isForeground()
+             << "currentRow=" << lv->currentIndex().row();
     m_stayOpenMode = false;
     Util::closeSystemWindows();
-    return prepareListWidget() && forceShow();
+    if (isVisible()) {
+        // 窗口已显示（例如 Alt+Esc 切走前台后 Tab 又触发了 requestShow），
+        // 不要调用 prepareListWidget() 重置模型和索引，直接置前即可。
+        qDebug() << "[Show] already visible, bring to front, keeping row=" << lv->currentIndex().row();
+        return forceShow();
+    }
+    bool ok = prepareListWidget() && forceShow();
+    qDebug() << "[Show] result=" << ok << "initialRow=" << lv->currentIndex().row();
+    return ok;
 }
 
 bool Widget::eventFilter(QObject* watched, QEvent* event) {
     if (watched == lv) {
+        if (event->type() == QEvent::KeyPress) {
+            auto* keyEvent = static_cast<QKeyEvent*>(event);
+            auto key = keyEvent->key();
+            qDebug() << "[Filter] KeyPress on lv: key=" << key
+                     << "stayOpen=" << m_stayOpenMode;
+        }
         if (m_stayOpenMode && event->type() == QEvent::KeyPress) {
             auto* keyEvent = static_cast<QKeyEvent*>(event);
             auto key = keyEvent->key();
@@ -694,19 +754,31 @@ void Widget::clearGroupWindowOrder() {
 }
 
 void Widget::handleListItemClicked(const QModelIndex& index) {
-    if (!cfg().getMouseClickActivateEnabled() && !m_stayOpenMode) return;
+    qDebug() << "[Click] item row=" << index.row() << "groupMode=" << m_isInGroupWindowMode
+             << "stayOpen=" << m_stayOpenMode << "mouseClickActivate=" << cfg().getMouseClickActivateEnabled();
+
+    if (!cfg().getMouseClickActivateEnabled() && !m_stayOpenMode) {
+        qDebug() << "[Click] ignored (mouseClickActivate disabled, not stay-open)";
+        return;
+    }
 
     if (m_isInGroupWindowMode) {
+        qDebug() << "[Click] in group mode -> exitGroupWindowMode(true)";
         exitGroupWindowMode(true);
         return;
     }
 
     auto& group = m_model->groupAt(index.row());
+    qDebug() << "[Click] group windows=" << group.windows.size()
+             << "clickShowGroup=" << cfg().getClickShowGroupForMultiWindow();
     if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
+        qDebug() << "[Click] enterGroupWindowMode";
         enterGroupWindowMode();
     } else {
-        if (!group.windows.empty())
+        if (!group.windows.empty()) {
+            qDebug() << "[Click] switchToWindow + hide";
             Util::switchToWindow(group.windows.first().hwnd, true);
+        }
         hide();
     }
 }
