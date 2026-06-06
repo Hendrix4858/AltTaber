@@ -28,6 +28,7 @@ public:
     void retranslateMenu() {
         m_actUpdate->setText(tr("Check for Updates"));
         m_actSettings->setText(tr("Settings"));
+        m_actPause->setText(tr("Pause"));
         m_actRestartAdmin->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
         m_startupBaseText = tr("Start with Windows");
         m_menuMonitor->setTitle(tr("Display Monitor"));
@@ -63,6 +64,8 @@ private:
 
         m_actUpdate = new QAction(m_menu);
         m_actSettings = new QAction(m_menu);
+        m_actPause = new QAction(m_menu);
+        m_actPause->setCheckable(true);
         m_actRestartAdmin = new QAction(m_menu);
         m_actStartup = new QAction(m_menu);
         m_actStartup->setCheckable(true);
@@ -107,8 +110,14 @@ private:
                 this->showMessage(tr("Action Failed"), tr("Failed to change Startup mode"), Warning);
         });
 
+        connect(m_actPause, &QAction::triggered, this, [this](bool checked) {
+            cfg().setPaused(checked);
+            this->showMessage(tr("Pause"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
+        });
+
         connect(m_menu, &QMenu::aboutToShow, this, [this] {
             m_actStartup->setChecked(Startup::isOn());
+            m_actPause->setChecked(cfg().getPaused());
             bool isAdmin = IsUserAnAdmin();
             m_actRestartAdmin->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
             m_actRestartAdmin->setEnabled(!isAdmin);
@@ -146,6 +155,9 @@ private:
 
         m_menu->addAction(m_actUpdate);
         m_menu->addAction(m_actSettings);
+        m_menu->addSeparator();
+        m_menu->addAction(m_actPause);
+        m_menu->addSeparator();
         m_menu->addAction(m_actRestartAdmin);
         m_menu->addAction(m_actStartup);
         m_menu->addMenu(m_menuMonitor);
@@ -158,6 +170,7 @@ private:
     QMenu* m_menu = nullptr;
     QAction* m_actUpdate = nullptr;
     QAction* m_actSettings = nullptr;
+    QAction* m_actPause = nullptr;
     QAction* m_actRestartAdmin = nullptr;
     QAction* m_actStartup = nullptr;
     QMenu* m_menuMonitor = nullptr;
