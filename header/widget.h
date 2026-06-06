@@ -26,6 +26,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
 
 public:
     enum ForegroundChangeSource {
@@ -59,6 +60,7 @@ private:
 
     void enterGroupWindowMode();
     void exitGroupWindowMode(bool activateSelected);
+    void activateCurrentAndHide();
     void recalculateGeometry(QScreen* screen = nullptr);
 
 private:
@@ -81,6 +83,9 @@ private:
     bool m_isInGroupWindowMode = false;
     QList<WindowGroup> m_backupGroupList;
     int m_backupGroupIndex = 0;
+
+    // Stay-open mode (keep overlay visible after Alt release)
+    bool m_stayOpenMode = false;
 
     // rotateTaskbarWindowInGroup state (replaces static locals)
     QString lastTaskbarPath;

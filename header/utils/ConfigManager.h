@@ -107,6 +107,14 @@ public:
         set("ClickShowGroupForMultiWindow", enabled);
     }
 
+    bool getStayOpenOnAltRelease() {
+        return get("StayOpenOnAltRelease", false).toBool();
+    }
+
+    void setStayOpenOnAltRelease(bool enabled) {
+        set("StayOpenOnAltRelease", enabled);
+    }
+
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
         int count = get("BlockedWindows/count", 0).toInt();

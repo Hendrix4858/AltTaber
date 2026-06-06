@@ -181,15 +181,22 @@
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QCheckBox" name="clickShowGroupCheck">
-            <property name="text">
-             <string>Show window list for multi-window apps</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="generalSpacer">
+           <item>
+            <widget class="QCheckBox" name="clickShowGroupCheck">
+             <property name="text">
+              <string>Show window list for multi-window apps</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="stayOpenCheck">
+             <property name="text">
+              <string>Keep overlay open after releasing Alt</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="generalSpacer">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
            </property>

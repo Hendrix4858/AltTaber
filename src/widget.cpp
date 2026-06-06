@@ -83,6 +83,28 @@ Widget::~Widget() {
 void Widget::keyPressEvent(QKeyEvent* event) {
     auto key = event->key();
     auto modifiers = event->modifiers();
+
+    if (m_stayOpenMode) {
+            if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+                m_stayOpenMode = false;
+                activateCurrentAndHide();
+                return;
+            }
+        if (key == Qt::Key_Escape) {
+            m_stayOpenMode = false;
+            hide();
+            return;
+        }
+        if (key == Qt::Key_Tab && !(modifiers & Qt::AltModifier)) {
+            auto i = lv->currentIndex().row();
+            bool isShiftPressed = (modifiers & Qt::ShiftModifier);
+            auto count = m_model->groupCount();
+            auto index = (i - (2 * isShiftPressed - 1) + count) % count;
+            lv->setCurrentIndex(m_model->index(index));
+            return;
+        }
+    }
+
     if (key == Qt::Key_Tab) {
         if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
             exitGroupWindowMode(false);
@@ -315,6 +337,10 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
         m_jumpLastIndex = -1;
         m_wm->clearGroupWindowOrder(); // for Alt + `
         if (this->isVisible()) {
+            if (cfg().getStayOpenOnAltRelease()) {
+                m_stayOpenMode = true;
+                return;
+            }
             if (m_isInGroupWindowMode) {
                 // Window focus mode: get selected window before restoring model
                 HWND targetHwnd = nullptr;
@@ -346,6 +372,11 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
         }
     }
     QWidget::keyReleaseEvent(event);
+}
+
+void Widget::hideEvent(QHideEvent* event) {
+    m_stayOpenMode = false;
+    QWidget::hideEvent(event);
 }
 
 void Widget::paintEvent(QPaintEvent*) {
@@ -417,12 +448,47 @@ bool Widget::prepareListWidget() {
 }
 
 bool Widget::requestShow() {
+    m_stayOpenMode = false;
     Util::closeSystemWindows();
     return prepareListWidget() && forceShow();
 }
 
 bool Widget::eventFilter(QObject* watched, QEvent* event) {
-    if (watched == lv && event->type() == QEvent::Wheel) {
+    if (watched == lv) {
+        if (m_stayOpenMode && event->type() == QEvent::KeyPress) {
+            auto* keyEvent = static_cast<QKeyEvent*>(event);
+            auto key = keyEvent->key();
+            auto modifiers = keyEvent->modifiers();
+
+            if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+                m_stayOpenMode = false;
+                if (m_isInGroupWindowMode) {
+                    exitGroupWindowMode(true);
+                } else {
+                    if (auto index = lv->currentIndex(); index.isValid()) {
+                        if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                            Util::switchToWindow(group.windows.first().hwnd, true);
+                        }
+                    }
+                    hide();
+                }
+                return true;
+            }
+            if (key == Qt::Key_Escape) {
+                m_stayOpenMode = false;
+                hide();
+                return true;
+            }
+            if (key == Qt::Key_Tab) {
+                auto i = lv->currentIndex().row();
+                bool isShiftPressed = (modifiers & Qt::ShiftModifier);
+                auto count = m_model->groupCount();
+                auto index = (i - (2 * isShiftPressed - 1) + count) % count;
+                lv->setCurrentIndex(m_model->index(index));
+                return true;
+            }
+        }
+        if (event->type() == QEvent::Wheel) {
         auto* wheelEvent = static_cast<QWheelEvent*>(event);
         auto cursorPos = wheelEvent->position().toPoint();
         if (auto index = lv->indexAt(cursorPos); index.isValid()) {
@@ -467,10 +533,25 @@ bool Widget::eventFilter(QObject* watched, QEvent* event) {
             showLabelForItem(index, Util::getWindowTitle(nextFocus));
             qDebug() << "Wheel" << isRollUp << Util::getWindowTitle(nextFocus) << lastWheelHwnd;
 
-            return true; // stop propagation
+                return true; // stop propagation
+            }
         }
     }
     return false;
+}
+
+/// Must hide after active target window, or focus may fallback to prev foreground window
+void Widget::activateCurrentAndHide() {
+    if (m_isInGroupWindowMode) {
+        exitGroupWindowMode(true);
+    } else {
+        if (auto index = lv->currentIndex(); index.isValid()) {
+            if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
+                Util::switchToWindow(group.windows.first().hwnd, true);
+            }
+        }
+        hide();
+    }
 }
 
 /// `forward`: true for restore, false for minimize
@@ -613,7 +694,7 @@ void Widget::clearGroupWindowOrder() {
 }
 
 void Widget::handleListItemClicked(const QModelIndex& index) {
-    if (!cfg().getMouseClickActivateEnabled()) return;
+    if (!cfg().getMouseClickActivateEnabled() && !m_stayOpenMode) return;
 
     if (m_isInGroupWindowMode) {
         exitGroupWindowMode(true);

@@ -163,6 +163,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->letterJumpCheck->setStyleSheet(checkStyle);
     ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
     ui->clickShowGroupCheck->setStyleSheet(checkStyle);
+    ui->stayOpenCheck->setStyleSheet(checkStyle);
 
     const QString placeholderStyle = QString("QLabel { color: %1; font-size: 15px; }").arg(c.disabledText.name());
     ui->hotkeyPlaceholder->setStyleSheet(placeholderStyle);
@@ -264,6 +265,7 @@ void SettingsDialog::retranslateUi() {
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
+    ui->stayOpenCheck->setText(tr("Keep overlay open after releasing Alt"));
     ui->hotkeyPlaceholder->setText(tr("Hotkey settings coming soon..."));
 
     QString version = QApplication::applicationVersion();
@@ -319,6 +321,7 @@ void SettingsDialog::loadSettings() {
     ui->mouseClickActivateCheck->setChecked(cfg().getMouseClickActivateEnabled());
     ui->clickShowGroupCheck->setChecked(cfg().getClickShowGroupForMultiWindow());
     ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
+    ui->stayOpenCheck->setChecked(cfg().getStayOpenOnAltRelease());
 
     // blocked windows
     ui->blockedTable->setRowCount(0);
@@ -363,6 +366,7 @@ void SettingsDialog::applySettings() {
 
     cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
+    cfg().setStayOpenOnAltRelease(ui->stayOpenCheck->isChecked());
 
     // blocked windows
     QList<BlockedWindowEntry> blocked;
