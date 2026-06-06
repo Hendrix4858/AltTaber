@@ -32,9 +32,11 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             if (s_instance && s_instance->m_altDown) {
                 if (pKB->vkCode == VK_TAB) {
-                    qDebug() << "[KeyHook] Alt+Tab, foreground owner:"
-                             << (s_instance->m_ownerHwnd == GetForegroundWindow());
-                    if (s_instance->m_ownerHwnd != GetForegroundWindow()) {
+                    bool overlayVisible = IsWindowVisible(s_instance->m_ownerHwnd);
+                    qDebug() << "[KeyHook] Alt+Tab,"
+                             << "overlayVisible=" << overlayVisible
+                             << "foregroundOwner=" << (s_instance->m_ownerHwnd == GetForegroundWindow());
+                    if (!overlayVisible) {
                         qDebug() << "[KeyHook] -> requestShow";
                         emit s_instance->requestShow();
                     } else {
@@ -48,6 +50,15 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     auto shiftModifier = Util::isKeyPressed(VK_SHIFT) ? Qt::ShiftModifier : Qt::NoModifier;
                     emit s_instance->altGravePressed(shiftModifier);
                     return 1;
+                } else if (pKB->vkCode == VK_LEFT || pKB->vkCode == VK_RIGHT ||
+                           pKB->vkCode == VK_UP || pKB->vkCode == VK_DOWN) {
+                    bool overlayVisible = IsWindowVisible(s_instance->m_ownerHwnd);
+                    bool isForeground = s_instance->m_ownerHwnd == GetForegroundWindow();
+                    if (overlayVisible && !isForeground) {
+                        qDebug() << "[KeyHook] Alt+Arrow, overlay not foreground, forward to widget";
+                        emit s_instance->altArrowPressed(pKB->vkCode);
+                        return 1;
+                    }
                 }
             }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {

@@ -15,6 +15,7 @@ signals:
     void requestShow();
     void altTabPressed(Qt::KeyboardModifiers modifiers);
     void altGravePressed(Qt::KeyboardModifiers modifiers);
+    void altArrowPressed(int vkCode);
     void altReleased();
 
 private:

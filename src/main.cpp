@@ -64,12 +64,32 @@ int main(int argc, char* argv[]) {
                      winSwitcher, &Widget::requestShow, Qt::QueuedConnection);
     QObject::connect(&kbHooker, &KeyboardHooker::altTabPressed, winSwitcher,
                      [winSwitcher](Qt::KeyboardModifiers mods) {
+        // 已可见但不在前台（被 DebugView 等抢走前台）时，把 overlay 置前
+        if (winSwitcher->isVisible() && !winSwitcher->isForeground()) {
+            SetForegroundWindow((HWND)winSwitcher->winId());
+        }
         auto event = new QKeyEvent(QEvent::KeyPress, Qt::Key_Tab, Qt::AltModifier | mods);
         QApplication::postEvent(winSwitcher, event);
     }, Qt::QueuedConnection);
     QObject::connect(&kbHooker, &KeyboardHooker::altGravePressed, winSwitcher,
                      [winSwitcher](Qt::KeyboardModifiers mods) {
         auto event = new QKeyEvent(QEvent::KeyPress, Qt::Key_QuoteLeft, Qt::AltModifier | mods);
+        QApplication::postEvent(winSwitcher, event);
+    }, Qt::QueuedConnection);
+    QObject::connect(&kbHooker, &KeyboardHooker::altArrowPressed, winSwitcher,
+                     [winSwitcher](int vkCode) {
+        if (winSwitcher->isVisible() && !winSwitcher->isForeground()) {
+            SetForegroundWindow((HWND)winSwitcher->winId());
+        }
+        Qt::Key qtKey;
+        switch (vkCode) {
+            case VK_LEFT:  qtKey = Qt::Key_Left;  break;
+            case VK_RIGHT: qtKey = Qt::Key_Right; break;
+            case VK_UP:    qtKey = Qt::Key_Up;    break;
+            case VK_DOWN:  qtKey = Qt::Key_Down;  break;
+            default: return;
+        }
+        auto event = new QKeyEvent(QEvent::KeyPress, qtKey, Qt::AltModifier);
         QApplication::postEvent(winSwitcher, event);
     }, Qt::QueuedConnection);
     QObject::connect(&kbHooker, &KeyboardHooker::altReleased, winSwitcher,

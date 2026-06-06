@@ -87,6 +87,9 @@ private:
     // Stay-open mode (keep overlay visible after Alt release)
     bool m_stayOpenMode = false;
 
+    // Alt key state tracked via requestShow / altReleased
+    bool m_alt_pressed = false;
+
     // rotateTaskbarWindowInGroup state (replaces static locals)
     QString lastTaskbarPath;
     HWND lastTaskbarHwnd = nullptr;

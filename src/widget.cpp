@@ -66,11 +66,17 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     });
 
     connect(qApp, &QApplication::focusWindowChanged, this, [this](QWindow* focusWindow) {
-        qDebug() << "[Focus] focusWindowChanged focusWindow=" << focusWindow
+        qDebug() << "[Focus] focusWindowChanged"
+                 << "focusWindow=" << focusWindow
+                 << "alt_pressed=" << m_alt_pressed
                  << "underMouse=" << this->underMouse()
                  << "isVisible=" << isVisible();
         if (focusWindow == nullptr) {
             if (!this->underMouse()) {
+                if (Util::isKeyPressed(VK_MENU) || m_alt_pressed) {
+                    qDebug() << "[Focus] Alt still pressed, skip hide";
+                    return;
+                }
                 qDebug() << "[Focus] no focus window && not under mouse -> hide";
                 m_isInGroupWindowMode = false;
                 m_backupGroupList.clear();
@@ -375,6 +381,7 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
              << "stayOpen=" << m_stayOpenMode
              << "currentRow=" << lv->currentIndex().row();
     if (event->key() == Qt::Key_Alt) {
+        m_alt_pressed = false;
         m_jumpLastLetter = {};
         m_jumpLastIndex = -1;
         m_wm->clearGroupWindowOrder(); // for Alt + `
@@ -491,6 +498,7 @@ bool Widget::prepareListWidget() {
 }
 
 bool Widget::requestShow() {
+    m_alt_pressed = true;
     qDebug() << "[Show] requestShow called, isVisible=" << isVisible()
              << "isForeground=" << isForeground()
              << "currentRow=" << lv->currentIndex().row();
