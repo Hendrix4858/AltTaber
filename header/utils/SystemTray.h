@@ -13,6 +13,7 @@
 #include "ConfigManager.h"
 #include "UpdateDialog.h"
 #include "SettingsDialog.h"
+#include "ThemeManager.h"
 
 class SystemTray : public QSystemTrayIcon {
     Q_OBJECT
@@ -46,6 +47,18 @@ private:
         setToolTip(IsUserAnAdmin() ? "AltTaber (admin)" : "AltTaber");
     }
 
+    void applyMenuTheme() {
+        const auto& c = ThemeManager::current();
+        m_menu->setStyleSheet(
+            QString("QMenu{"
+                "background-color:%1;"
+                "color:%2;"
+                "border:1px solid %3;"
+                "}"
+                "QMenu::item:selected{ background-color:%4; }")
+            .arg(c.trayBg.name(), c.trayText.name(), c.trayBorder.name(), c.traySelected.name()));
+    }
+
     void updateStartupText() {
         auto text = m_startupBaseText;
         if (IsUserAnAdmin() && !Startup::isOn_reg())
@@ -55,12 +68,7 @@ private:
 
     void setMenu(QWidget* parent = nullptr) {
         m_menu = new QMenu(parent);
-        m_menu->setStyleSheet("QMenu{"
-            "background-color:rgb(45,45,45);"
-            "color:rgb(220,220,220);"
-            "border:1px solid black;"
-            "}"
-            "QMenu:selected{ background-color:rgb(60,60,60); }");
+        applyMenuTheme();
 
         m_actUpdate = new QAction(m_menu);
         m_actSettings = new QAction(m_menu);
@@ -116,6 +124,7 @@ private:
         });
 
         connect(m_menu, &QMenu::aboutToShow, this, [this] {
+            applyMenuTheme();
             m_actStartup->setChecked(Startup::isOn());
             m_actPause->setChecked(cfg().getPaused());
             bool isAdmin = IsUserAnAdmin();
