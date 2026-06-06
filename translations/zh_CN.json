@@ -38,6 +38,20 @@
     "Class Name (leave empty to match any):": "类名（留空则匹配任意）:",
     "At least one of Title or Class Name must be filled.": "标题和类名至少填写一项。",
 
+    "Logging": "日志",
+    "Log Level:": "日志级别:",
+    "Log Directory:": "日志目录:",
+    "Browse...": "浏览...",
+    "Leave empty for default": "留空则使用默认路径",
+    "All": "全部",
+    "Debug": "调试",
+    "Info": "信息",
+    "Warning": "警告",
+    "Error": "错误",
+    "Fatal": "严重",
+    "None": "无",
+    "Select Log Directory": "选择日志目录",
+
     "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>"
   },
   "SystemTray": {

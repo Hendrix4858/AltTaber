@@ -4,6 +4,7 @@
 #include <QSettings>
 #include <QApplication>
 #include "ConfigManagerBase.h"
+#include "utils/Logger.h"
 
 enum DisplayMonitor {
     PrimaryMonitor,
@@ -113,6 +114,25 @@ public:
 
     void setStayOpenOnAltRelease(bool enabled) {
         set("StayOpenOnAltRelease", enabled);
+    }
+
+    Util::LogLevel getLogLevel() {
+        auto val = get("LogLevel", static_cast<int>(Util::LogLevel::Info)).toInt();
+        if (val < 0 || val >= static_cast<int>(Util::LogLevel::None))
+            val = static_cast<int>(Util::LogLevel::Info);
+        return static_cast<Util::LogLevel>(val);
+    }
+
+    void setLogLevel(Util::LogLevel level) {
+        set("LogLevel", static_cast<int>(level));
+    }
+
+    QString getLogDirectory() {
+        return get("LogDirectory", "").toString();
+    }
+
+    void setLogDirectory(const QString& path) {
+        set("LogDirectory", path);
     }
 
     QList<BlockedWindowEntry> getBlockedWindows() {

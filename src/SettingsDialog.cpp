@@ -6,9 +6,12 @@
 #include "utils/ThemeManager.h"
 
 #include <QApplication>
+#include <QFileDialog>
 #include <QFont>
 #include <QInputDialog>
 #include <QMessageBox>
+
+#include "utils/Logger.h"
 
 SettingsDialog::SettingsDialog(QWidget* parent)
     : QDialog(parent)
@@ -23,6 +26,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->navList->addItem(tr("General"));
     ui->navList->addItem(tr("Display"));
     ui->navList->addItem(tr("Hotkeys"));
+    ui->navList->addItem(tr("Logging"));
     ui->navList->addItem(tr("Blocked Windows"));
     ui->navList->addItem(tr("About"));
 
@@ -33,6 +37,25 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     // language combo
     ui->langCombo->addItem("English", "en");
     ui->langCombo->addItem("中文", "zh_CN");
+
+    // log level combo
+    ui->logLevelCombo->addItem(tr("All"), static_cast<int>(Util::LogLevel::All));
+    ui->logLevelCombo->addItem(tr("Debug"), static_cast<int>(Util::LogLevel::Debug));
+    ui->logLevelCombo->addItem(tr("Info"), static_cast<int>(Util::LogLevel::Info));
+    ui->logLevelCombo->addItem(tr("Warning"), static_cast<int>(Util::LogLevel::Warning));
+    ui->logLevelCombo->addItem(tr("Error"), static_cast<int>(Util::LogLevel::Error));
+    ui->logLevelCombo->addItem(tr("Fatal"), static_cast<int>(Util::LogLevel::Fatal));
+    ui->logLevelCombo->addItem(tr("None"), static_cast<int>(Util::LogLevel::None));
+
+    // browse log directory
+    connect(ui->btnBrowseLogDir, &QPushButton::clicked, this, [this] {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Log Directory"),
+                                                        ui->logDirEdit->text().isEmpty()
+                                                            ? QApplication::applicationDirPath() + "/log"
+                                                            : ui->logDirEdit->text());
+        if (!dir.isEmpty())
+            ui->logDirEdit->setText(dir);
+    });
 
     applyStyleSheet();
 
@@ -133,6 +156,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->langGroup->setStyleSheet(groupBoxStyle);
     ui->letterJumpGroup->setStyleSheet(groupBoxStyle);
     ui->displayGroup->setStyleSheet(groupBoxStyle);
+    ui->logGroup->setStyleSheet(groupBoxStyle);
     ui->blockedGroup->setStyleSheet(groupBoxStyle);
 
     const QString comboStyle = QString(
@@ -148,11 +172,14 @@ void SettingsDialog::applyStyleSheet() {
     ui->langCombo->setStyleSheet(comboStyle);
     ui->monitorCombo->setStyleSheet(comboStyle);
     ui->themeCombo->setStyleSheet(comboStyle);
+    ui->logLevelCombo->setStyleSheet(comboStyle);
 
     ui->langLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->monitorLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->themeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->minIconSizeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
+    ui->logLevelLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
+    ui->logDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
 
     const QString checkStyle = QString(
         "QCheckBox { color: %1; font-size: 13px; spacing: 8px; margin: 4px 0; }"
@@ -188,6 +215,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->btnApply->setStyleSheet(btnStyle);
     ui->btnAddBlocked->setStyleSheet(btnStyle);
     ui->btnRemoveBlocked->setStyleSheet(btnStyle);
+    ui->btnBrowseLogDir->setStyleSheet(btnStyle);
 
     // Blocked table style
     ui->blockedTable->setStyleSheet(QString(
@@ -198,6 +226,13 @@ void SettingsDialog::applyStyleSheet() {
         "  border: 1px solid %3; padding: 4px; font-weight: bold; }"
     ).arg(c.inputBg.name(), c.textColor.name(), c.borderColor.name(),
           c.highlightColor.name(), c.panelColor.name()));
+
+    // log directory line edit
+    ui->logDirEdit->setStyleSheet(QString(
+        "QLineEdit { padding: 6px 10px; border: 1px solid %1; border-radius: 4px;"
+        "  background-color: %2; color: %3; font-size: 13px; }"
+        "QLineEdit:focus { border-color: %4; }"
+    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
 
     // min icon size spinbox
     ui->minIconSizeSpin->setStyleSheet(QString(
@@ -214,12 +249,13 @@ void SettingsDialog::retranslateUi() {
     ui->titleLabel->setText(tr("Settings"));
     ui->searchEdit->setPlaceholderText(tr("Search..."));
 
-    if (ui->navList->count() >= 5) {
+    if (ui->navList->count() >= 6) {
         ui->navList->item(0)->setText(tr("General"));
         ui->navList->item(1)->setText(tr("Display"));
         ui->navList->item(2)->setText(tr("Hotkeys"));
-        ui->navList->item(3)->setText(tr("Blocked Windows"));
-        ui->navList->item(4)->setText(tr("About"));
+        ui->navList->item(3)->setText(tr("Logging"));
+        ui->navList->item(4)->setText(tr("Blocked Windows"));
+        ui->navList->item(5)->setText(tr("About"));
     }
 
     ui->langGroup->setTitle(tr("Language Settings"));
@@ -254,6 +290,25 @@ void SettingsDialog::retranslateUi() {
 
     ui->themeLabel->setText(tr("Theme:"));
     ui->minIconSizeLabel->setText(tr("Min Icon Size:"));
+
+    ui->logGroup->setTitle(tr("Logging"));
+    ui->logLevelLabel->setText(tr("Log Level:"));
+
+    int savedLogLevel = ui->logLevelCombo->currentData().toInt();
+    ui->logLevelCombo->clear();
+    ui->logLevelCombo->addItem(tr("All"), static_cast<int>(Util::LogLevel::All));
+    ui->logLevelCombo->addItem(tr("Debug"), static_cast<int>(Util::LogLevel::Debug));
+    ui->logLevelCombo->addItem(tr("Info"), static_cast<int>(Util::LogLevel::Info));
+    ui->logLevelCombo->addItem(tr("Warning"), static_cast<int>(Util::LogLevel::Warning));
+    ui->logLevelCombo->addItem(tr("Error"), static_cast<int>(Util::LogLevel::Error));
+    ui->logLevelCombo->addItem(tr("Fatal"), static_cast<int>(Util::LogLevel::Fatal));
+    ui->logLevelCombo->addItem(tr("None"), static_cast<int>(Util::LogLevel::None));
+    int llIdx = ui->logLevelCombo->findData(savedLogLevel);
+    if (llIdx >= 0) ui->logLevelCombo->setCurrentIndex(llIdx);
+
+    ui->logDirLabel->setText(tr("Log Directory:"));
+    ui->logDirEdit->setPlaceholderText(tr("Leave empty for default"));
+    ui->btnBrowseLogDir->setText(tr("Browse..."));
 
     ui->blockedGroup->setTitle(tr("Blocked Windows"));
     ui->blockedTable->horizontalHeaderItem(0)->setText(tr("Window Title"));
@@ -323,6 +378,10 @@ void SettingsDialog::loadSettings() {
     ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
     ui->stayOpenCheck->setChecked(cfg().getStayOpenOnAltRelease());
 
+    int logLevelIdx = ui->logLevelCombo->findData(static_cast<int>(cfg().getLogLevel()));
+    if (logLevelIdx >= 0) ui->logLevelCombo->setCurrentIndex(logLevelIdx);
+    ui->logDirEdit->setText(cfg().getLogDirectory());
+
     // blocked windows
     ui->blockedTable->setRowCount(0);
     auto blocked = cfg().getBlockedWindows();
@@ -367,6 +426,10 @@ void SettingsDialog::applySettings() {
     cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
     cfg().setStayOpenOnAltRelease(ui->stayOpenCheck->isChecked());
+
+    cfg().setLogLevel(static_cast<Util::LogLevel>(ui->logLevelCombo->currentData().toInt()));
+    cfg().setLogDirectory(ui->logDirEdit->text());
+    Util::Logger::reconfigure();
 
     // blocked windows
     QList<BlockedWindowEntry> blocked;

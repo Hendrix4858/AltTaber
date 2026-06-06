@@ -333,6 +333,79 @@
          </item>
         </layout>
        </widget>
+        <widget class="QWidget" name="loggingPage">
+         <layout class="QVBoxLayout" name="loggingLayout">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>12</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>12</number>
+          </property>
+          <item>
+           <widget class="QGroupBox" name="logGroup">
+            <property name="title">
+             <string>Logging</string>
+            </property>
+            <layout class="QFormLayout" name="logFormLayout">
+             <item row="0" column="0">
+              <widget class="QLabel" name="logLevelLabel">
+               <property name="text">
+                <string>Log Level:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="logLevelCombo"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="logDirLabel">
+               <property name="text">
+                <string>Log Directory:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="logDirLayout">
+               <item>
+                <widget class="QLineEdit" name="logDirEdit">
+                 <property name="placeholderText">
+                  <string>Leave empty for default</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnBrowseLogDir">
+                 <property name="text">
+                  <string>Browse...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="loggingSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
         <widget class="QWidget" name="blockedPage">
          <layout class="QVBoxLayout" name="blockedLayout">
           <property name="leftMargin">
