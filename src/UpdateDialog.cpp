@@ -13,8 +13,11 @@
 #include "utils/SystemTray.h"
 #include "utils/ThemeManager.h"
 #include <QProcess>
+#include <QElapsedTimer>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
+    QElapsedTimer t;
+    t.start();
     ui->setupUi(this);
     setWindowFlag(Qt::WindowStaysOnTopHint);
     setWindowTitle("AltTaber Updater[GitHub]");
@@ -33,6 +36,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         archive.fileName = QUrl(url).fileName();
         download(url, qApp->applicationDirPath() + '/' + archive.fileName);
     });
+    qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
         qInfo() << "Download succeed" << filePath;
         if (filePath.endsWith(".zip")) {

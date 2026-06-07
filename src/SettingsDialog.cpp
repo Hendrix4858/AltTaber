@@ -17,10 +17,13 @@
 #include <QPushButton>
 
 #include "utils/Logger.h"
+#include <QElapsedTimer>
 
 SettingsDialog::SettingsDialog(QWidget* parent)
     : QDialog(parent)
     , ui(new Ui::SettingsDialog) {
+    QElapsedTimer t;
+    t.start();
     ui->setupUi(this);
 
     QFont titleFont = ui->titleLabel->font();
@@ -144,6 +147,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     buildHotkeyPage();
     loadHotkeyBindings();
     ui->navList->setCurrentRow(0);
+    qInfo() << "SettingsDialog initialized in" << t.elapsed() << "ms";
 }
 
 SettingsDialog::~SettingsDialog() {

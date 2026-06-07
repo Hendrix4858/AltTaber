@@ -17,8 +17,11 @@
 #include "utils/SystemTray.h"
 #include "utils/ConfigManager.h"
 #include "utils/ThemeManager.h"
+#include <QElapsedTimer>
 
 Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui::Widget), m_wm(wm) {
+    QElapsedTimer t;
+    t.start();
     ui->setupUi(this);
     lv = ui->listWidget;
     m_model = new WindowGroupModel(this);
@@ -68,7 +71,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
             [this](const QModelIndex& current, const QModelIndex&) {
         if (current.isValid()) showLabelForItem(current);
     });
-
+    qInfo() << "Widget initialized in" << t.elapsed() << "ms";
 }
 
 Widget::~Widget() {
