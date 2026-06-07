@@ -67,7 +67,7 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
             } else {
                 UnhookWindowsHookEx(h_mouse);
                 h_mouse = nullptr;
-                qInfo() << "Leave Taskbar" << QTime::currentTime();
+                qDebug() << "Leave Taskbar" << QTime::currentTime();
                 emit leaveTaskbar();
             }
         }

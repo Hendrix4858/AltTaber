@@ -6,6 +6,7 @@
 #include <QListView>
 #include <QDebug>
 #include <QTimer>
+#include "utils/HotkeyAction.h"
 
 class WindowGroupModel;
 class WindowManager;
@@ -29,6 +30,13 @@ protected:
     void hideEvent(QHideEvent* event) override;
 
 public:
+    enum class OverlayState {
+        Hidden,
+        Showing,
+        Visible,
+        Hiding,
+    };
+
     enum ForegroundChangeSource {
         WinEvent,
         Inner,
@@ -39,6 +47,7 @@ public:
 public:
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     bool prepareListWidget();
+    void warmupCache();
     Q_INVOKABLE bool requestShow();
     void notifyForegroundChanged(HWND hwnd);
 
@@ -46,12 +55,20 @@ public:
 
     bool isForeground() { return GetForegroundWindow() == hWnd(); }
 
+    OverlayState overlayState() const { return m_overlayState; }
+
     ~Widget() override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void rotateTaskbarWindowInGroup(const QString& exePath, bool forward, int windows);
     void clearGroupWindowOrder();
     void handleListItemClicked(const QModelIndex& index);
     WindowManager* windowManager() const { return m_wm; }
+
+    // Hotkey dispatch entry points
+    void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+
+    void updateOverlayBindings(const HotkeyBindings& bindings);
 
 private:
     bool forceShow();
@@ -102,6 +119,12 @@ private:
     HWND lastTaskbarHwnd = nullptr;
     bool lastTaskbarForward = true;
     QTimer* taskbarTimer = nullptr;
+
+    // Overlay hotkey bindings
+    HotkeyBindings m_overlayBindings;
+
+    // Overlay state machine
+    OverlayState m_overlayState = OverlayState::Hidden;
 };
 
 

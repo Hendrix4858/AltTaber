@@ -108,7 +108,7 @@ namespace Util {
     }
 
     QList<HWND> listValidWindows() {
-        qInfo() << "List valid windows";
+        qDebug() << "List valid windows";
         static const bool isUserAdmin = IsUserAnAdmin();
         using namespace AppUtil;
         QList<HWND> list;
@@ -117,7 +117,7 @@ namespace Util {
         for (auto hwnd: winList) {
             if (!hwnd) continue;
             if (!isUserAdmin && isWindowElevated(hwnd)) {
-                qInfo() << "Ignore elevated:" << hwnd << getWindowTitle(hwnd);
+                qDebug() << "Ignore elevated:" << hwnd << getWindowTitle(hwnd);
                 continue;
             }
 

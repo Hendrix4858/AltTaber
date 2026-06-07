@@ -3,6 +3,7 @@
 #include "WindowManager.h"
 #include "ui_Widget.h"
 #include "utils/Util.h"
+#include "utils/HotkeyAction.h"
 #include <QDebug>
 #include <QWindow>
 #include <QScreen>
@@ -77,97 +78,31 @@ Widget::~Widget() {
 void Widget::keyPressEvent(QKeyEvent* event) {
     auto key = event->key();
     auto modifiers = event->modifiers();
-
-    if (m_stayOpenMode) {
-            if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-                m_stayOpenMode = false;
-                activateCurrentAndHide();
-                return;
-            }
-        if (key == Qt::Key_Escape) {
-            m_stayOpenMode = false;
-            hide();
-            return;
-        }
-    if (key == Qt::Key_Tab && !(modifiers & Qt::AltModifier)) {
-        auto i = lv->currentIndex().row();
-        bool isShiftPressed = (modifiers & Qt::ShiftModifier);
-        auto count = m_model->groupCount();
-        if (count <= 0) return;
-        auto index = (i - (2 * isShiftPressed - 1) + count) % count;
-        lv->setCurrentIndex(m_model->index(index));
-        qDebug() << "[Switch] StayOpen Tab advance:" << i << "->" << index << "count=" << count;
-        return;
-    }
-    }
+    quint32 vk = qtKeyToVkCode(key);
 
     qDebug() << "[Switch] keyPressEvent key=" << key << "modifiers=" << modifiers
              << "stayOpen=" << m_stayOpenMode << "groupMode=" << m_isInGroupWindowMode
              << "currentRow=" << lv->currentIndex().row();
 
-    if (key == Qt::Key_Tab) {
-        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
-            int savedIndex = m_backupGroupIndex;
-            bool shiftPressed = (modifiers & Qt::ShiftModifier);
-            exitGroupWindowMode(false);
-            int count = m_model->groupCount();
-            if (count <= 0) return;
-            int nextIndex = shiftPressed
-                ? (savedIndex - 1 + count) % count
-                : (savedIndex + 1) % count;
-            lv->setCurrentIndex(m_model->index(nextIndex));
-            showLabelForItem(m_model->index(nextIndex));
-            qDebug() << "[Switch] Tab group exit + advance:" << savedIndex << "->" << nextIndex;
-            return;
-        }
-        auto i = lv->currentIndex().row();
-        bool isShiftPressed = (modifiers & Qt::ShiftModifier);
-        auto count = m_model->groupCount();
-        if (count <= 0) return;
-        auto index = (i - (2 * isShiftPressed - 1) + count) % count;
-        lv->setCurrentIndex(m_model->index(index));
-        qDebug() << "[Switch] Tab advance:" << i << "->" << index << "count=" << count;
-    } else if (key == Qt::Key_QuoteLeft && (modifiers & Qt::AltModifier)) { // Alt + `
-        if (this->isVisible() && !this->isMinimized()) {
-            if (m_isInGroupWindowMode) {
-                auto count = m_model->groupCount();
-                if (count <= 0) return;
-                auto next = (lv->currentIndex().row() + 1) % count;
-                lv->setCurrentIndex(m_model->index(next));
-            } else {
-                enterGroupWindowMode();
+    // Check overlay bindings first
+    if (vk != 0) {
+        for (auto it = m_overlayBindings.begin(); it != m_overlayBindings.end(); ++it) {
+            for (const auto& b : it.value()) {
+                if (b.vkCode == vk && b.modifiers == modifiers) {
+                    qDebug() << "[Widget] Overlay binding match:"
+                             << hotkeyActionName(it.key())
+                             << "vk=" << vk << "mods=" << modifiers;
+                    handleOverlayAction(it.key(), modifiers);
+                    return;
+                }
             }
-            return;
         }
-        // Switcher not visible: cycle foreground app windows directly
-        auto foreWin = GetForegroundWindow();
-        auto& order = m_wm->groupWindowOrder();
-        if (order.isEmpty()) {
-            auto targetExe = Util::getWindowProcessPath(foreWin);
-            order = m_wm->buildGroupWindowOrder(targetExe);
-        }
-        if (auto nextWin = WindowManager::rotateWindowInGroup(order, foreWin, !(modifiers & Qt::ShiftModifier))) {
-            Util::switchToWindow(nextWin, true);
-        }
-    } else if (key == Qt::Key_Up || key == Qt::Key_Down) {
-        if (auto index = lv->currentIndex(); index.isValid()) {
-            auto center = lv->visualRect(index).center();
-            auto wheelEvent = new QWheelEvent(center, lv->mapToGlobal(center), {},
-                                              {key == Qt::Key_Up ? 120 : -120, 0},
-                                              Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-            QApplication::postEvent(lv, wheelEvent);
-        }
-    } else if (key == Qt::Key_Left || key == Qt::Key_Right) {
-        const int N = m_model->groupCount();
-        const int i = lv->currentIndex().row();
-        if (N <= 1) return;
-        int nextIndex = (key == Qt::Key_Left)
-            ? (i - 1 + N) % N
-            : (i + 1) % N;
-        lv->setCurrentIndex(m_model->index(nextIndex));
-        showLabelForItem(m_model->index(nextIndex));
-        qDebug() << "[Switch] Arrow" << (key == Qt::Key_Left ? "Left" : "Right") << i << "->" << nextIndex;
-    } else if (key >= Qt::Key_A && key <= Qt::Key_Z && cfg().getLetterJumpEnabled()) {
+        qDebug() << "[Widget] No overlay binding for vk=" << vk
+                 << "qtKey=" << key << "mods=" << modifiers;
+    }
+
+    // Letter jump (A-Z only if no overlay binding consumed it)
+    if (key >= Qt::Key_A && key <= Qt::Key_Z && cfg().getLetterJumpEnabled()) {
         QChar pressedLetter = QChar(key).toUpper();
 
         QList<int> matchingIndices;
@@ -189,7 +124,9 @@ void Widget::keyPressEvent(QKeyEvent* event) {
             m_jumpLastLetter = pressedLetter;
             m_jumpLastIndex = targetIndex;
         }
+        return;
     }
+
     QWidget::keyPressEvent(event);
 }
 
@@ -223,10 +160,14 @@ void Widget::loadNextIcon(int generation) {
 }
 
 bool Widget::forceShow() {
-    setWindowOpacity(0.005); // 减少闪烁发生(因Qt::WA_TranslucentBackground) in showMinimized()
-    showMinimized();
-    showNormal();
-    setWindowOpacity(1);
+    if (!isVisible()) {
+        setWindowOpacity(0.005);
+        showMinimized();
+        showNormal();
+        setWindowOpacity(1);
+    } else {
+        SetForegroundWindow(hWnd());
+    }
     return isForeground();
 }
 
@@ -339,8 +280,8 @@ void Widget::enterGroupWindowMode() {
 
     m_backupGroupList = m_model->groups();
     m_backupGroupIndex = index.row();
-    qDebug() << "[GroupMode] Enter, backupIndex=" << m_backupGroupIndex
-             << "windows=" << group.windows.size();
+    qInfo() << "[GroupMode] Enter, backupIndex=" << m_backupGroupIndex
+            << "windows=" << group.windows.size();
 
     QList<WindowGroup> filtered;
     for (const auto& win : group.windows) {
@@ -365,15 +306,15 @@ void Widget::exitGroupWindowMode(bool activateSelected) {
         qDebug() << "[GroupMode] exitGroupWindowMode called but NOT in group mode";
         return;
     }
-    qDebug() << "[GroupMode] exitGroupWindowMode activateSelected=" << activateSelected
-             << "backupIndex=" << m_backupGroupIndex
-             << "backupCount=" << m_backupGroupList.size();
+    qInfo() << "[GroupMode] exitGroupWindowMode activateSelected=" << activateSelected
+            << "backupIndex=" << m_backupGroupIndex
+            << "backupCount=" << m_backupGroupList.size();
     m_isInGroupWindowMode = false;
 
     if (activateSelected && this->isVisible()) {
         if (auto index = lv->currentIndex(); index.isValid()) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                qDebug() << "[GroupMode] activating window on exit";
+                qInfo() << "[GroupMode] activating window on exit";
                 Util::switchToWindow(group.windows.first().hwnd, true);
             }
         }
@@ -389,7 +330,7 @@ void Widget::exitGroupWindowMode(bool activateSelected) {
     showLabelForItem(m_model->index(restoreIndex));
     m_backupGroupIndex = 0;
 
-    qDebug() << "[GroupMode] Exit, restored to index" << restoreIndex;
+    qInfo() << "[GroupMode] Exit, restored to index" << restoreIndex;
 }
 
 void Widget::keyReleaseEvent(QKeyEvent* event) {
@@ -402,7 +343,11 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
         m_jumpLastLetter = {};
         m_jumpLastIndex = -1;
         m_wm->clearGroupWindowOrder(); // for Alt + `
-        if (this->isVisible()) {
+
+        bool wasActive = (m_overlayState == OverlayState::Visible);
+        m_overlayState = OverlayState::Hidden;
+
+        if (wasActive) {
             if (cfg().getStayOpenOnAltRelease()) {
                 if (isForeground()) {
                     m_stayOpenMode = true;
@@ -444,6 +389,7 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Widget::hideEvent(QHideEvent* event) {
+    m_overlayState = OverlayState::Hidden;
     m_stayOpenMode = false;
     QWidget::hideEvent(event);
 }
@@ -518,20 +464,33 @@ bool Widget::prepareListWidget() {
     return true;
 }
 
+void Widget::warmupCache() {
+    auto winGroupList = m_wm->prepareWindowGroupList();
+    m_model->setGroups(winGroupList);
+    lazyLoadIcons();
+}
+
 bool Widget::requestShow() {
-    qDebug() << "[Show] requestShow called, isVisible=" << isVisible()
-             << "isForeground=" << isForeground()
-             << "currentRow=" << lv->currentIndex().row();
+    switch (m_overlayState) {
+    case OverlayState::Showing:
+        return true;
+    case OverlayState::Visible:
+        Util::closeSystemWindows();
+        return forceShow();
+    case OverlayState::Hiding:
+        return false;
+    case OverlayState::Hidden:
+        break;
+    }
+
+    m_overlayState = OverlayState::Showing;
     m_stayOpenMode = false;
     Util::closeSystemWindows();
-    if (isVisible()) {
-        // 窗口已显示（例如 Alt+Esc 切走前台后 Tab 又触发了 requestShow），
-        // 不要调用 prepareListWidget() 重置模型和索引，直接置前即可。
-        qDebug() << "[Show] already visible, bring to front, keeping row=" << lv->currentIndex().row();
-        return forceShow();
-    }
     bool ok = prepareListWidget() && forceShow();
-    qDebug() << "[Show] result=" << ok << "initialRow=" << lv->currentIndex().row();
+    m_overlayState = ok ? OverlayState::Visible : OverlayState::Hidden;
+    qInfo() << "[Show] result=" << ok
+             << "state=" << (ok ? "Visible" : "Hidden")
+             << "initialRow=" << lv->currentIndex().row();
     return ok;
 }
 
@@ -782,8 +741,160 @@ void Widget::clearGroupWindowOrder() {
     m_wm->clearGroupWindowOrder();
 }
 
+void Widget::updateOverlayBindings(const HotkeyBindings& bindings) {
+    // Store only overlay-scope actions
+    m_overlayBindings.clear();
+    static const HotkeyAction overlayActions[] = {
+        HotkeyAction::CycleForward,
+        HotkeyAction::CycleBackward,
+        HotkeyAction::MoveSelectionUp,
+        HotkeyAction::MoveSelectionDown,
+        HotkeyAction::ActivateSelected,
+        HotkeyAction::DismissSwitcher,
+        HotkeyAction::EnterGroupMode,
+    };
+    for (auto action : overlayActions) {
+        if (bindings.contains(action))
+            m_overlayBindings[action] = bindings[action];
+    }
+}
+
+void Widget::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    qInfo() << "[Action] overlayAction=" << hotkeyActionName(action)
+            << "visible=" << isVisible()
+            << "modifiers=" << modifiers << "groupMode=" << m_isInGroupWindowMode;
+    if (!isVisible()) return;
+
+    switch (action) {
+    case HotkeyAction::CycleForward: {
+        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
+            // Exit group mode and advance to next group
+            int savedIndex = m_backupGroupIndex;
+            bool shiftPressed = (modifiers & Qt::ShiftModifier);
+            exitGroupWindowMode(false);
+            int count = m_model->groupCount();
+            if (count <= 0) return;
+            int nextIndex = shiftPressed
+                ? (savedIndex - 1 + count) % count
+                : (savedIndex + 1) % count;
+            lv->setCurrentIndex(m_model->index(nextIndex));
+            showLabelForItem(m_model->index(nextIndex));
+            return;
+        }
+        auto i = lv->currentIndex().row();
+        bool shiftPressed = (modifiers & Qt::ShiftModifier);
+        auto count = m_model->groupCount();
+        if (count <= 0) return;
+        auto nextIndex = (i - (2 * (int)shiftPressed - 1) + count) % count;
+        lv->setCurrentIndex(m_model->index(nextIndex));
+        qDebug() << "[Action] CycleForward:" << i << "->" << nextIndex;
+        if (!(modifiers & Qt::AltModifier))
+            showLabelForItem(m_model->index(nextIndex));
+        return;
+    }
+    case HotkeyAction::CycleBackward: {
+        auto i = lv->currentIndex().row();
+        auto count = m_model->groupCount();
+        if (count <= 0) return;
+        auto nextIndex = (i - 1 + count) % count;
+        lv->setCurrentIndex(m_model->index(nextIndex));
+        showLabelForItem(m_model->index(nextIndex));
+        qDebug() << "[Action] CycleBackward:" << i << "->" << nextIndex;
+        return;
+    }
+    case HotkeyAction::EnterGroupMode: {
+        if (m_isInGroupWindowMode) {
+            auto count = m_model->groupCount();
+            if (count <= 0) return;
+            auto next = (lv->currentIndex().row() + 1) % count;
+            lv->setCurrentIndex(m_model->index(next));
+        } else {
+            enterGroupWindowMode();
+        }
+        return;
+    }
+    case HotkeyAction::MoveSelectionUp: {
+        if (auto index = lv->currentIndex(); index.isValid()) {
+            auto center = lv->visualRect(index).center();
+            auto wheelEvent = new QWheelEvent(center, lv->mapToGlobal(center), {},
+                                              {120, 0},
+                                              Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+            QApplication::postEvent(lv, wheelEvent);
+        }
+        return;
+    }
+    case HotkeyAction::MoveSelectionDown: {
+        if (auto index = lv->currentIndex(); index.isValid()) {
+            auto center = lv->visualRect(index).center();
+            auto wheelEvent = new QWheelEvent(center, lv->mapToGlobal(center), {},
+                                              {-120, 0},
+                                              Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+            QApplication::postEvent(lv, wheelEvent);
+        }
+        return;
+    }
+    case HotkeyAction::ActivateSelected: {
+        m_stayOpenMode = false;
+        activateCurrentAndHide();
+        return;
+    }
+    case HotkeyAction::DismissSwitcher: {
+        m_stayOpenMode = false;
+        hide();
+        return;
+    }
+    default:
+        return;
+    }
+}
+
+void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    qInfo() << "[Action] ENTER" << hotkeyActionName(action)
+            << "state=" << (int)m_overlayState
+            << "visible=" << isVisible();
+    bool visible = isVisible();
+
+    switch (action) {
+    case HotkeyAction::ShowSwitcher:
+        if (!visible) {
+            qInfo() << "[Action] ShowSwitcher -> requestShow";
+            requestShow();
+        } else {
+            // Overlay visible: Alt+Tab acts as CycleForward
+            qInfo() << "[Action] ShowSwitcher -> overlay visible -> CycleForward";
+            handleOverlayAction(HotkeyAction::CycleForward, modifiers);
+        }
+        return;
+    case HotkeyAction::EnterGroupMode:
+        if (visible && !isMinimized()) {
+            qInfo() << "[Action] EnterGroupMode -> overlay action";
+            handleOverlayAction(HotkeyAction::EnterGroupMode, modifiers);
+        } else {
+            // Not visible or minimized: cycle foreground app windows
+            qInfo() << "[Action] EnterGroupMode -> cycle foreground windows";
+            auto foreWin = GetForegroundWindow();
+            auto& order = m_wm->groupWindowOrder();
+            if (order.isEmpty()) {
+                auto targetExe = Util::getWindowProcessPath(foreWin);
+                order = m_wm->buildGroupWindowOrder(targetExe);
+            }
+            bool forward = !(modifiers & Qt::ShiftModifier);
+            if (auto nextWin = WindowManager::rotateWindowInGroup(order, foreWin, forward)) {
+                Util::switchToWindow(nextWin, true);
+            }
+        }
+        return;
+    case HotkeyAction::TogglePause:
+        qInfo() << "[Action] TogglePause";
+        cfg().setPaused(!cfg().getPaused());
+        return;
+    default:
+        return;
+    }
+}
+
 void Widget::handleListItemClicked(const QModelIndex& index) {
-    qDebug() << "[Click] item row=" << index.row() << "groupMode=" << m_isInGroupWindowMode
+    qInfo() << "[Click] item row=" << index.row() << "groupMode=" << m_isInGroupWindowMode
              << "stayOpen=" << m_stayOpenMode << "mouseClickActivate=" << cfg().getMouseClickActivateEnabled();
 
     if (!cfg().getMouseClickActivateEnabled() && !m_stayOpenMode) {
@@ -792,7 +903,7 @@ void Widget::handleListItemClicked(const QModelIndex& index) {
     }
 
     if (m_isInGroupWindowMode) {
-        qDebug() << "[Click] in group mode -> exitGroupWindowMode(true)";
+        qInfo() << "[Click] in group mode -> exitGroupWindowMode(true)";
         exitGroupWindowMode(true);
         return;
     }
@@ -801,11 +912,11 @@ void Widget::handleListItemClicked(const QModelIndex& index) {
     qDebug() << "[Click] group windows=" << group.windows.size()
              << "clickShowGroup=" << cfg().getClickShowGroupForMultiWindow();
     if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
-        qDebug() << "[Click] enterGroupWindowMode";
+        qInfo() << "[Click] enterGroupWindowMode";
         enterGroupWindowMode();
     } else {
         if (!group.windows.empty()) {
-            qDebug() << "[Click] switchToWindow + hide";
+            qInfo() << "[Click] switchToWindow + hide";
             Util::switchToWindow(group.windows.first().hwnd, true);
         }
         hide();

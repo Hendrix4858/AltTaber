@@ -73,7 +73,7 @@ namespace Util {
     bool setWindowRoundCorner(HWND hwnd, DWM_WINDOW_CORNER_PREFERENCE pvAttribute) {
         HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pvAttribute, sizeof(pvAttribute));
         if (FAILED(hr)) {
-            qWarning() << "Failed to set rounded corners for window:" << hr;
+            qCritical() << "Failed to set rounded corners for window:" << hr;
             return false;
         }
         return true;

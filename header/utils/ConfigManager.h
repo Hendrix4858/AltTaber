@@ -1,10 +1,10 @@
 #ifndef WIN_SWITCHER_CONFIGMANAGER_H
 #define WIN_SWITCHER_CONFIGMANAGER_H
 
-#include <QSettings>
 #include <QApplication>
 #include "ConfigManagerBase.h"
 #include "utils/Logger.h"
+#include "utils/HotkeyAction.h"
 
 enum DisplayMonitor {
     PrimaryMonitor,
@@ -18,7 +18,7 @@ struct BlockedWindowEntry {
 };
 
 class ConfigManager : public ConfigManagerBase {
-    inline static const QString FileName = "config.ini";
+    inline static const QString FileName = "config.json";
 
 public:
     ConfigManager(const ConfigManager&) = delete;
@@ -154,13 +154,15 @@ public:
         set("IconCacheDirectory", path);
     }
 
+    // BlockedWindows stored as JSON array: [{"title":..., "class":...}]
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
-        int count = get("BlockedWindows/count", 0).toInt();
-        for (int i = 0; i < count; ++i) {
+        QJsonArray arr = m_root["BlockedWindows"].toArray();
+        for (const auto& val : arr) {
+            QJsonObject obj = val.toObject();
             BlockedWindowEntry entry;
-            entry.title = get(QString("BlockedWindows/%1_title").arg(i), "").toString();
-            entry.className = get(QString("BlockedWindows/%1_class").arg(i), "").toString();
+            entry.title = obj["title"].toString();
+            entry.className = obj["class"].toString();
             if (!entry.title.isEmpty() || !entry.className.isEmpty())
                 list.append(entry);
         }
@@ -168,12 +170,67 @@ public:
     }
 
     void setBlockedWindows(const QList<BlockedWindowEntry>& list) {
-        remove("BlockedWindows");
-        set("BlockedWindows/count", list.size());
-        for (int i = 0; i < list.size(); ++i) {
-            set(QString("BlockedWindows/%1_title").arg(i), list[i].title);
-            set(QString("BlockedWindows/%1_class").arg(i), list[i].className);
+        QJsonArray arr;
+        for (const auto& entry : list) {
+            QJsonObject obj;
+            obj["title"] = entry.title;
+            obj["class"] = entry.className;
+            arr.append(obj);
         }
+        m_root["BlockedWindows"] = arr;
+        m_dirty = true;
+    }
+
+    // Hotkeys stored as JSON object: {"ActionName": ["Key1+Key2", ...]}
+    HotkeyBindings getHotkeyBindings() {
+        HotkeyBindings result;
+        QJsonObject hotkeys = m_root["Hotkeys"].toObject();
+        for (auto it = hotkeys.begin(); it != hotkeys.end(); ++it) {
+            auto action = hotkeyActionFromName(it.key());
+            if (hotkeyActionName(action) != it.key())
+                continue; // unknown action name
+            QJsonArray arr = it.value().toArray();
+            QList<HotkeyBinding> bindings;
+            for (const auto& val : arr) {
+                auto b = HotkeyBinding::fromString(val.toString());
+                if (b.isValid())
+                    bindings.append(b);
+            }
+            qDebug() << "[Config] Load bindings for" << it.key() << ":" << bindings.size() << "bindings";
+            result[action] = bindings;
+        }
+        return result;
+    }
+
+    void setHotkeyBindings(const HotkeyBindings& bindings) {
+        QJsonObject hotkeys;
+        for (auto it = bindings.begin(); it != bindings.end(); ++it) {
+            QJsonArray arr;
+            for (const auto& b : it.value()) {
+                QString s = b.toString();
+                if (!s.isEmpty())
+                    arr.append(s);
+            }
+            hotkeys[hotkeyActionName(it.key())] = arr;
+        }
+        m_root["Hotkeys"] = hotkeys;
+        m_dirty = true;
+        qInfo() << "[Config] Saved hotkey bindings to JSON";
+    }
+
+    void resetHotkeys() {
+        HotkeyBindings defaults;
+        defaults[HotkeyAction::ShowSwitcher] = {HotkeyBinding::fromString("Alt+Tab")};
+        defaults[HotkeyAction::EnterGroupMode] = {HotkeyBinding::fromString("Alt+Grave")};
+        defaults[HotkeyAction::CycleForward] = {HotkeyBinding::fromString("Tab")};
+        defaults[HotkeyAction::CycleBackward] = {HotkeyBinding::fromString("Shift+Tab")};
+        defaults[HotkeyAction::MoveSelectionUp] = {HotkeyBinding::fromString("Up")};
+        defaults[HotkeyAction::MoveSelectionDown] = {HotkeyBinding::fromString("Down")};
+        defaults[HotkeyAction::ActivateSelected] = {HotkeyBinding::fromString("Enter")};
+        defaults[HotkeyAction::DismissSwitcher] = {HotkeyBinding::fromString("Escape")};
+        defaults[HotkeyAction::TogglePause] = {};
+        setHotkeyBindings(defaults);
+        sync();
     }
 
 private:

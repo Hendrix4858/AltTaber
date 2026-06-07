@@ -84,6 +84,10 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/SystemTray.h
         header/utils/ConfigManager.h
         header/utils/ConfigManagerBase.h
+        src/utils/ConfigManagerBase.cpp
+        header/utils/HotkeyAction.h
+        src/utils/HotkeyRecorder.cpp
+        header/utils/HotkeyRecorder.h
         src/UpdateDialog.cpp
         header/UpdateDialog.h
         ui/UpdateDialog.ui

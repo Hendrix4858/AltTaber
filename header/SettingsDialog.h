@@ -3,12 +3,16 @@
 
 #include <QDialog>
 #include <QEvent>
+#include <QMap>
+#include "utils/HotkeyAction.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class SettingsDialog;
 }
 QT_END_NAMESPACE
+
+class HotkeyRecorder;
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
@@ -26,8 +30,17 @@ private:
     void applySettings();
     void applyStyleSheet();
 
+    void buildHotkeyPage();
+    void loadHotkeyBindings();
+    void applyHotkeyBindings();
+    bool checkConflict(HotkeyAction action, const HotkeyBinding& binding,
+                       HotkeyAction& conflictAction, int& conflictIndex) const;
+    void checkLetterJumpConflict();
+
     Ui::SettingsDialog* ui;
     bool m_loadingSettings = false;
+
+    QMap<HotkeyAction, HotkeyRecorder*> m_recorders;
 };
 
 #endif

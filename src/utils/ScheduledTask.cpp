@@ -99,7 +99,7 @@ bool ScheduledTask::createTask(const QString& taskName) {
         file.write(xml.toUtf8());
         file.close();
     } else {
-        qWarning() << "Failed to write schtasks.xml";
+        qCritical() << "Failed to write schtasks.xml";
         return false;
     }
 
@@ -110,8 +110,8 @@ bool ScheduledTask::createTask(const QString& taskName) {
     file.remove();
     bool isOk = (process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0);
     if (!isOk) {
-        qWarning() << "Failed to create schtasks:" << QString::fromLocal8Bit(process.readAllStandardError())
-                << process.exitStatus() << process.exitCode();
+        qCritical() << "Failed to create schtasks:" << QString::fromLocal8Bit(process.readAllStandardError())
+                 << process.exitStatus() << process.exitCode();
     }
     return isOk;
 }
@@ -152,8 +152,8 @@ bool ScheduledTask::deleteTask(const QString& taskName) {
     process.waitForFinished();
     bool isOk = (process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0);
     if (!isOk) {
-        qWarning() << "Failed to create schtasks:" << QString::fromLocal8Bit(process.readAllStandardError())
-                << process.exitStatus() << process.exitCode();
+        qCritical() << "Failed to delete schtasks:" << QString::fromLocal8Bit(process.readAllStandardError())
+                 << process.exitStatus() << process.exitCode();
     }
     return isOk;
 }
