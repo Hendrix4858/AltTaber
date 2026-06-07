@@ -57,6 +57,12 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     lv->setItemDelegate(new IconOnlyDelegate(lv));
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
 
+    connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationInactive && isVisible()) {
+            hide();
+        }
+    });
+
     connect(lv->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current, const QModelIndex&) {
         if (current.isValid()) showLabelForItem(current);
