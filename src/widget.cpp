@@ -163,15 +163,21 @@ void Widget::loadNextIcon(int generation) {
 }
 
 bool Widget::forceShow() {
+    HWND hwnd = (HWND)winId();
     if (!isVisible()) {
         setWindowOpacity(0.005);
         showMinimized();
         showNormal();
         setWindowOpacity(1);
-    } else {
-        SetForegroundWindow(hWnd());
     }
-    return isForeground();
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+    bool ok = isVisible();
+    qDebug().noquote() << "[forceShow]" << "visible=" << isVisible()
+             << "isForeground=" << isForeground()
+             << "fgHwnd=" << Qt::hex << GetForegroundWindow() << Qt::dec
+             << "selfHwnd=" << Qt::hex << hwnd << Qt::dec;
+    return ok;
 }
 
 /// show App description under the icon
@@ -474,17 +480,10 @@ void Widget::warmupCache() {
 }
 
 bool Widget::requestShow() {
-    switch (m_overlayState) {
-    case OverlayState::Showing:
+    if (m_overlayState == OverlayState::Visible || m_overlayState == OverlayState::Showing)
         return true;
-    case OverlayState::Visible:
-        Util::closeSystemWindows();
-        return forceShow();
-    case OverlayState::Hiding:
+    if (m_overlayState == OverlayState::Hiding)
         return false;
-    case OverlayState::Hidden:
-        break;
-    }
 
     m_overlayState = OverlayState::Showing;
     m_stayOpenMode = false;

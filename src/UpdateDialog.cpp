@@ -19,7 +19,11 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     QElapsedTimer t;
     t.start();
     ui->setupUi(this);
-    setWindowFlag(Qt::WindowStaysOnTopHint);
+    {
+        HWND h = (HWND)winId();
+        auto ex = GetWindowLongW(h, GWL_EXSTYLE);
+        SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+    }
     setWindowTitle("AltTaber Updater[GitHub]");
     qDebug() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::supportsSsl();
 

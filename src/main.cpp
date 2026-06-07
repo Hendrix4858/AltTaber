@@ -121,7 +121,8 @@ int main(int argc, char* argv[]) {
 
             auto className = Util::getClassName(hwnd);
             if (hwnd == GetForegroundWindow() && Util::isKeyPressed(VK_MENU) &&
-                (className == "ForegroundStaging")) {
+                (className == "ForegroundStaging") &&
+                winSwitcher->overlayState() != Widget::OverlayState::Visible) {
                 qInfo() << "Task switcher detected (fallback)" << className;
                 winSwitcher->requestShow();
             }

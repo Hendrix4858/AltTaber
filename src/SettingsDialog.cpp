@@ -25,6 +25,11 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     QElapsedTimer t;
     t.start();
     ui->setupUi(this);
+    {
+        HWND h = (HWND)winId();
+        auto ex = GetWindowLongW(h, GWL_EXSTYLE);
+        SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+    }
 
     QFont titleFont = ui->titleLabel->font();
     titleFont.setPointSize(titleFont.pointSize() + 4);
