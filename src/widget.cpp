@@ -55,9 +55,6 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     // 但是采用delegate后，就没必要了
     // will not take ownership of delegate
     lv->setItemDelegate(new IconOnlyDelegate(lv));
-    lv->setFocusPolicy(Qt::NoFocus); // 防止点击图标后 QListView 抢走焦点，导致方向键无法切换
-    lv->installEventFilter(this);
-
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
 
     connect(lv->selectionModel(), &QItemSelectionModel::currentChanged, this,
@@ -90,6 +87,7 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         auto i = lv->currentIndex().row();
         bool isShiftPressed = (modifiers & Qt::ShiftModifier);
         auto count = m_model->groupCount();
+        if (count <= 0) return;
         auto index = (i - (2 * isShiftPressed - 1) + count) % count;
         lv->setCurrentIndex(m_model->index(index));
         qDebug() << "[Switch] StayOpen Tab advance:" << i << "->" << index << "count=" << count;
@@ -107,6 +105,7 @@ void Widget::keyPressEvent(QKeyEvent* event) {
             bool shiftPressed = (modifiers & Qt::ShiftModifier);
             exitGroupWindowMode(false);
             int count = m_model->groupCount();
+            if (count <= 0) return;
             int nextIndex = shiftPressed
                 ? (savedIndex - 1 + count) % count
                 : (savedIndex + 1) % count;
@@ -118,6 +117,7 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         auto i = lv->currentIndex().row();
         bool isShiftPressed = (modifiers & Qt::ShiftModifier);
         auto count = m_model->groupCount();
+        if (count <= 0) return;
         auto index = (i - (2 * isShiftPressed - 1) + count) % count;
         lv->setCurrentIndex(m_model->index(index));
         qDebug() << "[Switch] Tab advance:" << i << "->" << index << "count=" << count;
@@ -125,6 +125,7 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         if (this->isVisible() && !this->isMinimized()) {
             if (m_isInGroupWindowMode) {
                 auto count = m_model->groupCount();
+                if (count <= 0) return;
                 auto next = (lv->currentIndex().row() + 1) % count;
                 lv->setCurrentIndex(m_model->index(next));
             } else {
@@ -184,6 +185,35 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         }
     }
     QWidget::keyPressEvent(event);
+}
+
+void Widget::lazyLoadIcons() {
+    m_iconLoadIndex = 0;
+    m_iconsFullyLoaded = false;
+    ++m_iconLoadGeneration;
+    auto gen = m_iconLoadGeneration;
+    QTimer::singleShot(0, this, [this, gen] { loadNextIcon(gen); });
+}
+
+void Widget::loadNextIcon(int generation) {
+    if (generation != m_iconLoadGeneration || m_iconsFullyLoaded) return;
+
+    int count = m_model->groupCount();
+    if (m_iconLoadIndex >= count) {
+        m_iconsFullyLoaded = true;
+        return;
+    }
+
+    int row = m_iconLoadIndex++;
+    auto group = m_model->groupAt(row);
+    auto hwnd = group.windows.isEmpty() ? nullptr : group.windows.first().hwnd;
+    QIcon icon = Util::getCachedIcon(group.exePath, hwnd);
+    if (!icon.isNull()) {
+        m_model->setGroupIcon(row, icon);
+    }
+
+    auto gen = m_iconLoadGeneration;
+    QTimer::singleShot(0, this, [this, gen] { loadNextIcon(gen); });
 }
 
 bool Widget::forceShow() {
@@ -438,6 +468,7 @@ bool Widget::prepareListWidget() {
     m_backupGroupIndex = 0;
     auto winGroupList = m_wm->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
+    lazyLoadIcons();
 
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
@@ -534,6 +565,7 @@ bool Widget::eventFilter(QObject* watched, QEvent* event) {
                 auto i = lv->currentIndex().row();
                 bool isShiftPressed = (modifiers & Qt::ShiftModifier);
                 auto count = m_model->groupCount();
+                if (count <= 0) return false;
                 auto index = (i - (2 * isShiftPressed - 1) + count) % count;
                 lv->setCurrentIndex(m_model->index(index));
                 return true;
@@ -680,7 +712,7 @@ void Widget::rotateTaskbarWindowInGroup(const QString& exePath, bool forward, in
             if ((hwnd != GetForegroundWindow() || IsIconic(hwnd))) { // 若采用SW_SHOWMINNOACTIVE, 则前台窗口不会变化，可能为刚刚最小化的窗口
                 mouseEvent(MOUSEEVENTF_LEFTDOWN);
                 mouseEvent(MOUSEEVENTF_LEFTUP);
-                qApp->processEvents();
+                // 鼠标事件在下一轮事件循环中自然处理，无需 processEvents 强制处理（避免重入风险）
                 qDebug() << "(Taskbar)Switch by click";
             }
         } else {

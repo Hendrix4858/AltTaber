@@ -135,6 +135,25 @@ public:
         set("LogDirectory", path);
     }
 
+    bool getIconCacheEnabled() {
+        return get("IconCacheEnabled", true).toBool();
+    }
+
+    void setIconCacheEnabled(bool enabled) {
+        set("IconCacheEnabled", enabled);
+    }
+
+    QString getIconCacheDirectory() {
+        auto dir = get("IconCacheDirectory", "").toString();
+        if (dir.isEmpty())
+            return QApplication::applicationDirPath() + "/icon_cache";
+        return dir;
+    }
+
+    void setIconCacheDirectory(const QString& path) {
+        set("IconCacheDirectory", path);
+    }
+
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
         int count = get("BlockedWindows/count", 0).toInt();

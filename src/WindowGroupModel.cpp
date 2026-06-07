@@ -30,6 +30,13 @@ void WindowGroupModel::setGroups(const QList<WindowGroup>& groups) {
     endResetModel();
 }
 
+void WindowGroupModel::setGroupIcon(int row, const QIcon& icon) {
+    if (row < 0 || row >= m_groups.size()) return;
+    m_groups[row].icon = icon;
+    auto idx = index(row);
+    emit dataChanged(idx, idx, {Qt::DecorationRole});
+}
+
 const WindowGroup& WindowGroupModel::groupAt(int row) const {
     return m_groups.at(row);
 }

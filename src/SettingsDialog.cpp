@@ -10,6 +10,7 @@
 #include <QFont>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QDir>
 
 #include "utils/Logger.h"
 
@@ -27,6 +28,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->navList->addItem(tr("Display"));
     ui->navList->addItem(tr("Hotkeys"));
     ui->navList->addItem(tr("Logging"));
+    ui->navList->addItem(tr("Cache"));
     ui->navList->addItem(tr("Blocked Windows"));
     ui->navList->addItem(tr("About"));
 
@@ -56,6 +58,32 @@ SettingsDialog::SettingsDialog(QWidget* parent)
                                                             : ui->logDirEdit->text());
         if (!dir.isEmpty())
             ui->logDirEdit->setText(dir);
+    });
+
+    // browse cache directory
+    connect(ui->btnBrowseCacheDir, &QPushButton::clicked, this, [this] {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Cache Directory"),
+                                                        ui->cacheDirEdit->text().isEmpty()
+                                                            ? QApplication::applicationDirPath() + "/icon_cache"
+                                                            : ui->cacheDirEdit->text());
+        if (!dir.isEmpty())
+            ui->cacheDirEdit->setText(dir);
+    });
+
+    // clear icon cache
+    connect(ui->btnClearCache, &QPushButton::clicked, this, [this] {
+        auto reply = QMessageBox::question(this, tr("Clear Cache"),
+                                            tr("Are you sure you want to clear the icon cache?\n"
+                                               "Icons will be re-extracted on next use."),
+                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            QDir dir(cfg().getIconCacheDirectory());
+            if (dir.exists()) {
+                dir.removeRecursively();
+                QMessageBox::information(this, tr("Cache Cleared"),
+                                          tr("Icon cache has been cleared."));
+            }
+        }
     });
 
     applyStyleSheet();
@@ -158,6 +186,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->letterJumpGroup->setStyleSheet(groupBoxStyle);
     ui->displayGroup->setStyleSheet(groupBoxStyle);
     ui->logGroup->setStyleSheet(groupBoxStyle);
+    ui->cacheGroup->setStyleSheet(groupBoxStyle);
     ui->blockedGroup->setStyleSheet(groupBoxStyle);
 
     const QString comboStyle = QString(
@@ -181,6 +210,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->minIconSizeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->logLevelLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->logDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
+    ui->cacheDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
 
     const QString checkStyle = QString(
         "QCheckBox { color: %1; font-size: 13px; spacing: 8px; margin: 4px 0; }"
@@ -192,6 +222,7 @@ void SettingsDialog::applyStyleSheet() {
     ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
     ui->clickShowGroupCheck->setStyleSheet(checkStyle);
     ui->stayOpenCheck->setStyleSheet(checkStyle);
+    ui->iconCacheCheck->setStyleSheet(checkStyle);
 
     const QString placeholderStyle = QString("QLabel { color: %1; font-size: 15px; }").arg(c.disabledText.name());
     ui->hotkeyPlaceholder->setStyleSheet(placeholderStyle);
@@ -217,6 +248,8 @@ void SettingsDialog::applyStyleSheet() {
     ui->btnAddBlocked->setStyleSheet(btnStyle);
     ui->btnRemoveBlocked->setStyleSheet(btnStyle);
     ui->btnBrowseLogDir->setStyleSheet(btnStyle);
+    ui->btnBrowseCacheDir->setStyleSheet(btnStyle);
+    ui->btnClearCache->setStyleSheet(btnStyle);
 
     // Blocked table style
     ui->blockedTable->setStyleSheet(QString(
@@ -234,6 +267,7 @@ void SettingsDialog::applyStyleSheet() {
         "  background-color: %2; color: %3; font-size: 13px; }"
         "QLineEdit:focus { border-color: %4; }"
     ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
+    ui->cacheDirEdit->setStyleSheet(ui->logDirEdit->styleSheet());
 
     // min icon size spinbox
     ui->minIconSizeSpin->setStyleSheet(QString(
@@ -250,13 +284,14 @@ void SettingsDialog::retranslateUi() {
     ui->titleLabel->setText(tr("Settings"));
     ui->searchEdit->setPlaceholderText(tr("Search..."));
 
-    if (ui->navList->count() >= 6) {
+    if (ui->navList->count() >= 7) {
         ui->navList->item(0)->setText(tr("General"));
         ui->navList->item(1)->setText(tr("Display"));
         ui->navList->item(2)->setText(tr("Hotkeys"));
         ui->navList->item(3)->setText(tr("Logging"));
-        ui->navList->item(4)->setText(tr("Blocked Windows"));
-        ui->navList->item(5)->setText(tr("About"));
+        ui->navList->item(4)->setText(tr("Cache"));
+        ui->navList->item(5)->setText(tr("Blocked Windows"));
+        ui->navList->item(6)->setText(tr("About"));
     }
 
     ui->langGroup->setTitle(tr("Language Settings"));
@@ -311,6 +346,13 @@ void SettingsDialog::retranslateUi() {
     ui->logDirLabel->setText(tr("Log Directory:"));
     ui->logDirEdit->setPlaceholderText(tr("Leave empty for default"));
     ui->btnBrowseLogDir->setText(tr("Browse..."));
+
+    ui->cacheGroup->setTitle(tr("Icon Cache"));
+    ui->iconCacheCheck->setText(tr("Enable icon cache"));
+    ui->cacheDirLabel->setText(tr("Cache Directory:"));
+    ui->cacheDirEdit->setPlaceholderText(tr("Leave empty for default"));
+    ui->btnBrowseCacheDir->setText(tr("Browse..."));
+    ui->btnClearCache->setText(tr("Clear Cache"));
 
     ui->blockedGroup->setTitle(tr("Blocked Windows"));
     ui->blockedTable->horizontalHeaderItem(0)->setText(tr("Window Title"));
@@ -384,6 +426,9 @@ void SettingsDialog::loadSettings() {
     if (logLevelIdx >= 0) ui->logLevelCombo->setCurrentIndex(logLevelIdx);
     ui->logDirEdit->setText(cfg().getLogDirectory());
 
+    ui->iconCacheCheck->setChecked(cfg().getIconCacheEnabled());
+    ui->cacheDirEdit->setText(cfg().getIconCacheDirectory());
+
     // blocked windows
     ui->blockedTable->setRowCount(0);
     auto blocked = cfg().getBlockedWindows();
@@ -432,6 +477,9 @@ void SettingsDialog::applySettings() {
     cfg().setLogLevel(static_cast<Util::LogLevel>(ui->logLevelCombo->currentData().toInt()));
     cfg().setLogDirectory(ui->logDirEdit->text());
     Util::Logger::reconfigure();
+
+    cfg().setIconCacheEnabled(ui->iconCacheCheck->isChecked());
+    cfg().setIconCacheDirectory(ui->cacheDirEdit->text());
 
     // blocked windows
     QList<BlockedWindowEntry> blocked;

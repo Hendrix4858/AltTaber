@@ -63,6 +63,10 @@ private:
     void activateCurrentAndHide();
     void recalculateGeometry(QScreen* screen = nullptr);
 
+    // Lazy icon loading
+    void lazyLoadIcons();
+    void loadNextIcon(int generation);
+
 private:
     Ui::Widget* ui;
     QListView* lv = nullptr;
@@ -86,6 +90,11 @@ private:
 
     // Stay-open mode (keep overlay visible after Alt release)
     bool m_stayOpenMode = false;
+
+    // Lazy icon loading state
+    int m_iconLoadIndex = 0;
+    int m_iconLoadGeneration = 0;
+    bool m_iconsFullyLoaded = false;
 
 
     // rotateTaskbarWindowInGroup state (replaces static locals)

@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     auto* wm = new WindowManager;
     auto* winSwitcher = new Widget(wm);
     wm->setSelfHwnd((HWND) winSwitcher->winId());
-    winSwitcher->prepareListWidget(); // 优化：对ListWidget进行预先初始化，首次执行`setCurrentRow`特别耗时(472ms)
 
     QObject::connect(&a, &QApplication::aboutToQuit, []() {
         unhookWinEvent();
@@ -138,18 +137,26 @@ int main(int argc, char* argv[]) {
                 // 且：XamlExplorerHostIslandWindow 会导致误检测（某些系统版本，任务栏app窗口>1时，点击窗口）
                 qDebug() << "Task switcher detected" << className;
                 // 事件驱动重试，替代原有的 Sleep 忙等
-                auto tryShowSwitcher = [](Widget* w, auto&& self, int retries) -> void {
-                    if (retries <= 0) return;
-                    w->requestShow();
-                    QTimer::singleShot(10, w, [w, self, retries]() {
-                        if (!w->isForeground())
-                            self(w, self, retries - 1);
-                    });
-                };
-                tryShowSwitcher(winSwitcher, tryShowSwitcher, 5);
+                winSwitcher->requestShow();
+                auto retryTimer = new QTimer(winSwitcher);
+                retryTimer->setSingleShot(true);
+                QObject::connect(retryTimer, &QTimer::timeout, winSwitcher,
+                        [winSwitcher, retryTimer, retries = 4]() mutable {
+                    if (retries <= 0 || winSwitcher->isForeground()) {
+                        retryTimer->deleteLater();
+                        return;
+                    }
+                    winSwitcher->requestShow();
+                    retryTimer->start(10);
+                    --retries;
+                });
+                retryTimer->start(10);
             }
         }
     });
+
+    // 事件循环启动后立即预加载窗口列表，确保首次 Alt+Tab 时数据已就绪
+    QTimer::singleShot(0, winSwitcher, &Widget::prepareListWidget);
 
     return QApplication::exec();
 }

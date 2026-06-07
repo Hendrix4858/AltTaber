@@ -406,7 +406,84 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="blockedPage">
+        <widget class="QWidget" name="cachePage">
+         <layout class="QVBoxLayout" name="cacheLayout">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>12</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>12</number>
+          </property>
+          <item>
+           <widget class="QGroupBox" name="cacheGroup">
+            <property name="title">
+             <string>Icon Cache</string>
+            </property>
+            <layout class="QFormLayout" name="cacheFormLayout">
+             <item row="0" column="0" colspan="2">
+              <widget class="QCheckBox" name="iconCacheCheck">
+               <property name="text">
+                <string>Enable icon cache</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="cacheDirLabel">
+               <property name="text">
+                <string>Cache Directory:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="cacheDirLayout">
+               <item>
+                <widget class="QLineEdit" name="cacheDirEdit">
+                 <property name="placeholderText">
+                  <string>Leave empty for default</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnBrowseCacheDir">
+                 <property name="text">
+                  <string>Browse...</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnClearCache">
+                 <property name="text">
+                  <string>Clear Cache</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="cacheSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+         <widget class="QWidget" name="blockedPage">
          <layout class="QVBoxLayout" name="blockedLayout">
           <property name="leftMargin">
            <number>12</number>

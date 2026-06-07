@@ -26,8 +26,7 @@ QList<WindowGroup> WindowManager::prepareWindowGroupList() {
             WindowGroup group;
             group.exePath = path;
 
-            auto icon = Util::getCachedIcon(path, hwnd);
-            group.icon = icon;
+            group.icon = Util::getCachedIcon(path, hwnd);
 
             group.addWindow(
                 {Util::getWindowTitle(hwnd), Util::getClassName(hwnd), hwnd});
