@@ -80,6 +80,18 @@ int main(int argc, char* argv[]) {
     auto& cbBinds = bindings[HotkeyAction::CycleBackward];
     if (cbBinds.isEmpty())
         cbBinds.append(HotkeyBinding::fromString("Shift+Tab"));
+    auto& asBinds = bindings[HotkeyAction::ActivateSelected];
+    if (asBinds.isEmpty())
+        asBinds.append(HotkeyBinding::fromString("Enter"));
+    auto& dsBinds = bindings[HotkeyAction::DismissSwitcher];
+    if (dsBinds.isEmpty())
+        dsBinds.append(HotkeyBinding::fromString("Escape"));
+    auto& muBinds = bindings[HotkeyAction::MoveSelectionUp];
+    if (muBinds.isEmpty())
+        muBinds.append(HotkeyBinding::fromString("Up"));
+    auto& mdBinds = bindings[HotkeyAction::MoveSelectionDown];
+    if (mdBinds.isEmpty())
+        mdBinds.append(HotkeyBinding::fromString("Down"));
 
     KeyboardHooker kbHooker((HWND) winSwitcher->winId());
     kbHooker.updateBindings(bindings);
@@ -115,6 +127,14 @@ int main(int argc, char* argv[]) {
             b[HotkeyAction::CycleForward].append(HotkeyBinding::fromString("Tab"));
         if (b[HotkeyAction::CycleBackward].isEmpty())
             b[HotkeyAction::CycleBackward].append(HotkeyBinding::fromString("Shift+Tab"));
+        if (b[HotkeyAction::ActivateSelected].isEmpty())
+            b[HotkeyAction::ActivateSelected].append(HotkeyBinding::fromString("Enter"));
+        if (b[HotkeyAction::DismissSwitcher].isEmpty())
+            b[HotkeyAction::DismissSwitcher].append(HotkeyBinding::fromString("Escape"));
+        if (b[HotkeyAction::MoveSelectionUp].isEmpty())
+            b[HotkeyAction::MoveSelectionUp].append(HotkeyBinding::fromString("Up"));
+        if (b[HotkeyAction::MoveSelectionDown].isEmpty())
+            b[HotkeyAction::MoveSelectionDown].append(HotkeyBinding::fromString("Down"));
 
         kbHooker.updateBindings(b);
         winSwitcher->updateOverlayBindings(b);

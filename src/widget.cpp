@@ -59,6 +59,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent) : QWidget(parent), ui(new Ui:
     // 但是采用delegate后，就没必要了
     // will not take ownership of delegate
     lv->setItemDelegate(new IconOnlyDelegate(lv));
+    lv->installEventFilter(this);
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
 
     connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
@@ -360,6 +361,7 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
             if (cfg().getStayOpenOnAltRelease()) {
                 if (isForeground()) {
                     m_stayOpenMode = true;
+                    forceShow();
                     return;
                 }
                 // 覆盖层不在前台时,保持打开无意义,直接隐藏
@@ -545,31 +547,42 @@ bool Widget::eventFilter(QObject* watched, QEvent* event) {
             auto modifiers = keyEvent->modifiers();
 
             if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-                m_stayOpenMode = false;
-                if (m_isInGroupWindowMode) {
-                    exitGroupWindowMode(true);
-                } else {
-                    if (auto index = lv->currentIndex(); index.isValid()) {
-                        if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                            Util::switchToWindow(group.windows.first().hwnd, true);
-                        }
-                    }
-                    hide();
-                }
+                handleOverlayAction(HotkeyAction::ActivateSelected, modifiers);
                 return true;
             }
             if (key == Qt::Key_Escape) {
-                m_stayOpenMode = false;
-                hide();
+                handleOverlayAction(HotkeyAction::DismissSwitcher, modifiers);
                 return true;
             }
-            if (key == Qt::Key_Tab) {
+            if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {
                 auto i = lv->currentIndex().row();
                 bool isShiftPressed = (modifiers & Qt::ShiftModifier);
-                auto count = m_model->groupCount();
-                if (count <= 0) return false;
-                auto index = (i - (2 * isShiftPressed - 1) + count) % count;
-                lv->setCurrentIndex(m_model->index(index));
+                if (isShiftPressed)
+                    handleOverlayAction(HotkeyAction::CycleBackward, modifiers);
+                else
+                    handleOverlayAction(HotkeyAction::CycleForward, modifiers);
+                return true;
+            }
+            if (key >= Qt::Key_A && key <= Qt::Key_Z and cfg().getLetterJumpEnabled()) {
+                QChar pressedLetter = QChar(key).toUpper();
+                QList<int> matchingIndices;
+                for (int i = 0; i < m_model->groupCount(); ++i) {
+                    const auto& group = m_model->groupAt(i);
+                    QString appName = Util::getFileDescription(group.exePath);
+                    if (!appName.isEmpty() and Util::getDisplayFirstLetter(appName) == pressedLetter)
+                        matchingIndices.append(i);
+                }
+                if (matchingIndices.size() >= 1) {
+                    int currentPos = matchingIndices.indexOf(m_jumpLastIndex);
+                    int newPos = (pressedLetter == m_jumpLastLetter and currentPos >= 0)
+                                     ? (currentPos + 1) % matchingIndices.size()
+                                     : 0;
+                    int targetIndex = matchingIndices[newPos];
+                    lv->setCurrentIndex(m_model->index(targetIndex));
+                    showLabelForItem(m_model->index(targetIndex));
+                    m_jumpLastLetter = pressedLetter;
+                    m_jumpLastIndex = targetIndex;
+                }
                 return true;
             }
         }
