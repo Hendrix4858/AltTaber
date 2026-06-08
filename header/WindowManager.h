@@ -2,10 +2,8 @@
 #define WIN_SWITCHER_WINDOWMANAGER_H
 
 #include <QObject>
-#include <QHash>
-#include <QList>
-#include <QMap>
 #include "WindowTypes.h"
+#include "ActivationHistory.h"
 
 class WindowManager : public QObject {
     Q_OBJECT
@@ -15,19 +13,13 @@ public:
     void setSelfHwnd(HWND hwnd);
 
     QList<WindowGroup> prepareWindowGroupList();
-    QList<HWND> buildGroupWindowOrder(const QString& exePath) const;
 
-    static HWND rotateWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
-    static HWND rotateNormalWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
-
-    QList<HWND>& groupWindowOrder();
-    void clearGroupWindowOrder();
     void recordWindowActivation(HWND hwnd);
+    ActivationHistory& activationHistory() { return m_activationHistory; }
 
 private:
     HWND m_selfHwnd = nullptr;
-    QList<HWND> m_groupWindowOrder;
-    QMap<HWND, qint64> m_windowActivationTimes;
+    ActivationHistory m_activationHistory;
 };
 
 #endif //WIN_SWITCHER_WINDOWMANAGER_H

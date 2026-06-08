@@ -8,6 +8,7 @@
 #include "UpdateDialog.h"
 #include "widget.h"
 #include "WindowManager.h"
+#include "TaskbarWindowCycler.h"
 #include "utils/winEventHook.h"
 #include "utils/Util.h"
 #include "utils/TaskbarWheelHooker.h"
@@ -57,95 +58,54 @@ int main(int argc, char* argv[]) {
         Util::Logger::shutdown();
     });
 
-    // Load hotkey bindings
-    auto bindings = cfg().getHotkeyBindings();
-
-    // Global scope actions that need defaults if empty
-    auto& showBinds = bindings[HotkeyAction::ShowSwitcher];
-    bool hasAltTab = false;
-    for (const auto& b : showBinds) {
-        if (b.vkCode == VK_TAB && b.modifiers == Qt::AltModifier) {
-            hasAltTab = true;
-            break;
-        }
-    }
-    if (!hasAltTab)
-        showBinds.append(HotkeyBinding::fromString("Alt+Tab"));
-    auto& enterBinds = bindings[HotkeyAction::EnterGroupMode];
-    if (enterBinds.isEmpty())
-        enterBinds.append(HotkeyBinding::fromString("Alt+Grave"));
-    auto& cfBinds = bindings[HotkeyAction::CycleForward];
-    if (cfBinds.isEmpty())
-        cfBinds.append(HotkeyBinding::fromString("Tab"));
-    auto& cbBinds = bindings[HotkeyAction::CycleBackward];
-    if (cbBinds.isEmpty())
-        cbBinds.append(HotkeyBinding::fromString("Shift+Tab"));
-    auto& asBinds = bindings[HotkeyAction::ActivateSelected];
-    if (asBinds.isEmpty())
-        asBinds.append(HotkeyBinding::fromString("Enter"));
-    auto& dsBinds = bindings[HotkeyAction::DismissSwitcher];
-    if (dsBinds.isEmpty())
-        dsBinds.append(HotkeyBinding::fromString("Escape"));
-    auto& muBinds = bindings[HotkeyAction::MoveSelectionUp];
-    if (muBinds.isEmpty())
-        muBinds.append(HotkeyBinding::fromString("Up"));
-    auto& mdBinds = bindings[HotkeyAction::MoveSelectionDown];
-    if (mdBinds.isEmpty())
-        mdBinds.append(HotkeyBinding::fromString("Down"));
+    // Load hotkey bindings (with defaults merged in)
+    auto bindings = cfg().effectiveHotkeyBindings();
+    qInfo() << "[Main] Loaded" << bindings.size() << "hotkey actions";
 
     KeyboardHooker kbHooker((HWND) winSwitcher->winId());
     kbHooker.updateBindings(bindings);
+    kbHooker.setPaused(cfg().getPaused());
     winSwitcher->updateOverlayBindings(bindings);
 
-    QObject::connect(&kbHooker, &KeyboardHooker::hotkeyTriggered,
-                     winSwitcher, &Widget::handleGlobalAction, Qt::QueuedConnection);
-    QObject::connect(&kbHooker, &KeyboardHooker::altReleased, winSwitcher,
+    TaskbarWheelHooker tbHooker;
+    tbHooker.setPaused(cfg().getPaused());
+
+    qInfo() << "[Main] Connecting kbHooker::hotkeyTriggered -> Widget::handleGlobalAction (QueuedConnection)";
+    auto conn1 = QObject::connect(&kbHooker, &KeyboardHooker::hotkeyTriggered,
+                                  winSwitcher, &Widget::handleGlobalAction, Qt::QueuedConnection);
+    qInfo() << "[Main]   hotkeyTriggered connected:" << (bool)conn1;
+
+    qInfo() << "[Main] Connecting kbHooker::altReleased -> post Alt KeyRelease event";
+    auto conn2 = QObject::connect(&kbHooker, &KeyboardHooker::altReleased, winSwitcher,
                      [winSwitcher]() {
+        qInfo() << "[Main] altReleased signal received, posting KeyRelease(Alt)";
         auto event = new QKeyEvent(QEvent::KeyRelease, Qt::Key_Alt, Qt::NoModifier);
         QApplication::postEvent(winSwitcher, event);
     }, Qt::QueuedConnection);
+    qInfo() << "[Main]   altReleased connected:" << (bool)conn2;
 
     // Re-inject bindings when config is saved (settings dialog or notepad edit)
-    QObject::connect(&cfg(), &ConfigManager::configEdited, &a, [&kbHooker, winSwitcher]() {
+    QObject::connect(&cfg(), &ConfigManager::configEdited, &a, [&kbHooker, &tbHooker, winSwitcher]() {
         qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
-        auto b = cfg().getHotkeyBindings();
-
-        // Apply defaults if missing (same as startup code above)
-        auto& showBinds = b[HotkeyAction::ShowSwitcher];
-        bool hasAltTab = false;
-        for (const auto& bind : showBinds) {
-            if (bind.vkCode == VK_TAB && bind.modifiers == Qt::AltModifier) {
-                hasAltTab = true;
-                break;
-            }
-        }
-        if (!hasAltTab)
-            showBinds.append(HotkeyBinding::fromString("Alt+Tab"));
-        if (b[HotkeyAction::EnterGroupMode].isEmpty())
-            b[HotkeyAction::EnterGroupMode].append(HotkeyBinding::fromString("Alt+Grave"));
-        if (b[HotkeyAction::CycleForward].isEmpty())
-            b[HotkeyAction::CycleForward].append(HotkeyBinding::fromString("Tab"));
-        if (b[HotkeyAction::CycleBackward].isEmpty())
-            b[HotkeyAction::CycleBackward].append(HotkeyBinding::fromString("Shift+Tab"));
-        if (b[HotkeyAction::ActivateSelected].isEmpty())
-            b[HotkeyAction::ActivateSelected].append(HotkeyBinding::fromString("Enter"));
-        if (b[HotkeyAction::DismissSwitcher].isEmpty())
-            b[HotkeyAction::DismissSwitcher].append(HotkeyBinding::fromString("Escape"));
-        if (b[HotkeyAction::MoveSelectionUp].isEmpty())
-            b[HotkeyAction::MoveSelectionUp].append(HotkeyBinding::fromString("Up"));
-        if (b[HotkeyAction::MoveSelectionDown].isEmpty())
-            b[HotkeyAction::MoveSelectionDown].append(HotkeyBinding::fromString("Down"));
-
+        auto b = cfg().effectiveHotkeyBindings();
+        qInfo() << "[Config] binding count:" << b.size() << "paused:" << cfg().getPaused();
         kbHooker.updateBindings(b);
+        kbHooker.setPaused(cfg().getPaused());
+        tbHooker.setPaused(cfg().getPaused());
         winSwitcher->updateOverlayBindings(b);
     });
 
-    TaskbarWheelHooker tbHooker;
-    QObject::connect(&tbHooker, &TaskbarWheelHooker::tabWheelEvent,
-                     winSwitcher, &Widget::rotateTaskbarWindowInGroup, Qt::QueuedConnection);
-    QObject::connect(&tbHooker, &TaskbarWheelHooker::leaveTaskbar,
-                     winSwitcher, &Widget::clearGroupWindowOrder, Qt::QueuedConnection);
+    qInfo() << "[Main] Connecting tbHooker::tabWheelEvent -> TaskbarWindowCycler::rotate";
+    auto conn3 = QObject::connect(&tbHooker, &TaskbarWheelHooker::tabWheelEvent,
+                                   winSwitcher->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
+    qInfo() << "[Main]   tabWheelEvent connected:" << (bool)conn3;
 
+    qInfo() << "[Main] Connecting tbHooker::leaveTaskbar -> TaskbarWindowCycler::clearOrder";
+    auto conn4 = QObject::connect(&tbHooker, &TaskbarWheelHooker::leaveTaskbar,
+                                   winSwitcher->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
+    qInfo() << "[Main]   leaveTaskbar connected:" << (bool)conn4;
+
+    qInfo() << "[Main] Installing WinEvent hook for EVENT_SYSTEM_FOREGROUND";
     setWinEventHook([winSwitcher](DWORD event, HWND hwnd) {
         if (event == EVENT_SYSTEM_FOREGROUND) {
             winSwitcher->notifyForegroundChanged(hwnd);
@@ -153,22 +113,23 @@ int main(int argc, char* argv[]) {
             if (IsWindowVisible((HWND)winSwitcher->winId()) && hwnd != (HWND)winSwitcher->winId()
                 && !Util::isKeyPressed(VK_MENU)
                 && winSwitcher->overlayState() != Widget::OverlayState::Visible) {
-                QMetaObject::invokeMethod(winSwitcher, [winSwitcher]() {
-                    winSwitcher->hide();
-                }, Qt::QueuedConnection);
+                qInfo() << "[WinEvent] hiding overlay (fg changed while not Visible)";
+                winSwitcher->hideOverlay();
             }
 
             auto className = Util::getClassName(hwnd);
             if (hwnd == GetForegroundWindow() && Util::isKeyPressed(VK_MENU) &&
                 (className == "ForegroundStaging") &&
                 winSwitcher->overlayState() != Widget::OverlayState::Visible) {
-                qInfo() << "Task switcher detected (fallback)" << className;
-                winSwitcher->requestShow();
+                qInfo() << "[WinEvent] Task switcher detected (fallback)" << className;
+                winSwitcher->requestShow(OverlayIntent::FallbackShow);
             }
         }
     });
 
+    qInfo() << "[Main] Scheduling warmupCache via singleShot(0)";
     QTimer::singleShot(0, winSwitcher, &Widget::warmupCache);
 
+    qInfo() << "[Main] Entering event loop";
     return QApplication::exec();
 }

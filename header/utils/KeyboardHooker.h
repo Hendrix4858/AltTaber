@@ -13,6 +13,7 @@ public:
     ~KeyboardHooker() override;
 
     void updateBindings(const HotkeyBindings& bindings);
+    void setPaused(bool paused);
     static void setRecordingActive(bool active);
 
 signals:
@@ -22,6 +23,7 @@ signals:
 private:
     HHOOK h_keyboard = nullptr;
     bool m_altDown = false;
+    bool m_paused = false;
     HWND m_ownerHwnd = nullptr;
     HotkeyBindings m_bindings;
 

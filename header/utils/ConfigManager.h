@@ -218,18 +218,14 @@ public:
         qInfo() << "[Config] Saved hotkey bindings to JSON";
     }
 
+    HotkeyBindings effectiveHotkeyBindings() {
+        auto bindings = getHotkeyBindings();
+        normalizeHotkeyBindings(bindings);
+        return bindings;
+    }
+
     void resetHotkeys() {
-        HotkeyBindings defaults;
-        defaults[HotkeyAction::ShowSwitcher] = {HotkeyBinding::fromString("Alt+Tab")};
-        defaults[HotkeyAction::EnterGroupMode] = {HotkeyBinding::fromString("Alt+Grave")};
-        defaults[HotkeyAction::CycleForward] = {HotkeyBinding::fromString("Tab")};
-        defaults[HotkeyAction::CycleBackward] = {HotkeyBinding::fromString("Shift+Tab")};
-        defaults[HotkeyAction::MoveSelectionUp] = {HotkeyBinding::fromString("Up")};
-        defaults[HotkeyAction::MoveSelectionDown] = {HotkeyBinding::fromString("Down")};
-        defaults[HotkeyAction::ActivateSelected] = {HotkeyBinding::fromString("Enter")};
-        defaults[HotkeyAction::DismissSwitcher] = {HotkeyBinding::fromString("Escape")};
-        defaults[HotkeyAction::TogglePause] = {};
-        setHotkeyBindings(defaults);
+        setHotkeyBindings(defaultHotkeyBindings());
         sync();
     }
 

@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <QString>
 #include <QList>
+#include "WindowEnumerator.h"
 
 namespace Util {
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false);

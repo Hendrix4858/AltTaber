@@ -104,6 +104,22 @@ struct HotkeyBinding {
 
 using HotkeyBindings = QMap<HotkeyAction, QList<HotkeyBinding>>;
 
+inline HotkeyBindings defaultHotkeyBindings() {
+    HotkeyBindings defaults;
+    defaults[HotkeyAction::ShowSwitcher]     = {HotkeyBinding::fromString("Alt+Tab")};
+    defaults[HotkeyAction::EnterGroupMode]   = {HotkeyBinding::fromString("Alt+Grave")};
+    defaults[HotkeyAction::CycleForward]     = {HotkeyBinding::fromString("Tab")};
+    defaults[HotkeyAction::CycleBackward]    = {HotkeyBinding::fromString("Shift+Tab")};
+    defaults[HotkeyAction::MoveSelectionUp]  = {HotkeyBinding::fromString("Up")};
+    defaults[HotkeyAction::MoveSelectionDown] = {HotkeyBinding::fromString("Down")};
+    defaults[HotkeyAction::ActivateSelected] = {HotkeyBinding::fromString("Enter")};
+    defaults[HotkeyAction::DismissSwitcher]  = {HotkeyBinding::fromString("Escape")};
+    defaults[HotkeyAction::TogglePause]      = {};
+    return defaults;
+}
+
+void normalizeHotkeyBindings(HotkeyBindings& bindings);
+
 namespace HotkeyStrings {
 
 inline QString vkCodeToString(quint32 vk) {

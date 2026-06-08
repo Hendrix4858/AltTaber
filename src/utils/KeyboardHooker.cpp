@@ -2,7 +2,6 @@
 #include <QDebug>
 #include <atomic>
 #include "utils/Util.h"
-#include "utils/ConfigManager.h"
 
 namespace {
     KeyboardHooker* s_instance = nullptr;
@@ -22,7 +21,8 @@ namespace {
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
-        if (cfg().getPaused())
+        if (!s_instance) return CallNextHookEx(nullptr, nCode, wParam, lParam);
+        if (s_instance->m_paused)
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
         if (s_recordingActive)
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
@@ -141,6 +141,10 @@ KeyboardHooker::~KeyboardHooker() {
 
 void KeyboardHooker::setRecordingActive(bool active) {
     s_recordingActive = active;
+}
+
+void KeyboardHooker::setPaused(bool paused) {
+    m_paused = paused;
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {
