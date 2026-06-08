@@ -1,72 +1,55 @@
 ﻿#ifndef WIN_SWITCHER_CONFIGMANAGERBASE_H
 #define WIN_SWITCHER_CONFIGMANAGERBASE_H
 
-#include <QSettings>
+#include <QObject>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QProcess>
 #include <QFile>
-#include <QIODevice>
+#include <QDir>
+#include <QDebug>
 
 class ConfigManagerBase : public QObject {
     Q_OBJECT
 
 protected:
-    QSettings settings;
+    QJsonObject m_root;
+    QString m_filePath;
     QProcess proc_editor;
+    bool m_dirty = false;
+    bool m_destroying = false;
 
 public:
+    ~ConfigManagerBase() override { m_destroying = true; sync(); }
+
     ConfigManagerBase(const ConfigManagerBase&) = delete;
     ConfigManagerBase& operator=(const ConfigManagerBase&) = delete;
 
-    QVariant get(QAnyStringView key, const QVariant& defaultValue = QVariant()) {
-        return settings.value(key, defaultValue);
-    }
+    QVariant get(const QString& key, const QVariant& defaultValue = QVariant()) const;
+    void set(const QString& key, const QVariant& value);
+    void remove(const QString& key);
 
-    void set(QAnyStringView key, const QVariant& value) {
-        settings.setValue(key, value);
-    }
+    void sync();
 
-    void remove(QAnyStringView key) {
-        settings.remove(key);
-    }
+    void editConfigFile();
 
-    /// Writes any unsaved changes to permanent storage, and reloads any settings that have been changed in the meantime by another application.
-    void sync() {
-        // This function is called automatically from QSettings's destructor and by the event loop at regular intervals,
-        // so you normally don't need to call it yourself.
-        settings.sync();
-    }
-
-    /// Edit config file with `notepad.exe` & emit `configEdited` signal when finished
-    void editConfigFile() {
-        if (proc_editor.state() == QProcess::Running) {
-            qDebug() << "Editor is running";
-            return;
-        }
-
-        QFile file(settings.fileName());
-        if (!file.exists()) { // ensure exists
-            qDebug() << "#Creating config file" << settings.fileName();
-            file.open(QIODevice::WriteOnly);
-            file.close();
-        }
-
-        qDebug() << "#Editing config file" << settings.fileName();
-        // QProcess 只能同时连接一个进程
-        proc_editor.start("notepad", {settings.fileName()});
-    }
-
-protected:
-    explicit ConfigManagerBase(const QString& filename) : settings(filename, QSettings::IniFormat) {
-        connect(&proc_editor, &QProcess::finished, this, [this] {
-            qDebug() << "#Config file edit finished";
-            sync(); // reload
-            emit configEdited();
-        });
-    }
+    QJsonObject& root() { return m_root; }
+    const QJsonObject& root() const { return m_root; }
 
 signals:
-    void configEdited(); // edit via `Settings` action, not other ways
-};
+    void configEdited();
 
+protected:
+    explicit ConfigManagerBase(const QString& filepath);
+
+    void load();
+    void save() const;
+
+private:
+    static QJsonValue navigatePath(const QJsonObject& obj, const QStringList& parts);
+    static void setPath(QJsonObject& obj, const QStringList& parts, const QJsonValue& value);
+    static void removePath(QJsonObject& obj, const QStringList& parts);
+};
 
 #endif //WIN_SWITCHER_CONFIGMANAGERBASE_H

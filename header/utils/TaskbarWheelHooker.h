@@ -10,6 +10,7 @@ class TaskbarWheelHooker : public QObject {
 public:
     TaskbarWheelHooker();
     ~TaskbarWheelHooker() override;
+    void setPaused(bool paused);
 
 signals:
     void tabWheelEvent(const QString& exePath, bool isUp, int windows);
@@ -17,6 +18,9 @@ signals:
 
 private:
     HHOOK h_mouse = nullptr;
+    bool m_paused = false;
+
+    friend LRESULT CALLBACK mouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 };
 
 

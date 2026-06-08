@@ -153,13 +153,22 @@ namespace Util {
     }
 
     void switchToWindow(HWND hwnd, bool force) {
-        if (IsIconic(hwnd))
+        bool iconic = IsIconic(hwnd);
+        if (iconic)
             ShowWindow(hwnd, SW_RESTORE);
         if (force) {
+            qInfo().noquote() << "[switchToWindow]" << "target=" << Qt::hex << hwnd << Qt::dec
+                     << "force=1" << "iconic=" << iconic
+                     << "caller_fg=" << Qt::hex << GetForegroundWindow() << Qt::dec
+                     << "path=SendInput+SetForegroundWindow";
             INPUT input = {.type = INPUT_KEYBOARD};
             SendInput(1, &input, sizeof(INPUT));
             SetForegroundWindow(hwnd);
         } else {
+            qInfo().noquote() << "[switchToWindow]" << "target=" << Qt::hex << hwnd << Qt::dec
+                     << "force=0" << "iconic=" << iconic
+                     << "caller_fg=" << Qt::hex << GetForegroundWindow() << Qt::dec
+                     << "path=SetForegroundWindow";
             SetForegroundWindow(hwnd);
         }
     }

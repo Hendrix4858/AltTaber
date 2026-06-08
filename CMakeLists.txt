@@ -49,6 +49,22 @@ add_executable(Win_Switcher src/main.cpp
         src/WindowManager.cpp
         header/WindowManager.h
         header/WindowTypes.h
+        src/WindowEnumerator.cpp
+        header/WindowEnumerator.h
+        src/WindowGrouper.cpp
+        header/WindowGrouper.h
+        src/ActivationHistory.cpp
+        header/ActivationHistory.h
+        src/WindowCycleOrder.cpp
+        header/WindowCycleOrder.h
+        src/OverlayController.cpp
+        header/OverlayController.h
+        src/SelectionController.cpp
+        header/SelectionController.h
+        src/GroupWindowCycler.cpp
+        header/GroupWindowCycler.h
+        src/TaskbarWindowCycler.cpp
+        header/TaskbarWindowCycler.h
         src/utils/winEventHook.cpp
         header/utils/winEventHook.h
         src/utils/WindowUtil.cpp
@@ -84,6 +100,11 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/SystemTray.h
         header/utils/ConfigManager.h
         header/utils/ConfigManagerBase.h
+        src/utils/ConfigManagerBase.cpp
+        header/utils/HotkeyAction.h
+        src/utils/HotkeyAction.cpp
+        src/utils/HotkeyRecorder.cpp
+        header/utils/HotkeyRecorder.h
         src/UpdateDialog.cpp
         header/UpdateDialog.h
         ui/UpdateDialog.ui

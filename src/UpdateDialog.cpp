@@ -13,10 +13,17 @@
 #include "utils/SystemTray.h"
 #include "utils/ThemeManager.h"
 #include <QProcess>
+#include <QElapsedTimer>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
+    QElapsedTimer t;
+    t.start();
     ui->setupUi(this);
-    setWindowFlag(Qt::WindowStaysOnTopHint);
+    {
+        HWND h = (HWND)winId();
+        auto ex = GetWindowLongW(h, GWL_EXSTYLE);
+        SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+    }
     setWindowTitle("AltTaber Updater[GitHub]");
     qDebug() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::supportsSsl();
 
@@ -33,6 +40,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         archive.fileName = QUrl(url).fileName();
         download(url, qApp->applicationDirPath() + '/' + archive.fileName);
     });
+    qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
         qInfo() << "Download succeed" << filePath;
         if (filePath.endsWith(".zip")) {

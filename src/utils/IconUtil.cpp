@@ -91,7 +91,7 @@ namespace Util {
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
         if (!hProcess) {
-            qWarning() << "OpenProcess failed" << GetLastError();
+            qCritical() << "OpenProcess failed" << GetLastError();
             return {};
         }
 

@@ -4,6 +4,7 @@
 #include "utils/LanguageManager.h"
 #include "utils/Startup.h"
 #include "utils/ThemeManager.h"
+#include "utils/HotkeyRecorder.h"
 
 #include <QApplication>
 #include <QFileDialog>
@@ -11,13 +12,24 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDir>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <QPushButton>
 
 #include "utils/Logger.h"
+#include <QElapsedTimer>
 
 SettingsDialog::SettingsDialog(QWidget* parent)
     : QDialog(parent)
     , ui(new Ui::SettingsDialog) {
+    QElapsedTimer t;
+    t.start();
     ui->setupUi(this);
+    {
+        HWND h = (HWND)winId();
+        auto ex = GetWindowLongW(h, GWL_EXSTYLE);
+        SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+    }
 
     QFont titleFont = ui->titleLabel->font();
     titleFont.setPointSize(titleFont.pointSize() + 4);
@@ -38,8 +50,8 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->themeCombo->addItem(tr("Follow System"), System);
 
     // language combo
-    ui->langCombo->addItem("English", "en");
-    ui->langCombo->addItem("中文", "zh_CN");
+    ui->langCombo->addItem(QStringLiteral("English"), "en");
+    ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
 
     // log level combo
     ui->logLevelCombo->addItem(tr("All"), static_cast<int>(Util::LogLevel::All));
@@ -114,8 +126,8 @@ SettingsDialog::SettingsDialog(QWidget* parent)
 
         bool okClass;
         QString className = QInputDialog::getText(this, tr("Add Blocked Window"),
-                                                    tr("Class Name (leave empty to match any):"),
-                                                    QLineEdit::Normal, QString(), &okClass);
+                                                   tr("Class Name (leave empty to match any):"),
+                                                   QLineEdit::Normal, QString(), &okClass);
         if (!okClass) return;
 
         if (title.isEmpty() && className.isEmpty()) {
@@ -137,11 +149,128 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     });
 
     loadSettings();
+    buildHotkeyPage();
+    loadHotkeyBindings();
     ui->navList->setCurrentRow(0);
+    qInfo() << "SettingsDialog initialized in" << t.elapsed() << "ms";
 }
 
 SettingsDialog::~SettingsDialog() {
     delete ui;
+}
+
+void SettingsDialog::buildHotkeyPage() {
+    // Clear existing content from hotkeyPage
+    auto* hotkeyPage = ui->stackedWidget->widget(2);
+    auto* oldLayout = hotkeyPage->layout();
+    if (oldLayout) {
+        QLayoutItem* item;
+        while ((item = oldLayout->takeAt(0)) != nullptr) {
+            if (item->widget()) item->widget()->deleteLater();
+            delete item;
+        }
+        delete oldLayout;
+    }
+
+    auto* scrollArea = new QScrollArea(hotkeyPage);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    auto* scrollContent = new QWidget();
+    auto* contentLayout = new QVBoxLayout(scrollContent);
+    contentLayout->setSpacing(8);
+    contentLayout->setContentsMargins(12, 12, 12, 12);
+
+    // Create a recorder for each action
+    for (auto action : AllActions) {
+        auto* recorder = new HotkeyRecorder(action, scrollContent);
+        m_recorders[action] = recorder;
+        contentLayout->addWidget(recorder);
+
+        // Connect conflict detection
+        connect(recorder, &HotkeyRecorder::bindingsChanged, this, [this, action](HotkeyAction, const QList<HotkeyBinding>& bindings) {
+            Q_UNUSED(bindings);
+            checkLetterJumpConflict();
+        });
+    }
+
+    // Reset to defaults button
+    contentLayout->addSpacing(12);
+    auto* resetBtn = new QPushButton(tr("Reset to Defaults"), scrollContent);
+    connect(resetBtn, &QPushButton::clicked, this, [this]() {
+        auto reply = QMessageBox::question(this, tr("Reset Hotkeys"),
+                                            tr("Reset all hotkeys to their default values?"),
+                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
+                it.value()->setBindings({});
+            cfg().resetHotkeys();
+            loadHotkeyBindings();
+        }
+    });
+    contentLayout->addWidget(resetBtn);
+    contentLayout->addStretch();
+
+    scrollArea->setWidget(scrollContent);
+
+    auto* pageLayout = new QVBoxLayout(hotkeyPage);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+}
+
+void SettingsDialog::loadHotkeyBindings() {
+    auto bindings = cfg().getHotkeyBindings();
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        if (bindings.contains(it.key()))
+            it.value()->setBindings(bindings[it.key()]);
+        else
+            it.value()->setBindings({});
+    }
+    checkLetterJumpConflict();
+}
+
+void SettingsDialog::applyHotkeyBindings() {
+    HotkeyBindings bindings;
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        bindings[it.key()] = it.value()->bindings();
+    }
+    cfg().setHotkeyBindings(bindings);
+}
+
+bool SettingsDialog::checkConflict(HotkeyAction action, const HotkeyBinding& binding,
+                                    HotkeyAction& conflictAction, int& conflictIndex) const {
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        if (it.key() == action) continue;
+        auto binds = it.value()->bindings();
+        for (int i = 0; i < binds.size(); ++i) {
+            if (binds[i] == binding) {
+                conflictAction = it.key();
+                conflictIndex = i;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void SettingsDialog::checkLetterJumpConflict() {
+    bool hasLetter = false;
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        for (const auto& b : it.value()->bindings()) {
+            if (b.isSingleLetter()) {
+                hasLetter = true;
+                break;
+            }
+        }
+        if (hasLetter) break;
+    }
+
+    if (hasLetter) {
+        ui->letterJumpCheck->setChecked(false);
+        ui->letterJumpCheck->setEnabled(false);
+    } else {
+        ui->letterJumpCheck->setEnabled(true);
+    }
 }
 
 void SettingsDialog::applyStyleSheet() {
@@ -224,9 +353,6 @@ void SettingsDialog::applyStyleSheet() {
     ui->stayOpenCheck->setStyleSheet(checkStyle);
     ui->iconCacheCheck->setStyleSheet(checkStyle);
 
-    const QString placeholderStyle = QString("QLabel { color: %1; font-size: 15px; }").arg(c.disabledText.name());
-    ui->hotkeyPlaceholder->setStyleSheet(placeholderStyle);
-
     ui->aboutDesc->setStyleSheet(QString("color: %1; font-size: 14px;").arg(c.textColor.name()));
 
     ui->bottomBar->setStyleSheet(QString("background-color: %1; border-top: 1px solid %2;")
@@ -299,8 +425,8 @@ void SettingsDialog::retranslateUi() {
 
     QString savedLang = ui->langCombo->currentData().toString();
     ui->langCombo->clear();
-    ui->langCombo->addItem(tr("English"), "en");
-    ui->langCombo->addItem("中文", "zh_CN");
+    ui->langCombo->addItem(QStringLiteral("English"), "en");
+    ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
     int idx = ui->langCombo->findData(savedLang);
     if (idx >= 0) ui->langCombo->setCurrentIndex(idx);
 
@@ -365,7 +491,6 @@ void SettingsDialog::retranslateUi() {
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
     ui->stayOpenCheck->setText(tr("Keep overlay open after releasing Alt"));
-    ui->hotkeyPlaceholder->setText(tr("Hotkey settings coming soon..."));
 
     QString version = QApplication::applicationVersion();
     ui->aboutDesc->setText(tr("AltTaber - Window Switcher<br>"
@@ -490,6 +615,11 @@ void SettingsDialog::applySettings() {
         blocked.append(entry);
     }
     cfg().setBlockedWindows(blocked);
+
+    // hotkey bindings
+    applyHotkeyBindings();
+
+    cfg().sync();
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {

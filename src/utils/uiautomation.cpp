@@ -30,7 +30,7 @@ UIElement UIAutomation::getElementUnderMouse() {
     auto hr = pAutomation->ElementFromPoint(pt, &pElement);
 
     if (FAILED(hr) || !pElement) {
-        qWarning() << "Failed to get element under mouse." << hr << pElement << qt_error_string(hr);
+        qCritical() << "Failed to get element under mouse." << hr << pElement << qt_error_string(hr);
         return {};
     }
 
