@@ -1,10 +1,12 @@
 ﻿#include "utils/KeyboardHooker.h"
 #include <QDebug>
+#include <atomic>
 #include "utils/Util.h"
 #include "utils/ConfigManager.h"
 
 namespace {
     KeyboardHooker* s_instance = nullptr;
+    std::atomic<bool> s_recordingActive = false;
 
     bool isGlobalAction(HotkeyAction action) {
         switch (action) {
@@ -21,6 +23,8 @@ namespace {
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
         if (cfg().getPaused())
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+        if (s_recordingActive)
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
         auto* pKB = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
@@ -133,6 +137,10 @@ KeyboardHooker::~KeyboardHooker() {
     UnhookWindowsHookEx(h_keyboard);
     s_instance = nullptr;
     qDebug() << "KeyboardHooker uninstalled";
+}
+
+void KeyboardHooker::setRecordingActive(bool active) {
+    s_recordingActive = active;
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {

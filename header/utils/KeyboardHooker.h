@@ -13,6 +13,7 @@ public:
     ~KeyboardHooker() override;
 
     void updateBindings(const HotkeyBindings& bindings);
+    static void setRecordingActive(bool active);
 
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);

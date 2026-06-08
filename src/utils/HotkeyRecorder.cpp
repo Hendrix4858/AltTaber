@@ -1,5 +1,6 @@
 #include "utils/HotkeyRecorder.h"
 #include "utils/HotkeyAction.h"
+#include "utils/KeyboardHooker.h"
 #include <QApplication>
 #include <QStyle>
 #include <QTimer>
@@ -81,6 +82,7 @@ void HotkeyRecorder::onRemoveClicked(int index) {
 }
 
 void HotkeyRecorder::startRecording(int index) {
+    KeyboardHooker::setRecordingActive(true);
     m_recordingIndex = index;
     qApp->installEventFilter(this);
 
@@ -92,6 +94,7 @@ void HotkeyRecorder::startRecording(int index) {
 }
 
 void HotkeyRecorder::finishRecording(const HotkeyBinding& binding) {
+    KeyboardHooker::setRecordingActive(false);
     if (m_recordingIndex < 0) return;
 
     if (m_recordingIndex >= m_bindings.size()) {
@@ -107,6 +110,7 @@ void HotkeyRecorder::finishRecording(const HotkeyBinding& binding) {
 }
 
 void HotkeyRecorder::cancelRecording() {
+    KeyboardHooker::setRecordingActive(false);
     if (m_recordingIndex < 0) return;
     qApp->removeEventFilter(this);
     m_recordingIndex = -1;
