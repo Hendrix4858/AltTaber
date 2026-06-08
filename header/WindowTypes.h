@@ -22,6 +22,20 @@ inline QDebug operator<<(QDebug dbg, const WindowInfo& info) {
 
 Q_DECLARE_METATYPE(WindowInfo)
 
+struct WindowDescriptor {
+    QString title;
+    QString className;
+    QString processPath;
+    QString processName;
+    HWND hwnd = nullptr;
+};
+
+inline QDebug operator<<(QDebug dbg, const WindowDescriptor& desc) {
+    dbg.nospace() << "WindowDescriptor(" << desc.title << ", " << desc.className
+                  << ", " << desc.processName << ", " << desc.hwnd << ")";
+    return dbg.space();
+}
+
 struct WindowGroup {
     WindowGroup() = default;
 

@@ -10,7 +10,6 @@ class GroupWindowCycler : public QObject {
 public:
     explicit GroupWindowCycler(QObject* parent = nullptr);
 
-    QList<HWND> buildGroupWindowOrder(const QString& exePath);
     QList<HWND>& groupWindowOrder();
     void clearGroupWindowOrder();
 

@@ -197,7 +197,7 @@ bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, boo
             bool isRollUp = wheelEvent->angleDelta().x() > 0;
             auto& order = m_cyc->groupWindowOrder();
             if (order.isEmpty())
-                order = m_cyc->buildGroupWindowOrder(targetExe);
+                order = m_wm->filteredHwndsForExe(targetExe);
 
             if (!lastWheelHwnd) {
                 lastWheelHwnd = order.first();

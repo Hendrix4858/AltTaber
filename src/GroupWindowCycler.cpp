@@ -1,12 +1,7 @@
 #include "GroupWindowCycler.h"
-#include "WindowEnumerator.h"
 
 GroupWindowCycler::GroupWindowCycler(QObject* parent)
     : QObject(parent) {}
-
-QList<HWND> GroupWindowCycler::buildGroupWindowOrder(const QString& exePath) {
-    return m_cycleOrder.build(exePath);
-}
 
 QList<HWND>& GroupWindowCycler::groupWindowOrder() {
     return m_cycleOrder.order();

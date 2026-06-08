@@ -66,7 +66,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_overlayCtrl = new OverlayController(this, lv, ui->label, m_model, m_wm, this);
     m_selectCtrl = new SelectionController(lv, m_model, m_wm, m_cyc, this);
     m_selectCtrl->setLabelWidget(ui->label);
-    m_taskbarCycler = new TaskbarWindowCycler(m_cyc, this);
+    m_taskbarCycler = new TaskbarWindowCycler(m_cyc, m_wm, this);
 
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
 
@@ -127,6 +127,10 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     connect(m_selectCtrl, &SelectionController::foregroundChanged, this,
             [this](HWND hwnd) {
         notifyForegroundChanged(hwnd);
+    });
+
+    connect(&cfg(), &ConfigManager::configEdited, this, [this]() {
+        m_wm->reloadFilterRules();
     });
 
     qInfo() << "Widget initialized in" << t.elapsed() << "ms";
@@ -310,7 +314,7 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
             auto& order = m_cyc->groupWindowOrder();
             if (order.isEmpty()) {
                 auto targetExe = Util::getWindowProcessPath(foreWin);
-                order = m_cyc->buildGroupWindowOrder(targetExe);
+                order = m_wm->filteredHwndsForExe(targetExe);
             }
             bool forward = !(modifiers & Qt::ShiftModifier);
             if (auto nextWin = GroupWindowCycler::rotateWindowInGroup(order, foreWin, forward)) {

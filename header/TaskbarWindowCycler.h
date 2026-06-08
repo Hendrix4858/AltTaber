@@ -6,12 +6,14 @@
 #include <Windows.h>
 
 class GroupWindowCycler;
+class WindowManager;
 
 class TaskbarWindowCycler : public QObject {
     Q_OBJECT
 
 public:
-    explicit TaskbarWindowCycler(GroupWindowCycler* cyc, QObject* parent = nullptr);
+    explicit TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* wm,
+                                 QObject* parent = nullptr);
 
 public slots:
     void rotate(const QString& exePath, bool forward, int windows);
@@ -19,6 +21,7 @@ public slots:
 
 private:
     GroupWindowCycler* m_cyc;
+    WindowManager* m_wm;
 
     QString lastTaskbarPath;
     HWND lastTaskbarHwnd = nullptr;

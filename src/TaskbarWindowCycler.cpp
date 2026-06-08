@@ -1,11 +1,12 @@
 #include "TaskbarWindowCycler.h"
 #include "GroupWindowCycler.h"
+#include "WindowManager.h"
 #include "utils/Util.h"
 #include <QDebug>
 #include <QSet>
 
-TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, QObject* parent)
-    : QObject(parent), m_cyc(cyc) {}
+TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* wm, QObject* parent)
+    : QObject(parent), m_cyc(cyc), m_wm(wm) {}
 
 void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windows) {
     qDebug() << "(Taskbar)Wheel on:" << exePath << forward << windows;
@@ -21,7 +22,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     }
     auto& tbOrder = m_cyc->groupWindowOrder();
     if (tbOrder.isEmpty()) {
-        tbOrder = m_cyc->buildGroupWindowOrder(exePath);
+        tbOrder = m_wm->filteredHwndsForExe(exePath);
         lastTaskbarHwnd = nullptr;
     }
 
@@ -31,7 +32,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
         if (childPaths.isEmpty()) return;
         if (childPaths.size() == 1) {
             qDebug() << "Try to switch to child process:" << childPaths.first();
-            tbOrder = m_cyc->buildGroupWindowOrder(childPaths.first());
+            tbOrder = m_wm->filteredHwndsForExe(childPaths.first());
         } else {
             qWarning() << "Multiple child processes" << childPaths;
             QSet<QString> validPaths;
@@ -42,7 +43,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             for (auto& path : childPaths) {
                 if (validPaths.contains(path.toLower())) {
                     qDebug() << "Try to switch to valid child process:" << path;
-                    tbOrder = m_cyc->buildGroupWindowOrder(path);
+                    tbOrder = m_wm->filteredHwndsForExe(path);
                     break;
                 }
             }

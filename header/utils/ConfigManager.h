@@ -13,8 +13,12 @@ enum DisplayMonitor {
 };
 
 struct BlockedWindowEntry {
+    bool enabled = true;
+    QString comment;
     QString title;
     QString className;
+    QString processName;
+    QString processPath;
 };
 
 class ConfigManager : public ConfigManagerBase {
@@ -154,16 +158,21 @@ public:
         set("IconCacheDirectory", path);
     }
 
-    // BlockedWindows stored as JSON array: [{"title":..., "class":...}]
+    // BlockedWindows stored as JSON array
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
         QJsonArray arr = m_root["BlockedWindows"].toArray();
         for (const auto& val : arr) {
             QJsonObject obj = val.toObject();
             BlockedWindowEntry entry;
+            entry.enabled = obj.value("enabled").toBool(true);
+            entry.comment = obj["comment"].toString();
             entry.title = obj["title"].toString();
             entry.className = obj["class"].toString();
-            if (!entry.title.isEmpty() || !entry.className.isEmpty())
+            entry.processName = obj["processName"].toString();
+            entry.processPath = obj["processPath"].toString();
+            if (!entry.title.isEmpty() || !entry.className.isEmpty() ||
+                !entry.processName.isEmpty() || !entry.processPath.isEmpty())
                 list.append(entry);
         }
         return list;
@@ -173,22 +182,25 @@ public:
         QJsonArray arr;
         for (const auto& entry : list) {
             QJsonObject obj;
+            obj["enabled"] = entry.enabled;
+            obj["comment"] = entry.comment;
             obj["title"] = entry.title;
             obj["class"] = entry.className;
+            obj["processName"] = entry.processName;
+            obj["processPath"] = entry.processPath;
             arr.append(obj);
         }
         m_root["BlockedWindows"] = arr;
         m_dirty = true;
     }
 
-    // Hotkeys stored as JSON object: {"ActionName": ["Key1+Key2", ...]}
     HotkeyBindings getHotkeyBindings() {
         HotkeyBindings result;
         QJsonObject hotkeys = m_root["Hotkeys"].toObject();
         for (auto it = hotkeys.begin(); it != hotkeys.end(); ++it) {
             auto action = hotkeyActionFromName(it.key());
             if (hotkeyActionName(action) != it.key())
-                continue; // unknown action name
+                continue;
             QJsonArray arr = it.value().toArray();
             QList<HotkeyBinding> bindings;
             for (const auto& val : arr) {

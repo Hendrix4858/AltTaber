@@ -2,13 +2,12 @@
 #define WIN_SWITCHER_WINDOWGROUPER_H
 
 #include <QList>
-#include <QMap>
 #include "WindowTypes.h"
 
 struct ActivationHistory;
 
 namespace WindowGrouper {
-    QList<WindowGroup> groupWindows(const QList<HWND>& hwnds,
+    QList<WindowGroup> groupWindows(const QList<WindowDescriptor>& windows,
                                     const ActivationHistory* history = nullptr,
                                     HWND selfHwnd = nullptr);
 }

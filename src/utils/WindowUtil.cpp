@@ -5,21 +5,41 @@
 #include "utils/ProcessUtil.h"
 #include "utils/AppUtil.h"
 #include "utils/ConfigManager.h"
+#include "WindowFilter.h"
+#include "WindowDescriptorBuilder.h"
 
 namespace Util {
 
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
-        // Build filter rules from user config
-        WindowFilterRules rules;
+        // System filter
+        if (!WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck))
+            return false;
+        // User filter from config
+        WindowFilter filter;
+        WindowFilterRule rule;
         auto blocked = cfg().getBlockedWindows();
         for (const auto& entry : blocked) {
-            rules.blockedByUser.append({entry.title, entry.className});
+            if (!entry.enabled) continue;
+            WindowFilterEntry fe;
+            fe.title = entry.title;
+            fe.className = entry.className;
+            fe.processName = entry.processName;
+            fe.processPath = entry.processPath;
+            rule.entries.append(fe);
         }
-        return WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck, &rules);
+        filter.setRules(rule);
+        WindowDescriptor desc = WindowDescriptorBuilder::fromHwnd(hwnd);
+        QList<WindowDescriptor> list = {desc};
+        return !filter.filter(list).isEmpty();
     }
 
     QList<HWND> enumWindows() {
-        return WindowEnumerator::enumAllWindows();
+        auto descriptors = WindowEnumerator::enumAllWindows();
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     BOOL CALLBACK EnumChildWindowsProc(HWND hwnd, LPARAM lParam) {
@@ -56,11 +76,21 @@ namespace Util {
     }
 
     QList<HWND> listValidWindows() {
-        return WindowEnumerator::enumValidWindows();
+        auto descriptors = WindowEnumerator::enumValidWindows();
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     QList<HWND> listValidWindows(const QString& exePath) {
-        return WindowEnumerator::enumValidWindows(exePath);
+        auto descriptors = WindowEnumerator::enumValidWindows(exePath);
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     QList<HWND> findTopWindows(const QString& className, const QString& title) {

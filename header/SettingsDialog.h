@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QEvent>
 #include <QMap>
+#include <QPushButton>
 #include "utils/HotkeyAction.h"
 
 QT_BEGIN_NAMESPACE
@@ -41,6 +42,11 @@ private:
     bool m_loadingSettings = false;
 
     QMap<HotkeyAction, HotkeyRecorder*> m_recorders;
+
+    // Programmatically created buttons for Blocked Windows page
+    QPushButton* m_btnEditBlocked = nullptr;
+    QPushButton* m_btnExportBlocked = nullptr;
+    QPushButton* m_btnImportBlocked = nullptr;
 };
 
 #endif

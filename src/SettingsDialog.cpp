@@ -5,11 +5,15 @@
 #include "utils/Startup.h"
 #include "utils/ThemeManager.h"
 #include "utils/HotkeyRecorder.h"
+#include "AddBlockedDialog.h"
 
 #include <QApplication>
 #include <QFileDialog>
 #include <QFont>
-#include <QInputDialog>
+#include <QHeaderView>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QMessageBox>
 #include <QDir>
 #include <QScrollArea>
@@ -18,6 +22,10 @@
 
 #include "utils/Logger.h"
 #include <QElapsedTimer>
+#include <QFileInfo>
+#include <QFile>
+#include <QTableWidgetItem>
+#include "utils/Util.h"
 
 SettingsDialog::SettingsDialog(QWidget* parent)
     : QDialog(parent)
@@ -44,6 +52,27 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->navList->addItem(tr("Blocked Windows"));
     ui->navList->addItem(tr("About"));
 
+    // Configure blocked table columns
+    ui->blockedTable->setColumnCount(6);
+    QStringList headers;
+    headers << tr("Enabled") << tr("Comment") << tr("Window Title")
+            << tr("Class Name") << tr("Process Name") << tr("Process Path");
+    ui->blockedTable->setHorizontalHeaderLabels(headers);
+    ui->blockedTable->horizontalHeader()->setStretchLastSection(false);
+    ui->blockedTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->blockedTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    // Create programmatic buttons for blocked window actions
+    m_btnEditBlocked = new QPushButton(tr("Edit"), this);
+    m_btnExportBlocked = new QPushButton(tr("Export"), this);
+    m_btnImportBlocked = new QPushButton(tr("Import"), this);
+
+    // Add to the existing button layout (find blockedBtnLayout)
+    if (auto* blockedLayout = ui->blockedGroup->findChild<QHBoxLayout*>("blockedBtnLayout")) {
+        blockedLayout->insertWidget(1, m_btnEditBlocked);
+        blockedLayout->addWidget(m_btnExportBlocked);
+        blockedLayout->addWidget(m_btnImportBlocked);
+    }
     // theme combo
     ui->themeCombo->addItem(tr("Dark"), Dark);
     ui->themeCombo->addItem(tr("Light"), Light);
@@ -117,35 +146,140 @@ SettingsDialog::SettingsDialog(QWidget* parent)
             ui->clickShowGroupCheck->setEnabled(checked);
     });
 
+    // Add blocked rule via dialog
     connect(ui->btnAddBlocked, &QPushButton::clicked, this, [this] {
-        bool okTitle;
-        QString title = QInputDialog::getText(this, tr("Add Blocked Window"),
-                                               tr("Window Title (leave empty to match any):"),
-                                               QLineEdit::Normal, QString(), &okTitle);
-        if (!okTitle) return;
-
-        bool okClass;
-        QString className = QInputDialog::getText(this, tr("Add Blocked Window"),
-                                                   tr("Class Name (leave empty to match any):"),
-                                                   QLineEdit::Normal, QString(), &okClass);
-        if (!okClass) return;
-
-        if (title.isEmpty() && className.isEmpty()) {
-            QMessageBox::warning(this, tr("Warning"),
-                                tr("At least one of Title or Class Name must be filled."));
-            return;
+        AddBlockedDialog dlg(this);
+        connect(&dlg, &AddBlockedDialog::fromCurrentRequested, this, [&dlg]() {
+            HWND fore = GetForegroundWindow();
+            BlockedWindowEntry entry;
+            entry.title = Util::getWindowTitle(fore);
+            entry.className = Util::getClassName(fore);
+            auto path = Util::getWindowProcessPath(fore);
+            entry.processName = QFileInfo(path).fileName();
+            entry.processPath = path;
+            entry.enabled = true;
+            dlg.setFields(entry);
+        });
+        if (dlg.exec() == QDialog::Accepted) {
+            auto entry = dlg.result();
+            int row = ui->blockedTable->rowCount();
+            ui->blockedTable->insertRow(row);
+            auto* enabledItem = new QTableWidgetItem();
+            enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
+            enabledItem->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
+            ui->blockedTable->setItem(row, 0, enabledItem);
+            ui->blockedTable->setItem(row, 1, new QTableWidgetItem(entry.comment));
+            ui->blockedTable->setItem(row, 2, new QTableWidgetItem(entry.title));
+            ui->blockedTable->setItem(row, 3, new QTableWidgetItem(entry.className));
+            ui->blockedTable->setItem(row, 4, new QTableWidgetItem(entry.processName));
+            ui->blockedTable->setItem(row, 5, new QTableWidgetItem(entry.processPath));
         }
-
-        int row = ui->blockedTable->rowCount();
-        ui->blockedTable->insertRow(row);
-        ui->blockedTable->setItem(row, 0, new QTableWidgetItem(title));
-        ui->blockedTable->setItem(row, 1, new QTableWidgetItem(className));
     });
 
+    // Edit blocked rule
+    connect(m_btnEditBlocked, &QPushButton::clicked, this, [this] {
+        int row = ui->blockedTable->currentRow();
+        if (row < 0) return;
+        BlockedWindowEntry entry;
+        entry.enabled = ui->blockedTable->item(row, 0)->checkState() == Qt::Checked;
+        entry.comment = ui->blockedTable->item(row, 1)->text();
+        entry.title = ui->blockedTable->item(row, 2)->text();
+        entry.className = ui->blockedTable->item(row, 3)->text();
+        entry.processName = ui->blockedTable->item(row, 4)->text();
+        entry.processPath = ui->blockedTable->item(row, 5)->text();
+
+        AddBlockedDialog dlg(this);
+        dlg.setFields(entry);
+        connect(&dlg, &AddBlockedDialog::fromCurrentRequested, this, [&dlg]() {
+            HWND fore = GetForegroundWindow();
+            BlockedWindowEntry entry;
+            entry.title = Util::getWindowTitle(fore);
+            entry.className = Util::getClassName(fore);
+            auto path = Util::getWindowProcessPath(fore);
+            entry.processName = QFileInfo(path).fileName();
+            entry.processPath = path;
+            entry.enabled = true;
+            dlg.setFields(entry);
+        });
+        if (dlg.exec() == QDialog::Accepted) {
+            auto result = dlg.result();
+            ui->blockedTable->item(row, 0)->setCheckState(result.enabled ? Qt::Checked : Qt::Unchecked);
+            ui->blockedTable->item(row, 1)->setText(result.comment);
+            ui->blockedTable->item(row, 2)->setText(result.title);
+            ui->blockedTable->item(row, 3)->setText(result.className);
+            ui->blockedTable->item(row, 4)->setText(result.processName);
+            ui->blockedTable->item(row, 5)->setText(result.processPath);
+        }
+    });
+
+    // Remove blocked rule
     connect(ui->btnRemoveBlocked, &QPushButton::clicked, this, [this] {
         int row = ui->blockedTable->currentRow();
         if (row >= 0)
             ui->blockedTable->removeRow(row);
+    });
+
+    // Export blocked rules
+    connect(m_btnExportBlocked, &QPushButton::clicked, this, [this] {
+        QString filePath = QFileDialog::getSaveFileName(this, tr("Export Blocked Rules"),
+                                                         QString(), tr("JSON Files (*.json)"));
+        if (filePath.isEmpty()) return;
+        QJsonArray arr;
+        for (int i = 0; i < ui->blockedTable->rowCount(); ++i) {
+            QJsonObject obj;
+            obj["enabled"] = ui->blockedTable->item(i, 0)->checkState() == Qt::Checked;
+            obj["comment"] = ui->blockedTable->item(i, 1)->text();
+            obj["title"] = ui->blockedTable->item(i, 2)->text();
+            obj["class"] = ui->blockedTable->item(i, 3)->text();
+            obj["processName"] = ui->blockedTable->item(i, 4)->text();
+            obj["processPath"] = ui->blockedTable->item(i, 5)->text();
+            arr.append(obj);
+        }
+        QFile file(filePath);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(QJsonDocument(arr).toJson(QJsonDocument::Indented));
+            file.close();
+            QMessageBox::information(this, tr("Export"), tr("Exported %1 rules.").arg(arr.size()));
+        }
+    });
+
+    // Import blocked rules
+    connect(m_btnImportBlocked, &QPushButton::clicked, this, [this] {
+        QString filePath = QFileDialog::getOpenFileName(this, tr("Import Blocked Rules"),
+                                                         QString(), tr("JSON Files (*.json)"));
+        if (filePath.isEmpty()) return;
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly)) return;
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        file.close();
+        if (!doc.isArray()) {
+            QMessageBox::warning(this, tr("Import"), tr("Invalid format."));
+            return;
+        }
+        QJsonArray arr = doc.array();
+        int imported = 0;
+        for (const auto& val : arr) {
+            QJsonObject obj = val.toObject();
+            QString title = obj["title"].toString();
+            QString className = obj["class"].toString();
+            QString processName = obj["processName"].toString();
+            QString processPath = obj["processPath"].toString();
+            if (title.isEmpty() && className.isEmpty() && processName.isEmpty() && processPath.isEmpty())
+                continue;
+            int row = ui->blockedTable->rowCount();
+            ui->blockedTable->insertRow(row);
+            auto* enabledItem = new QTableWidgetItem();
+            enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
+            enabledItem->setCheckState(obj.value("enabled").toBool(true) ? Qt::Checked : Qt::Unchecked);
+            ui->blockedTable->setItem(row, 0, enabledItem);
+            ui->blockedTable->setItem(row, 1, new QTableWidgetItem(obj["comment"].toString()));
+            ui->blockedTable->setItem(row, 2, new QTableWidgetItem(title));
+            ui->blockedTable->setItem(row, 3, new QTableWidgetItem(className));
+            ui->blockedTable->setItem(row, 4, new QTableWidgetItem(processName));
+            ui->blockedTable->setItem(row, 5, new QTableWidgetItem(processPath));
+            imported++;
+        }
+        QMessageBox::information(this, tr("Import"), tr("Imported %1 rules.").arg(imported));
     });
 
     loadSettings();
@@ -373,6 +507,9 @@ void SettingsDialog::applyStyleSheet() {
     ui->btnApply->setStyleSheet(btnStyle);
     ui->btnAddBlocked->setStyleSheet(btnStyle);
     ui->btnRemoveBlocked->setStyleSheet(btnStyle);
+    if (m_btnEditBlocked) m_btnEditBlocked->setStyleSheet(btnStyle);
+    if (m_btnExportBlocked) m_btnExportBlocked->setStyleSheet(btnStyle);
+    if (m_btnImportBlocked) m_btnImportBlocked->setStyleSheet(btnStyle);
     ui->btnBrowseLogDir->setStyleSheet(btnStyle);
     ui->btnBrowseCacheDir->setStyleSheet(btnStyle);
     ui->btnClearCache->setStyleSheet(btnStyle);
@@ -481,10 +618,23 @@ void SettingsDialog::retranslateUi() {
     ui->btnClearCache->setText(tr("Clear Cache"));
 
     ui->blockedGroup->setTitle(tr("Blocked Windows"));
-    ui->blockedTable->horizontalHeaderItem(0)->setText(tr("Window Title"));
-    ui->blockedTable->horizontalHeaderItem(1)->setText(tr("Class Name"));
+    if (ui->blockedTable->horizontalHeaderItem(0))
+        ui->blockedTable->horizontalHeaderItem(0)->setText(tr("Enabled"));
+    if (ui->blockedTable->horizontalHeaderItem(1))
+        ui->blockedTable->horizontalHeaderItem(1)->setText(tr("Comment"));
+    if (ui->blockedTable->horizontalHeaderItem(2))
+        ui->blockedTable->horizontalHeaderItem(2)->setText(tr("Window Title"));
+    if (ui->blockedTable->horizontalHeaderItem(3))
+        ui->blockedTable->horizontalHeaderItem(3)->setText(tr("Class Name"));
+    if (ui->blockedTable->horizontalHeaderItem(4))
+        ui->blockedTable->horizontalHeaderItem(4)->setText(tr("Process Name"));
+    if (ui->blockedTable->horizontalHeaderItem(5))
+        ui->blockedTable->horizontalHeaderItem(5)->setText(tr("Process Path"));
     ui->btnAddBlocked->setText(tr("Add"));
     ui->btnRemoveBlocked->setText(tr("Remove"));
+    if (m_btnEditBlocked) m_btnEditBlocked->setText(tr("Edit"));
+    if (m_btnExportBlocked) m_btnExportBlocked->setText(tr("Export"));
+    if (m_btnImportBlocked) m_btnImportBlocked->setText(tr("Import"));
 
     ui->letterJumpGroup->setTitle(tr("Letter Jump"));
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
@@ -560,8 +710,15 @@ void SettingsDialog::loadSettings() {
     for (const auto& entry : blocked) {
         int row = ui->blockedTable->rowCount();
         ui->blockedTable->insertRow(row);
-        ui->blockedTable->setItem(row, 0, new QTableWidgetItem(entry.title));
-        ui->blockedTable->setItem(row, 1, new QTableWidgetItem(entry.className));
+        auto* enabledItem = new QTableWidgetItem();
+        enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
+        enabledItem->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
+        ui->blockedTable->setItem(row, 0, enabledItem);
+        ui->blockedTable->setItem(row, 1, new QTableWidgetItem(entry.comment));
+        ui->blockedTable->setItem(row, 2, new QTableWidgetItem(entry.title));
+        ui->blockedTable->setItem(row, 3, new QTableWidgetItem(entry.className));
+        ui->blockedTable->setItem(row, 4, new QTableWidgetItem(entry.processName));
+        ui->blockedTable->setItem(row, 5, new QTableWidgetItem(entry.processPath));
     }
 
     m_loadingSettings = false;
@@ -610,8 +767,12 @@ void SettingsDialog::applySettings() {
     QList<BlockedWindowEntry> blocked;
     for (int i = 0; i < ui->blockedTable->rowCount(); ++i) {
         BlockedWindowEntry entry;
-        entry.title = ui->blockedTable->item(i, 0)->text();
-        entry.className = ui->blockedTable->item(i, 1)->text();
+        entry.enabled = ui->blockedTable->item(i, 0)->checkState() == Qt::Checked;
+        entry.comment = ui->blockedTable->item(i, 1)->text();
+        entry.title = ui->blockedTable->item(i, 2)->text();
+        entry.className = ui->blockedTable->item(i, 3)->text();
+        entry.processName = ui->blockedTable->item(i, 4)->text();
+        entry.processPath = ui->blockedTable->item(i, 5)->text();
         blocked.append(entry);
     }
     cfg().setBlockedWindows(blocked);
@@ -627,3 +788,5 @@ void SettingsDialog::changeEvent(QEvent* event) {
         retranslateUi();
     QDialog::changeEvent(event);
 }
+
+
