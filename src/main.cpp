@@ -97,6 +97,25 @@ int main(int argc, char* argv[]) {
     QObject::connect(&cfg(), &ConfigManager::configEdited, &a, [&kbHooker, winSwitcher]() {
         qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
         auto b = cfg().getHotkeyBindings();
+
+        // Apply defaults if missing (same as startup code above)
+        auto& showBinds = b[HotkeyAction::ShowSwitcher];
+        bool hasAltTab = false;
+        for (const auto& bind : showBinds) {
+            if (bind.vkCode == VK_TAB && bind.modifiers == Qt::AltModifier) {
+                hasAltTab = true;
+                break;
+            }
+        }
+        if (!hasAltTab)
+            showBinds.append(HotkeyBinding::fromString("Alt+Tab"));
+        if (b[HotkeyAction::EnterGroupMode].isEmpty())
+            b[HotkeyAction::EnterGroupMode].append(HotkeyBinding::fromString("Alt+Grave"));
+        if (b[HotkeyAction::CycleForward].isEmpty())
+            b[HotkeyAction::CycleForward].append(HotkeyBinding::fromString("Tab"));
+        if (b[HotkeyAction::CycleBackward].isEmpty())
+            b[HotkeyAction::CycleBackward].append(HotkeyBinding::fromString("Shift+Tab"));
+
         kbHooker.updateBindings(b);
         winSwitcher->updateOverlayBindings(b);
     });
