@@ -25,6 +25,10 @@ HotkeyRecorder::HotkeyRecorder(HotkeyAction action, QWidget* parent)
     rebuildUi();
 }
 
+HotkeyRecorder::~HotkeyRecorder() {
+    cancelRecording();
+}
+
 void HotkeyRecorder::setBindings(const QList<HotkeyBinding>& bindings) {
     m_bindings = bindings;
     rebuildUi();
@@ -81,12 +85,24 @@ void HotkeyRecorder::onRemoveClicked(int index) {
     }
 }
 
+void HotkeyRecorder::saveBackup() {
+    m_previousBindings = m_bindings;
+}
+
+void HotkeyRecorder::rollback() {
+    blockSignals(true);
+    setBindings(m_previousBindings);
+    blockSignals(false);
+}
+
 void HotkeyRecorder::startRecording(int index) {
-    KeyboardHooker::setRecordingActive(true);
+    saveBackup();
     m_recordingIndex = index;
+
+    HWND targetHwnd = reinterpret_cast<HWND>(window()->winId());
+    KeyboardHooker::setRecordingTarget(targetHwnd);
     qApp->installEventFilter(this);
 
-    // Update the binding button text to show recording state
     if (index >= 0 && index < m_bindings.size()) {
         auto* btn = qobject_cast<QPushButton*>(m_layout->itemAt(2 + index * 2)->widget());
         if (btn) btn->setText(QStringLiteral("..."));
@@ -94,7 +110,7 @@ void HotkeyRecorder::startRecording(int index) {
 }
 
 void HotkeyRecorder::finishRecording(const HotkeyBinding& binding) {
-    KeyboardHooker::setRecordingActive(false);
+    KeyboardHooker::clearRecordingTarget();
     if (m_recordingIndex < 0) return;
 
     if (m_recordingIndex >= m_bindings.size()) {
@@ -110,7 +126,7 @@ void HotkeyRecorder::finishRecording(const HotkeyBinding& binding) {
 }
 
 void HotkeyRecorder::cancelRecording() {
-    KeyboardHooker::setRecordingActive(false);
+    KeyboardHooker::clearRecordingTarget();
     if (m_recordingIndex < 0) return;
     qApp->removeEventFilter(this);
     m_recordingIndex = -1;
@@ -118,25 +134,16 @@ void HotkeyRecorder::cancelRecording() {
 }
 
 bool HotkeyRecorder::eventFilter(QObject* obj, QEvent* event) {
-    if (m_recordingIndex >= 0 && event->type() == QEvent::KeyPress) {
+    // Fallback: Qt event path is deliberately minimal.
+    // Only handles Escape-to-cancel. Raw key recording is done via
+    // KeyboardHooker -> PostMessage -> SettingsDialog::nativeEvent.
+    if (m_recordingIndex < 0) return QWidget::eventFilter(obj, event);
+    if (event->type() == QEvent::KeyPress) {
         auto* ke = static_cast<QKeyEvent*>(event);
-        auto key = ke->key();
-
-        if (key == Qt::Key_Shift || key == Qt::Key_Control ||
-            key == Qt::Key_Alt || key == Qt::Key_Meta) {
-            return true;
-        }
-        if (key == Qt::Key_Escape) {
+        if (ke->key() == Qt::Key_Escape) {
+            qDebug() << "[RecordFallback] Escape -> cancelRecording";
             cancelRecording();
             return true;
-        }
-
-        HotkeyBinding b;
-        b.modifiers = ke->modifiers();
-        b.vkCode = qtKeyToVkCode(key);
-
-        if (b.vkCode != 0) {
-            finishRecording(b);
         }
         return true;
     }

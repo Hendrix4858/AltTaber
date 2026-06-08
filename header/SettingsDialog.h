@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QEvent>
 #include <QMap>
+#include <QLabel>
 #include <QPushButton>
 #include "utils/HotkeyAction.h"
 
@@ -23,6 +24,8 @@ public:
 
 protected:
     void changeEvent(QEvent* event) override;
+    void reject() override;
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
 
 private:
     void retranslateUi();
@@ -40,6 +43,7 @@ private:
 
     Ui::SettingsDialog* ui;
     bool m_loadingSettings = false;
+    bool m_resolvingConflict = false;
 
     QMap<HotkeyAction, HotkeyRecorder*> m_recorders;
 
@@ -47,6 +51,7 @@ private:
     QPushButton* m_btnEditBlocked = nullptr;
     QPushButton* m_btnExportBlocked = nullptr;
     QPushButton* m_btnImportBlocked = nullptr;
+    QLabel* m_showSwitcherWarning = nullptr;
 };
 
 #endif

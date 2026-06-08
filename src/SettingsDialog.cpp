@@ -5,6 +5,7 @@
 #include "utils/Startup.h"
 #include "utils/ThemeManager.h"
 #include "utils/HotkeyRecorder.h"
+#include "utils/KeyboardHooker.h"
 #include "AddBlockedDialog.h"
 
 #include <QApplication>
@@ -293,6 +294,55 @@ SettingsDialog::~SettingsDialog() {
     delete ui;
 }
 
+void SettingsDialog::reject() {
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
+        it.value()->cancelRecording();
+    KeyboardHooker::clearRecordingTarget();
+    QDialog::reject();
+}
+
+bool SettingsDialog::nativeEvent(const QByteArray&, void* message, qintptr*) {
+    auto* msg = static_cast<MSG*>(message);
+    if (msg->message != KeyboardHooker::recordingMessageId())
+        return false;
+    qDebug() << "[RecordRaw] nativeEvent msg=" << msg->message;
+
+    quint32 vk, scan;
+    DWORD flags;
+    Qt::KeyboardModifiers mods;
+    if (!KeyboardHooker::tryTakeRecordedKey(vk, scan, flags, mods))
+        return false;
+
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        if (!it.value()->isRecording()) continue;
+
+        if (vk == VK_CONTROL || vk == VK_SHIFT || vk == VK_MENU ||
+            vk == VK_LCONTROL || vk == VK_RCONTROL ||
+            vk == VK_LSHIFT || vk == VK_RSHIFT ||
+            vk == VK_LMENU || vk == VK_RMENU ||
+            vk == VK_LWIN || vk == VK_RWIN) {
+            return true;
+        }
+        if (vk == VK_ESCAPE) {
+            it.value()->cancelRecording();
+            return true;
+        }
+
+        HotkeyBinding b;
+        b.modifiers = mods;
+        b.vkCode = vk;
+        b.scanCode = scan;
+        b.extended = (flags & LLKHF_EXTENDED) != 0;
+        b.mode = HotkeyBinding::KeyMode::Physical;
+
+        qDebug() << "[RecordRaw] finishRecording vk=" << vk << "sc=" << scan
+                 << "ext=" << b.extended << b.toString();
+        it.value()->finishRecording(b);
+        return true;
+    }
+    return false;
+}
+
 void SettingsDialog::buildHotkeyPage() {
     // Clear existing content from hotkeyPage
     auto* hotkeyPage = ui->stackedWidget->widget(2);
@@ -322,11 +372,48 @@ void SettingsDialog::buildHotkeyPage() {
         contentLayout->addWidget(recorder);
 
         // Connect conflict detection
-        connect(recorder, &HotkeyRecorder::bindingsChanged, this, [this, action](HotkeyAction, const QList<HotkeyBinding>& bindings) {
-            Q_UNUSED(bindings);
+        connect(recorder, &HotkeyRecorder::bindingsChanged, this, [this, action, recorder](HotkeyAction, const QList<HotkeyBinding>& bindings) {
+            if (m_resolvingConflict) {
+                checkLetterJumpConflict();
+                return;
+            }
+            m_resolvingConflict = true;
+
+            HotkeyAction conflictAction;
+            int conflictIndex;
+            for (const auto& b : bindings) {
+                if (checkConflict(action, b, conflictAction, conflictIndex)) {
+                    auto result = QMessageBox::warning(this, tr("冲突"),
+                        tr("快捷键 \"%1\" 已被 \"%2\" 使用。\n是否覆盖？")
+                            .arg(b.toString(), hotkeyActionDisplayName(conflictAction)),
+                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                    if (result == QMessageBox::No) {
+                        recorder->rollback();
+                        m_resolvingConflict = false;
+                        checkLetterJumpConflict();
+                        return;
+                    }
+                    auto* conflictRecorder = m_recorders.value(conflictAction);
+                    if (conflictRecorder) {
+                        auto conflictBinds = conflictRecorder->bindings();
+                        conflictBinds.removeAt(conflictIndex);
+                        conflictRecorder->blockSignals(true);
+                        conflictRecorder->setBindings(conflictBinds);
+                        conflictRecorder->blockSignals(false);
+                    }
+                }
+            }
+
+            m_resolvingConflict = false;
             checkLetterJumpConflict();
         });
     }
+
+    // ShowSwitcher empty warning label
+    m_showSwitcherWarning = new QLabel(tr("警告：显示覆盖层未绑定快捷键，AltTaber 将无法激活"), scrollContent);
+    m_showSwitcherWarning->setStyleSheet("color: red; font-weight: bold; padding: 4px 0;");
+    m_showSwitcherWarning->setVisible(false);
+    contentLayout->addWidget(m_showSwitcherWarning);
 
     // Reset to defaults button
     contentLayout->addSpacing(12);
@@ -361,6 +448,12 @@ void SettingsDialog::loadHotkeyBindings() {
             it.value()->setBindings({});
     }
     checkLetterJumpConflict();
+
+    if (m_showSwitcherWarning) {
+        auto showBinds = bindings.value(HotkeyAction::ShowSwitcher);
+        m_showSwitcherWarning->setVisible(
+            bindings.contains(HotkeyAction::ShowSwitcher) && showBinds.isEmpty());
+    }
 }
 
 void SettingsDialog::applyHotkeyBindings() {

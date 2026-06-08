@@ -155,7 +155,7 @@ void Widget::keyPressEvent(QKeyEvent* event) {
     if (vk != 0) {
         for (auto it = overlayBinds.begin(); it != overlayBinds.end(); ++it) {
             for (const auto& b : it.value()) {
-                if (b.vkCode == vk && b.modifiers == modifiers) {
+                if (b.matches(vk, modifiers)) {
                     qDebug() << "[Widget] Overlay binding match:"
                              << hotkeyActionName(it.key())
                              << "vk=" << vk << "mods=" << modifiers;

@@ -204,11 +204,15 @@ public:
             QJsonArray arr = it.value().toArray();
             QList<HotkeyBinding> bindings;
             for (const auto& val : arr) {
-                auto b = HotkeyBinding::fromString(val.toString());
+                HotkeyBinding b;
+                if (val.isString()) {
+                    b = HotkeyBinding::fromString(val.toString());
+                } else if (val.isObject()) {
+                    b = HotkeyBinding::fromJson(val.toObject());
+                }
                 if (b.isValid())
                     bindings.append(b);
             }
-            qDebug() << "[Config] Load bindings for" << it.key() << ":" << bindings.size() << "bindings";
             result[action] = bindings;
         }
         return result;
@@ -219,9 +223,8 @@ public:
         for (auto it = bindings.begin(); it != bindings.end(); ++it) {
             QJsonArray arr;
             for (const auto& b : it.value()) {
-                QString s = b.toString();
-                if (!s.isEmpty())
-                    arr.append(s);
+                if (b.isValid())
+                    arr.append(b.toJson());
             }
             hotkeys[hotkeyActionName(it.key())] = arr;
         }

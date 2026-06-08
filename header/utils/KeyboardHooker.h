@@ -15,6 +15,11 @@ public:
     void updateBindings(const HotkeyBindings& bindings);
     void setPaused(bool paused);
     static void setRecordingActive(bool active);
+    static void setRecordingTarget(HWND hwnd);
+    static void clearRecordingTarget();
+    static UINT recordingMessageId();
+    static bool tryTakeRecordedKey(quint32& vk, quint32& scanCode,
+                                   DWORD& flags, Qt::KeyboardModifiers& mods);
 
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);
@@ -22,7 +27,6 @@ signals:
 
 private:
     HHOOK h_keyboard = nullptr;
-    bool m_altDown = false;
     bool m_paused = false;
     HWND m_ownerHwnd = nullptr;
     HotkeyBindings m_bindings;

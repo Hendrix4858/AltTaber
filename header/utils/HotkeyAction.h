@@ -4,6 +4,7 @@
 #include <QString>
 #include <QList>
 #include <QMap>
+#include <QJsonObject>
 #include <Qt>
 #include <QDebug>
 #include <windows.h>
@@ -80,23 +81,46 @@ inline QString hotkeyActionDisplayName(HotkeyAction action) {
 }
 
 struct HotkeyBinding {
+    enum class KeyMode { Logical, Physical };
+
     Qt::KeyboardModifiers modifiers = Qt::NoModifier;
     quint32 vkCode = 0;
+    quint32 scanCode = 0;
+    bool extended = false;
+    KeyMode mode = KeyMode::Logical;
 
-    bool isValid() const { return vkCode != 0; }
+    bool isValid() const {
+        if (mode == KeyMode::Physical)
+            return scanCode != 0 || vkCode != 0;
+        return vkCode != 0;
+    }
 
     bool matches(quint32 testVk, Qt::KeyboardModifiers testMods) const {
-        return vkCode == testVk && modifiers == testMods;
+        if (modifiers != testMods) return false;
+        if (mode == KeyMode::Physical && scanCode != 0)
+            return vkCode == testVk;
+        return vkCode == testVk;
+    }
+
+    bool matchesPhysical(quint32 testVk, quint32 testScan, bool testExtended, Qt::KeyboardModifiers testMods) const {
+        if (mode != KeyMode::Physical) return matches(testVk, testMods);
+        if (modifiers != testMods) return false;
+        if (scanCode) return scanCode == testScan && extended == testExtended;
+        return vkCode == testVk;
     }
 
     bool isSingleLetter() const {
-        return vkCode >= 'A' && vkCode <= 'Z' && modifiers == Qt::NoModifier;
+        return vkCode >= 'A' && vkCode <= 'Z' && modifiers == Qt::NoModifier && mode == KeyMode::Logical;
     }
 
     QString toString() const;
     static HotkeyBinding fromString(const QString& str);
+    QJsonObject toJson() const;
+    static HotkeyBinding fromJson(const QJsonObject& obj);
 
     bool operator==(const HotkeyBinding& o) const {
+        if (mode == KeyMode::Physical && o.mode == KeyMode::Physical)
+            return scanCode == o.scanCode && extended == o.extended && modifiers == o.modifiers;
         return modifiers == o.modifiers && vkCode == o.vkCode;
     }
     bool operator!=(const HotkeyBinding& o) const { return !(*this == o); }
@@ -219,10 +243,21 @@ inline Qt::KeyboardModifiers stringToModifiers(const QString& str) {
     return mods;
 }
 
+inline QString getKeyNameText(quint32 sc, bool ext) {
+    LONG lParam = (sc << 16) | (ext ? (1 << 24) : 0);
+    WCHAR name[64] = {};
+    int len = GetKeyNameTextW(lParam, name, 64);
+    return len > 0 ? QString::fromWCharArray(name, len) : QString();
+}
+
 } // namespace HotkeyStrings
 
 inline QString HotkeyBinding::toString() const {
-    QString keyStr = HotkeyStrings::vkCodeToString(vkCode);
+    QString keyStr;
+    if (mode == KeyMode::Physical && scanCode != 0)
+        keyStr = HotkeyStrings::getKeyNameText(scanCode, extended);
+    if (keyStr.isEmpty())
+        keyStr = HotkeyStrings::vkCodeToString(vkCode);
     if (keyStr.isEmpty()) return {};
     QString modStr = HotkeyStrings::modifierToString(modifiers);
     if (modStr.isEmpty()) return keyStr;
@@ -249,6 +284,32 @@ inline HotkeyBinding HotkeyBinding::fromString(const QString& str) {
     return b;
 }
 
+inline QJsonObject HotkeyBinding::toJson() const {
+    QJsonObject obj;
+    QString modStr = HotkeyStrings::modifierToString(modifiers);
+    if (!modStr.isEmpty()) obj["modifiers"] = modStr;
+    obj["vkCode"] = (int)vkCode;
+    if (mode == KeyMode::Physical) {
+        obj["mode"] = QStringLiteral("physical");
+        if (scanCode) obj["scanCode"] = (int)scanCode;
+        if (extended) obj["extended"] = true;
+    } else {
+        obj["mode"] = QStringLiteral("logical");
+    }
+    return obj;
+}
+
+inline HotkeyBinding HotkeyBinding::fromJson(const QJsonObject& obj) {
+    HotkeyBinding b;
+    b.modifiers = HotkeyStrings::stringToModifiers(obj["modifiers"].toString());
+    b.vkCode = obj["vkCode"].toInt();
+    b.scanCode = obj["scanCode"].toInt();
+    b.extended = obj["extended"].toBool();
+    if (obj["mode"].toString() == QLatin1String("physical"))
+        b.mode = KeyMode::Physical;
+    return b;
+}
+
 // Helper: convert Qt key to Windows VK code
 inline quint32 qtKeyToVkCode(int qtKey) {
     if (qtKey >= Qt::Key_A && qtKey <= Qt::Key_Z)
@@ -267,7 +328,8 @@ inline quint32 qtKeyToVkCode(int qtKey) {
         case Qt::Key_Right:     return VK_RIGHT;
         case Qt::Key_Up:        return VK_UP;
         case Qt::Key_Down:      return VK_DOWN;
-        case Qt::Key_QuoteLeft: return VK_OEM_3;
+        case Qt::Key_QuoteLeft:
+        case Qt::Key_AsciiTilde: return VK_OEM_3;
         case Qt::Key_Space:     return VK_SPACE;
         case Qt::Key_Backspace: return VK_BACK;
         case Qt::Key_Delete:    return VK_DELETE;
@@ -275,6 +337,26 @@ inline quint32 qtKeyToVkCode(int qtKey) {
         case Qt::Key_End:       return VK_END;
         case Qt::Key_PageUp:    return VK_PRIOR;
         case Qt::Key_PageDown:  return VK_NEXT;
+        case Qt::Key_Equal:
+        case Qt::Key_Plus:      return VK_OEM_PLUS;
+        case Qt::Key_Minus:
+        case Qt::Key_Underscore: return VK_OEM_MINUS;
+        case Qt::Key_Comma:
+        case Qt::Key_Less:      return VK_OEM_COMMA;
+        case Qt::Key_Period:
+        case Qt::Key_Greater:   return VK_OEM_PERIOD;
+        case Qt::Key_Semicolon:
+        case Qt::Key_Colon:     return VK_OEM_1;
+        case Qt::Key_Slash:
+        case Qt::Key_Question:  return VK_OEM_2;
+        case Qt::Key_BracketLeft:
+        case Qt::Key_BraceLeft: return VK_OEM_4;
+        case Qt::Key_BracketRight:
+        case Qt::Key_BraceRight: return VK_OEM_6;
+        case Qt::Key_Apostrophe:
+        case Qt::Key_QuoteDbl:  return VK_OEM_7;
+        case Qt::Key_Backslash:
+        case Qt::Key_Bar:       return VK_OEM_5;
     }
     return 0;
 }
@@ -304,6 +386,16 @@ inline int vkCodeToQtKey(quint32 vk) {
         case VK_END:      return Qt::Key_End;
         case VK_PRIOR:    return Qt::Key_PageUp;
         case VK_NEXT:     return Qt::Key_PageDown;
+        case VK_OEM_PLUS: return Qt::Key_Equal;
+        case VK_OEM_MINUS:return Qt::Key_Minus;
+        case VK_OEM_COMMA:return Qt::Key_Comma;
+        case VK_OEM_PERIOD:return Qt::Key_Period;
+        case VK_OEM_1:    return Qt::Key_Semicolon;
+        case VK_OEM_2:    return Qt::Key_Slash;
+        case VK_OEM_4:    return Qt::Key_BracketLeft;
+        case VK_OEM_6:    return Qt::Key_BracketRight;
+        case VK_OEM_7:    return Qt::Key_Apostrophe;
+        case VK_OEM_5:    return Qt::Key_Backslash;
     }
     return 0;
 }
