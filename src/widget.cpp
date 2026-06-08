@@ -376,8 +376,26 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
                 }
                 exitGroupWindowMode(false); // restore full list
                 if (targetHwnd) {
-                    Util::switchToWindow(targetHwnd);
-                    qInfo() << "Switch to" << WindowInfo{{}, {}, targetHwnd} << targetExe;
+                    QString targetTitle = Util::getWindowTitle(targetHwnd);
+                    qInfo().noquote() << "[SwitchTo] Selected:" << targetTitle
+                             << "hwnd=" << Qt::hex << targetHwnd << Qt::dec
+                             << "exe=" << targetExe;
+                    Util::switchToWindow(targetHwnd, true);
+                    {
+                        HWND selHwnd = targetHwnd;
+                        QString selExe = targetExe;
+                        QString selTitle = targetTitle;
+                        QTimer::singleShot(200, [selHwnd, selTitle, selExe]() {
+                            HWND actual = GetForegroundWindow();
+                            QString actualTitle = Util::getWindowTitle(actual);
+                            QString actualExe = Util::getWindowProcessPath(actual);
+                            bool match = (actual == selHwnd);
+                            qInfo().noquote() << "[SwitchTo] Actual:  " << actualTitle
+                                     << "hwnd=" << Qt::hex << actual << Qt::dec
+                                     << "exe=" << actualExe
+                                     << (match ? "[✓]" : "[✗] MISMATCH");
+                        });
+                    }
                 }
             } else {
                 // active selected window
@@ -385,8 +403,25 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
                     if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
                         WindowInfo targetWin = group.windows.at(0);
                         if (targetWin.hwnd) {
-                            Util::switchToWindow(targetWin.hwnd);
-                            qInfo() << "Switch to" << targetWin << group.exePath;
+                            qInfo().noquote() << "[SwitchTo] Selected:" << targetWin.title
+                                     << "hwnd=" << Qt::hex << targetWin.hwnd << Qt::dec
+                                     << "exe=" << group.exePath;
+                            Util::switchToWindow(targetWin.hwnd, true);
+                            {
+                                HWND selHwnd = targetWin.hwnd;
+                                QString selExe = group.exePath;
+                                QString selTitle = targetWin.title;
+                                QTimer::singleShot(200, [selHwnd, selTitle, selExe]() {
+                                    HWND actual = GetForegroundWindow();
+                                    QString actualTitle = Util::getWindowTitle(actual);
+                                    QString actualExe = Util::getWindowProcessPath(actual);
+                                    bool match = (actual == selHwnd);
+                                    qInfo().noquote() << "[SwitchTo] Actual:  " << actualTitle
+                                             << "hwnd=" << Qt::hex << actual << Qt::dec
+                                             << "exe=" << actualExe
+                                             << (match ? "[✓]" : "[✗] MISMATCH");
+                                });
+                            }
                         }
                     }
                 }
@@ -597,7 +632,26 @@ void Widget::activateCurrentAndHide() {
     } else {
         if (auto index = lv->currentIndex(); index.isValid()) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                Util::switchToWindow(group.windows.first().hwnd, true);
+                auto& targetWin = group.windows.first();
+                qInfo().noquote() << "[SwitchTo] Selected:" << targetWin.title
+                         << "hwnd=" << Qt::hex << targetWin.hwnd << Qt::dec
+                         << "exe=" << group.exePath;
+                Util::switchToWindow(targetWin.hwnd, true);
+                {
+                    HWND selHwnd = targetWin.hwnd;
+                    QString selExe = group.exePath;
+                    QString selTitle = targetWin.title;
+                    QTimer::singleShot(200, [selHwnd, selTitle, selExe]() {
+                        HWND actual = GetForegroundWindow();
+                        QString actualTitle = Util::getWindowTitle(actual);
+                        QString actualExe = Util::getWindowProcessPath(actual);
+                        bool match = (actual == selHwnd);
+                        qInfo().noquote() << "[SwitchTo] Actual:  " << actualTitle
+                                 << "hwnd=" << Qt::hex << actual << Qt::dec
+                                 << "exe=" << actualExe
+                                 << (match ? "[✓]" : "[✗] MISMATCH");
+                    });
+                }
             }
         }
         hide();
