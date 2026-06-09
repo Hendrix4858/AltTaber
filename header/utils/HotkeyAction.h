@@ -165,15 +165,15 @@ inline HotkeyBinding makePhysicalBinding(Qt::KeyboardModifiers mods, quint32 vk,
 inline HotkeyBindings defaultHotkeyBindings() {
     HotkeyBindings defaults;
     defaults[HotkeyAction::ShowSwitcher]        = {makePhysicalBinding(Qt::AltModifier, VK_TAB, 0x0F)};
-    defaults[HotkeyAction::CycleProcessWindows] = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
+    defaults[HotkeyAction::CycleProcessWindows] = {};
     defaults[HotkeyAction::SwitchProcessWindow] = {};
-    defaults[HotkeyAction::EnterGroupMode]      = {HotkeyBinding::fromString("Alt+Grave")};
+    defaults[HotkeyAction::EnterGroupMode]      = {};
     defaults[HotkeyAction::CycleForward]        = {makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F)};
     defaults[HotkeyAction::CycleBackward]       = {makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F)};
-    defaults[HotkeyAction::MoveSelectionUp]     = {HotkeyBinding::fromString("Up")};
-    defaults[HotkeyAction::MoveSelectionDown]   = {HotkeyBinding::fromString("Down")};
-    defaults[HotkeyAction::ActivateSelected]    = {HotkeyBinding::fromString("Enter")};
-    defaults[HotkeyAction::DismissSwitcher]     = {HotkeyBinding::fromString("Escape")};
+    defaults[HotkeyAction::MoveSelectionUp]     = {};
+    defaults[HotkeyAction::MoveSelectionDown]   = {};
+    defaults[HotkeyAction::ActivateSelected]    = {};
+    defaults[HotkeyAction::DismissSwitcher]     = {};
     defaults[HotkeyAction::TogglePause]         = {};
     return defaults;
 }

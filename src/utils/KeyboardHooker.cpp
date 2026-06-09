@@ -117,6 +117,11 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     continue;
                 }
 
+                if (it.key() == HotkeyAction::SwitchProcessWindow && overlayVisible) {
+                    qDebug() << "[KeyHook] skip SwitchProcessWindow (overlay visible)";
+                    continue;
+                }
+
                 qDebug() << "[KeyHook] Checking" << hotkeyActionName(it.key())
                          << "binds=" << it.value().size();
 
