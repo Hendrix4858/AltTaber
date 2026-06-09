@@ -59,17 +59,6 @@ namespace {
     };
     RawKeyRecord s_keyRecord;
     HWND s_recorderHwnd = nullptr;
-
-    bool isGlobalAction(HotkeyAction action) {
-        switch (action) {
-            case HotkeyAction::ShowSwitcher:
-            case HotkeyAction::EnterGroupMode:
-            case HotkeyAction::TogglePause:
-                return true;
-            default:
-                return false;
-        }
-    }
 }
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -113,18 +102,35 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             QString keyName = HotkeyStrings::vkCodeToString(pKB->vkCode);
             qDebug() << "[KeyHook] KeyDown: vk=" << pKB->vkCode
+                     << "sc=" << pKB->scanCode << "ext=" << ((pKB->flags & LLKHF_EXTENDED) != 0)
                      << "key=" << keyName << "mods=" << mods;
 
             // Check ALL global action bindings (not just when Alt is held)
             int checkedCount = 0;
+            bool overlayVisible = IsWindowVisible(s_instance->m_ownerHwnd);
             for (auto it = s_instance->m_bindings.begin();
                  it != s_instance->m_bindings.end(); ++it) {
-                if (!isGlobalAction(it.key())) continue;
+                if (hotkeyActionScope(it.key()) != HotkeyScope::Global) continue;
+
+                if (it.key() == HotkeyAction::CycleProcessWindows && overlayVisible) {
+                    qDebug() << "[KeyHook] skip CycleProcessWindows (overlay visible)";
+                    continue;
+                }
+
+                qDebug() << "[KeyHook] Checking" << hotkeyActionName(it.key())
+                         << "binds=" << it.value().size();
 
                 for (const auto& binding : it.value()) {
                     ++checkedCount;
+                    qDebug() << "[KeyHook]   binding: mode="
+                             << (binding.mode == HotkeyBinding::KeyMode::Physical ? "Physical" : "Logical")
+                             << "vk=" << binding.vkCode
+                             << "sc=" << binding.scanCode
+                             << "ext=" << binding.extended
+                             << "mods=" << binding.modifiers;
                     bool match = binding.matchesPhysical(pKB->vkCode, pKB->scanCode,
                                           (pKB->flags & LLKHF_EXTENDED) != 0, mods);
+                    qDebug() << "[KeyHook]   match=" << match;
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
                         emit s_instance->hotkeyTriggered(it.key(), mods);

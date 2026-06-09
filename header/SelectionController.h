@@ -32,6 +32,8 @@ public:
 
     void exitGroupWindowMode(bool activateSelected);
 
+    bool tryEnterGroupForWindow(HWND hwnd);
+
     void resetState();
     void resetAll();
 

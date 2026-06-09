@@ -11,6 +11,8 @@
 
 enum class HotkeyAction {
     ShowSwitcher,
+    CycleProcessWindows,
+    SwitchProcessWindow,
     EnterGroupMode,
     CycleForward,
     CycleBackward,
@@ -23,6 +25,8 @@ enum class HotkeyAction {
 
 constexpr inline HotkeyAction AllActions[] = {
     HotkeyAction::ShowSwitcher,
+    HotkeyAction::CycleProcessWindows,
+    HotkeyAction::SwitchProcessWindow,
     HotkeyAction::EnterGroupMode,
     HotkeyAction::CycleForward,
     HotkeyAction::CycleBackward,
@@ -33,17 +37,33 @@ constexpr inline HotkeyAction AllActions[] = {
     HotkeyAction::TogglePause,
 };
 
+enum class HotkeyScope { Global, Overlay };
+
+inline HotkeyScope hotkeyActionScope(HotkeyAction action) {
+    switch (action) {
+        case HotkeyAction::ShowSwitcher:
+        case HotkeyAction::CycleProcessWindows:
+        case HotkeyAction::SwitchProcessWindow:
+        case HotkeyAction::TogglePause:
+            return HotkeyScope::Global;
+        default:
+            return HotkeyScope::Overlay;
+    }
+}
+
 inline QString hotkeyActionName(HotkeyAction action) {
     switch (action) {
-        case HotkeyAction::ShowSwitcher:     return "ShowSwitcher";
-        case HotkeyAction::EnterGroupMode:   return "EnterGroupMode";
-        case HotkeyAction::CycleForward:     return "CycleForward";
-        case HotkeyAction::CycleBackward:    return "CycleBackward";
-        case HotkeyAction::MoveSelectionUp:  return "MoveSelectionUp";
-        case HotkeyAction::MoveSelectionDown: return "MoveSelectionDown";
-        case HotkeyAction::ActivateSelected: return "ActivateSelected";
-        case HotkeyAction::DismissSwitcher:  return "DismissSwitcher";
-        case HotkeyAction::TogglePause:      return "TogglePause";
+        case HotkeyAction::ShowSwitcher:        return "ShowSwitcher";
+        case HotkeyAction::CycleProcessWindows: return "CycleProcessWindows";
+        case HotkeyAction::SwitchProcessWindow: return "SwitchProcessWindow";
+        case HotkeyAction::EnterGroupMode:      return "EnterGroupMode";
+        case HotkeyAction::CycleForward:        return "CycleForward";
+        case HotkeyAction::CycleBackward:       return "CycleBackward";
+        case HotkeyAction::MoveSelectionUp:     return "MoveSelectionUp";
+        case HotkeyAction::MoveSelectionDown:   return "MoveSelectionDown";
+        case HotkeyAction::ActivateSelected:    return "ActivateSelected";
+        case HotkeyAction::DismissSwitcher:     return "DismissSwitcher";
+        case HotkeyAction::TogglePause:         return "TogglePause";
     }
     return {};
 }
@@ -51,15 +71,17 @@ inline QString hotkeyActionName(HotkeyAction action) {
 inline HotkeyAction hotkeyActionFromName(const QString& name) {
     static const QMap<QString, HotkeyAction> map = []() {
         QMap<QString, HotkeyAction> m;
-        m.insert("ShowSwitcher",     HotkeyAction::ShowSwitcher);
-        m.insert("EnterGroupMode",   HotkeyAction::EnterGroupMode);
-        m.insert("CycleForward",     HotkeyAction::CycleForward);
-        m.insert("CycleBackward",    HotkeyAction::CycleBackward);
-        m.insert("MoveSelectionUp",  HotkeyAction::MoveSelectionUp);
-        m.insert("MoveSelectionDown", HotkeyAction::MoveSelectionDown);
-        m.insert("ActivateSelected", HotkeyAction::ActivateSelected);
-        m.insert("DismissSwitcher",  HotkeyAction::DismissSwitcher);
-        m.insert("TogglePause",      HotkeyAction::TogglePause);
+        m.insert("ShowSwitcher",        HotkeyAction::ShowSwitcher);
+        m.insert("CycleProcessWindows", HotkeyAction::CycleProcessWindows);
+        m.insert("SwitchProcessWindow", HotkeyAction::SwitchProcessWindow);
+        m.insert("EnterGroupMode",      HotkeyAction::EnterGroupMode);
+        m.insert("CycleForward",        HotkeyAction::CycleForward);
+        m.insert("CycleBackward",       HotkeyAction::CycleBackward);
+        m.insert("MoveSelectionUp",     HotkeyAction::MoveSelectionUp);
+        m.insert("MoveSelectionDown",   HotkeyAction::MoveSelectionDown);
+        m.insert("ActivateSelected",    HotkeyAction::ActivateSelected);
+        m.insert("DismissSwitcher",     HotkeyAction::DismissSwitcher);
+        m.insert("TogglePause",         HotkeyAction::TogglePause);
         return m;
     }();
     return map.value(name);
@@ -67,15 +89,17 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
 
 inline QString hotkeyActionDisplayName(HotkeyAction action) {
     switch (action) {
-        case HotkeyAction::ShowSwitcher:     return QStringLiteral("\u663E\u793A\u8986\u76D6\u5C42");
-        case HotkeyAction::EnterGroupMode:   return QStringLiteral("\u8FDB\u5165\u7EC4\u6A21\u5F0F/\u5207\u540C\u8FDB\u7A0B\u7A97\u53E3");
-        case HotkeyAction::CycleForward:     return QStringLiteral("\u524D\u8FDB\u9009\u62E9");
-        case HotkeyAction::CycleBackward:    return QStringLiteral("\u540E\u9000\u9009\u62E9");
-        case HotkeyAction::MoveSelectionUp:  return QStringLiteral("\u5411\u4E0A\u79FB\u52A8\u9009\u62E9");
-        case HotkeyAction::MoveSelectionDown: return QStringLiteral("\u5411\u4E0B\u79FB\u52A8\u9009\u62E9");
-        case HotkeyAction::ActivateSelected: return QStringLiteral("\u6FC0\u6D3B\u9009\u4E2D\u7A97\u53E3");
-        case HotkeyAction::DismissSwitcher:  return QStringLiteral("\u5173\u95ED\u8986\u76D6\u5C42");
-        case HotkeyAction::TogglePause:      return QStringLiteral("\u5207\u6362\u6682\u505C");
+        case HotkeyAction::ShowSwitcher:        return QStringLiteral("\u663E\u793A\u8986\u76D6\u5C42");
+        case HotkeyAction::CycleProcessWindows: return QStringLiteral("\u663E\u793A\u540C\u8FDB\u7A0B\u7A97\u53E3\u5217\u8868");
+        case HotkeyAction::SwitchProcessWindow: return QStringLiteral("\u5207\u6362\u540C\u8FDB\u7A0B\u7A97\u53E3");
+        case HotkeyAction::EnterGroupMode:      return QStringLiteral("\u8FDB\u5165\u540C\u8FDB\u7A0B\u7A97\u53E3\u5217\u8868");
+        case HotkeyAction::CycleForward:        return QStringLiteral("\u524D\u8FDB\u9009\u62E9");
+        case HotkeyAction::CycleBackward:       return QStringLiteral("\u540E\u9000\u9009\u62E9");
+        case HotkeyAction::MoveSelectionUp:     return QStringLiteral("\u5411\u4E0A\u79FB\u52A8\u9009\u62E9");
+        case HotkeyAction::MoveSelectionDown:   return QStringLiteral("\u5411\u4E0B\u79FB\u52A8\u9009\u62E9");
+        case HotkeyAction::ActivateSelected:    return QStringLiteral("\u6FC0\u6D3B\u9009\u4E2D\u7A97\u53E3");
+        case HotkeyAction::DismissSwitcher:     return QStringLiteral("\u5173\u95ED\u8986\u76D6\u5C42");
+        case HotkeyAction::TogglePause:         return QStringLiteral("\u5207\u6362\u6682\u505C");
     }
     return {};
 }
@@ -128,17 +152,29 @@ struct HotkeyBinding {
 
 using HotkeyBindings = QMap<HotkeyAction, QList<HotkeyBinding>>;
 
+inline HotkeyBinding makePhysicalBinding(Qt::KeyboardModifiers mods, quint32 vk, quint32 sc, bool ext = false) {
+    HotkeyBinding b;
+    b.modifiers = mods;
+    b.vkCode = vk;
+    b.scanCode = sc;
+    b.extended = ext;
+    b.mode = HotkeyBinding::KeyMode::Physical;
+    return b;
+}
+
 inline HotkeyBindings defaultHotkeyBindings() {
     HotkeyBindings defaults;
-    defaults[HotkeyAction::ShowSwitcher]     = {HotkeyBinding::fromString("Alt+Tab")};
-    defaults[HotkeyAction::EnterGroupMode]   = {HotkeyBinding::fromString("Alt+Grave")};
-    defaults[HotkeyAction::CycleForward]     = {HotkeyBinding::fromString("Tab")};
-    defaults[HotkeyAction::CycleBackward]    = {HotkeyBinding::fromString("Shift+Tab")};
-    defaults[HotkeyAction::MoveSelectionUp]  = {HotkeyBinding::fromString("Up")};
-    defaults[HotkeyAction::MoveSelectionDown] = {HotkeyBinding::fromString("Down")};
-    defaults[HotkeyAction::ActivateSelected] = {HotkeyBinding::fromString("Enter")};
-    defaults[HotkeyAction::DismissSwitcher]  = {HotkeyBinding::fromString("Escape")};
-    defaults[HotkeyAction::TogglePause]      = {};
+    defaults[HotkeyAction::ShowSwitcher]        = {makePhysicalBinding(Qt::AltModifier, VK_TAB, 0x0F)};
+    defaults[HotkeyAction::CycleProcessWindows] = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
+    defaults[HotkeyAction::SwitchProcessWindow] = {};
+    defaults[HotkeyAction::EnterGroupMode]      = {HotkeyBinding::fromString("Alt+Grave")};
+    defaults[HotkeyAction::CycleForward]        = {makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F)};
+    defaults[HotkeyAction::CycleBackward]       = {makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F)};
+    defaults[HotkeyAction::MoveSelectionUp]     = {HotkeyBinding::fromString("Up")};
+    defaults[HotkeyAction::MoveSelectionDown]   = {HotkeyBinding::fromString("Down")};
+    defaults[HotkeyAction::ActivateSelected]    = {HotkeyBinding::fromString("Enter")};
+    defaults[HotkeyAction::DismissSwitcher]     = {HotkeyBinding::fromString("Escape")};
+    defaults[HotkeyAction::TogglePause]         = {};
     return defaults;
 }
 

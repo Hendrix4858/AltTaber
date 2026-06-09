@@ -30,7 +30,6 @@ signals:
 
 private slots:
     void onAddClicked();
-    void onBindingClicked(int index);
     void onRemoveClicked(int index);
 
 protected:

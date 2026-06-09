@@ -21,18 +21,9 @@ OverlayController::OverlayController(QWidget* widget, QWidget* listView, QWidget
 
 void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
     m_overlayBindings.clear();
-    static const HotkeyAction overlayActions[] = {
-        HotkeyAction::CycleForward,
-        HotkeyAction::CycleBackward,
-        HotkeyAction::MoveSelectionUp,
-        HotkeyAction::MoveSelectionDown,
-        HotkeyAction::ActivateSelected,
-        HotkeyAction::DismissSwitcher,
-        HotkeyAction::EnterGroupMode,
-    };
-    for (auto action : overlayActions) {
-        if (bindings.contains(action))
-            m_overlayBindings[action] = bindings[action];
+    for (auto it = bindings.begin(); it != bindings.end(); ++it) {
+        if (hotkeyActionScope(it.key()) == HotkeyScope::Overlay)
+            m_overlayBindings[it.key()] = it.value();
     }
 }
 

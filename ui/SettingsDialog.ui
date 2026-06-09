@@ -188,14 +188,14 @@
              </property>
             </widget>
            </item>
-           <item>
-            <widget class="QCheckBox" name="stayOpenCheck">
-             <property name="text">
-              <string>Keep overlay open after releasing Alt</string>
-             </property>
-            </widget>
-           </item>
-           <item>
+            <item>
+             <widget class="QCheckBox" name="stayOpenCheck">
+              <property name="text">
+               <string>Keep overlay open after releasing Alt</string>
+              </property>
+             </widget>
+            </item>
+            <item>
             <spacer name="generalSpacer">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>

@@ -29,6 +29,8 @@
     "Activate window on mouse click": "点击图标激活窗口",
     "Show window list for multi-window apps": "多窗口时显示窗口列表（如 Alt+`）",
     "Keep overlay open after releasing Alt": "释放 Alt 后保持覆盖层打开",
+    "全局快捷键（始终生效）": "全局快捷键（始终生效）",
+    "覆盖层快捷键（仅覆盖层可见时生效）": "覆盖层快捷键（仅覆盖层可见时生效）",
     "Blocked Windows": "屏蔽窗口",
     "Enabled": "启用",
     "Comment": "备注",

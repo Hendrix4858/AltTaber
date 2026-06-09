@@ -43,23 +43,14 @@ void HotkeyRecorder::rebuildUi() {
     }
 
     for (int i = 0; i < m_bindings.size(); ++i) {
-        auto* btn = new QPushButton(bindingButtonText(m_bindings[i]), this);
-        btn->setFixedWidth(120);
+        auto* btn = new QPushButton(bindingButtonText(m_bindings[i]) + QStringLiteral(" \u00D7"), this);
         btn->setFixedHeight(28);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setProperty("bindingIndex", i);
         connect(btn, &QPushButton::clicked, this, [this, i]() {
-            onBindingClicked(i);
-        });
-        m_layout->addWidget(btn);
-
-        auto* removeBtn = new QPushButton(QStringLiteral("\u00D7"), this);
-        removeBtn->setFixedSize(22, 22);
-        removeBtn->setCursor(Qt::PointingHandCursor);
-        connect(removeBtn, &QPushButton::clicked, this, [this, i]() {
             onRemoveClicked(i);
         });
-        m_layout->addWidget(removeBtn);
+        m_layout->addWidget(btn);
     }
 
     auto* addBtn = new QPushButton(QStringLiteral("+ \u6DFB\u52A0"), this);
@@ -73,9 +64,6 @@ void HotkeyRecorder::onAddClicked() {
     startRecording(m_bindings.size());
 }
 
-void HotkeyRecorder::onBindingClicked(int index) {
-    startRecording(index);
-}
 
 void HotkeyRecorder::onRemoveClicked(int index) {
     if (index >= 0 && index < m_bindings.size()) {
@@ -102,11 +90,6 @@ void HotkeyRecorder::startRecording(int index) {
     HWND targetHwnd = reinterpret_cast<HWND>(window()->winId());
     KeyboardHooker::setRecordingTarget(targetHwnd);
     qApp->installEventFilter(this);
-
-    if (index >= 0 && index < m_bindings.size()) {
-        auto* btn = qobject_cast<QPushButton*>(m_layout->itemAt(2 + index * 2)->widget());
-        if (btn) btn->setText(QStringLiteral("..."));
-    }
 }
 
 void HotkeyRecorder::finishRecording(const HotkeyBinding& binding) {

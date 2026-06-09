@@ -304,13 +304,23 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
             m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
         }
         return;
-    case HotkeyAction::EnterGroupMode:
-        if (visible && !isMinimized()) {
-            qInfo() << "[Action] EnterGroupMode -> overlay action";
-            m_selectCtrl->handleOverlayAction(HotkeyAction::EnterGroupMode, modifiers);
-        } else {
-            qInfo() << "[Action] EnterGroupMode -> cycle foreground windows";
+    case HotkeyAction::CycleProcessWindows:
+        if (!visible || isMinimized()) {
             auto foreWin = GetForegroundWindow();
+            qInfo() << "[Action] CycleProcessWindows foreWin=" << Qt::hex << foreWin;
+            auto targetExe = Util::getWindowProcessPath(foreWin);
+            auto hwnds = m_wm->filteredHwndsForExe(targetExe);
+            qInfo() << "[Action] CycleProcessWindows hwnds=" << hwnds.size();
+            if (hwnds.size() >= 2) {
+                requestShow();
+                m_selectCtrl->tryEnterGroupForWindow(foreWin);
+            }
+        }
+        return;
+    case HotkeyAction::SwitchProcessWindow:
+        if (!visible || isMinimized()) {
+            auto foreWin = GetForegroundWindow();
+            qInfo() << "[Action] SwitchProcessWindow foreWin=" << Qt::hex << foreWin;
             auto& order = m_cyc->groupWindowOrder();
             if (order.isEmpty()) {
                 auto targetExe = Util::getWindowProcessPath(foreWin);
@@ -320,6 +330,12 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
             if (auto nextWin = GroupWindowCycler::rotateWindowInGroup(order, foreWin, forward)) {
                 Util::switchToWindow(nextWin, true);
             }
+        }
+        return;
+    case HotkeyAction::EnterGroupMode:
+        if (visible && !isMinimized()) {
+            qInfo() << "[Action] EnterGroupMode -> overlay action";
+            m_selectCtrl->handleOverlayAction(HotkeyAction::EnterGroupMode, modifiers);
         }
         return;
     case HotkeyAction::TogglePause:

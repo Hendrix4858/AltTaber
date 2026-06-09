@@ -279,8 +279,8 @@ void SelectionController::exitGroupWindowMode(bool activateSelected) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
                 qInfo() << "[GroupMode] activating window on exit";
                 emit switchToWindowRequested(group.windows.first().hwnd,
-                                             group.exePath,
-                                             group.windows.first().title);
+                                              group.exePath,
+                                              group.windows.first().title);
             }
         }
     }
@@ -295,6 +295,34 @@ void SelectionController::exitGroupWindowMode(bool activateSelected) {
     m_backupGroupIndex = 0;
 
     qInfo() << "[GroupMode] Exit, restored to index" << restoreIndex;
+}
+
+bool SelectionController::tryEnterGroupForWindow(HWND hwnd) {
+    qInfo() << "[AutoGroup] tryEnterGroupForWindow hwnd=" << Qt::hex << hwnd
+             << "groupCount=" << m_model->groupCount()
+             << "inGroupMode=" << m_isInGroupWindowMode;
+    if (m_isInGroupWindowMode) return false;
+
+    for (int i = 0; i < m_model->groupCount(); ++i) {
+        auto& group = m_model->groupAt(i);
+        for (auto& w : group.windows) {
+            if (w.hwnd == hwnd) {
+                qInfo() << "[AutoGroup] found window in group" << i
+                         << "windows=" << group.windows.size();
+                if (group.windows.size() <= 1) {
+                    qInfo() << "[AutoGroup] single window group, skip";
+                    return false;
+                }
+                qInfo() << "[AutoGroup] entering group mode for" << group.windows.size()
+                         << "windows";
+                m_lv->setCurrentIndex(m_model->index(i));
+                enterGroupWindowMode();
+                return true;
+            }
+        }
+    }
+    qInfo() << "[AutoGroup] window not found in any group";
+    return false;
 }
 
 void SelectionController::resetState() {

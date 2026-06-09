@@ -197,6 +197,7 @@ public:
     HotkeyBindings getHotkeyBindings() {
         HotkeyBindings result;
         QJsonObject hotkeys = m_root["Hotkeys"].toObject();
+
         for (auto it = hotkeys.begin(); it != hotkeys.end(); ++it) {
             auto action = hotkeyActionFromName(it.key());
             if (hotkeyActionName(action) != it.key())
@@ -226,7 +227,8 @@ public:
                 if (b.isValid())
                     arr.append(b.toJson());
             }
-            hotkeys[hotkeyActionName(it.key())] = arr;
+            if (!arr.isEmpty())
+                hotkeys[hotkeyActionName(it.key())] = arr;
         }
         m_root["Hotkeys"] = hotkeys;
         m_dirty = true;

@@ -365,8 +365,42 @@ void SettingsDialog::buildHotkeyPage() {
     contentLayout->setSpacing(8);
     contentLayout->setContentsMargins(12, 12, 12, 12);
 
-    // Create a recorder for each action
-    for (auto action : AllActions) {
+    // Display order: Global first, then Overlay
+    static const HotkeyAction displayOrder[] = {
+        HotkeyAction::ShowSwitcher,
+        HotkeyAction::CycleProcessWindows,
+        HotkeyAction::SwitchProcessWindow,
+        HotkeyAction::TogglePause,
+        HotkeyAction::EnterGroupMode,
+        HotkeyAction::CycleForward,
+        HotkeyAction::CycleBackward,
+        HotkeyAction::MoveSelectionUp,
+        HotkeyAction::MoveSelectionDown,
+        HotkeyAction::ActivateSelected,
+        HotkeyAction::DismissSwitcher,
+    };
+
+    const auto& c = ThemeManager::current();
+    auto makeScopeHeader = [&](const QString& text) -> QLabel* {
+        auto* header = new QLabel(text, scrollContent);
+        header->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 13px; padding: 8px 0 2px 0;")
+                              .arg(c.accentColor.name()));
+        return header;
+    };
+
+    // Create a recorder for each action, grouped by scope
+    HotkeyScope lastScope = HotkeyScope::Global;
+    bool firstGlobal = true;
+    for (auto action : displayOrder) {
+        auto scope = hotkeyActionScope(action);
+        if (scope != lastScope) {
+            contentLayout->addWidget(makeScopeHeader(tr("覆盖层快捷键（仅覆盖层可见时生效）")));
+            lastScope = scope;
+        }
+        if (firstGlobal) {
+            contentLayout->addWidget(makeScopeHeader(tr("全局快捷键（始终生效）")));
+            firstGlobal = false;
+        }
         auto* recorder = new HotkeyRecorder(action, scrollContent);
         m_recorders[action] = recorder;
         contentLayout->addWidget(recorder);
@@ -466,8 +500,10 @@ void SettingsDialog::applyHotkeyBindings() {
 
 bool SettingsDialog::checkConflict(HotkeyAction action, const HotkeyBinding& binding,
                                     HotkeyAction& conflictAction, int& conflictIndex) const {
+    auto scope = hotkeyActionScope(action);
     for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
         if (it.key() == action) continue;
+        if (hotkeyActionScope(it.key()) != scope) continue;
         auto binds = it.value()->bindings();
         for (int i = 0; i < binds.size(); ++i) {
             if (binds[i] == binding) {
