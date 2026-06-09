@@ -16,7 +16,10 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
         HWND topLevelHwnd = Util::topWindowFromPoint(data->pt);
         if (Util::isTaskbarWindow(topLevelHwnd)) {
             auto delta = (short) HIWORD(data->mouseData);
-            qDebug() << "--- Taskbar Mouse Wheel" << (delta > 0 ? "↑" : "↓");
+            qDebug() << "--- Taskbar Mouse Wheel" << (delta > 0 ? "↑" : "↓")
+                     << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
+                     << "class=" << Util::getClassName(topLevelHwnd)
+                     << "pt=(" << data->pt.x << "," << data->pt.y << ")";
             auto el = UIAutomation::getElementUnderMouse();
             qDebug() << delta << el.getClassName() << el.getAutomationId() << el.getName();
             if (el.getClassName() == "CEF-OSC-WIDGET") {
@@ -63,10 +66,19 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
                 h_mouse = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
                 if (h_mouse == nullptr)
                     qCritical() << "Failed to install h_mouse";
+                else
+                    qDebug() << "Enter Taskbar" << QTime::currentTime()
+                             << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
+                             << "class=" << Util::getClassName(topLevelHwnd);
             } else {
                 UnhookWindowsHookEx(h_mouse);
                 h_mouse = nullptr;
-                qDebug() << "Leave Taskbar" << QTime::currentTime();
+                auto pt = Util::getCursorPos();
+                auto className = Util::getClassName(topLevelHwnd);
+                qDebug() << "Leave Taskbar" << QTime::currentTime()
+                         << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
+                         << "class=" << className
+                         << "x=" << pt.x << "y=" << pt.y;
                 emit leaveTaskbar();
             }
         }

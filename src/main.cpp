@@ -53,6 +53,11 @@ int main(int argc, char* argv[]) {
     auto* winSwitcher = new Widget(wm);
     wm->setSelfHwnd((HWND) winSwitcher->winId());
 
+    QObject::connect(&sysTray(), &SystemTray::showRequested, winSwitcher, [winSwitcher]() {
+        qInfo() << "[Main] System tray showRequested";
+        winSwitcher->requestShow(OverlayIntent::ShowSwitcher);
+    });
+
     QObject::connect(&a, &QApplication::aboutToQuit, []() {
         unhookWinEvent();
         Util::Logger::shutdown();

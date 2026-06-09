@@ -26,7 +26,12 @@ public:
         return instance;
     }
 
+signals:
+    void showRequested();
+
+public:
     void retranslateMenu() {
+        m_actShow->setText(tr("Show Window"));
         m_actUpdate->setText(tr("Check for Updates"));
         m_actSettings->setText(tr("Settings"));
         m_actPause->setText(tr("Pause"));
@@ -45,6 +50,11 @@ private:
         setIcon(QIcon(":/img/icon.ico"));
         setMenu(parent);
         setToolTip(IsUserAnAdmin() ? "AltTaber (admin)" : "AltTaber");
+
+        connect(this, &QSystemTrayIcon::activated, this, [this](ActivationReason reason) {
+            if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+                emit showRequested();
+        });
     }
 
     void applyMenuTheme() {
@@ -70,6 +80,7 @@ private:
         m_menu = new QMenu(parent);
         applyMenuTheme();
 
+        m_actShow = new QAction(m_menu);
         m_actUpdate = new QAction(m_menu);
         m_actSettings = new QAction(m_menu);
         m_actPause = new QAction(m_menu);
@@ -79,6 +90,10 @@ private:
         m_actStartup->setCheckable(true);
         m_menuMonitor = new QMenu(m_menu);
         m_actQuit = new QAction(m_menu);
+
+        connect(m_actShow, &QAction::triggered, this, [this] {
+            emit showRequested();
+        });
 
         connect(m_actUpdate, &QAction::triggered, this, [] {
             static UpdateDialog* dlg = nullptr;
@@ -162,6 +177,7 @@ private:
 
         connect(m_actQuit, &QAction::triggered, qApp, &QApplication::quit);
 
+        m_menu->addAction(m_actShow);
         m_menu->addAction(m_actUpdate);
         m_menu->addAction(m_actSettings);
         m_menu->addSeparator();
@@ -177,6 +193,7 @@ private:
     }
 
     QMenu* m_menu = nullptr;
+    QAction* m_actShow = nullptr;
     QAction* m_actUpdate = nullptr;
     QAction* m_actSettings = nullptr;
     QAction* m_actPause = nullptr;

@@ -125,6 +125,8 @@ namespace Util {
 
     bool isTaskbarWindow(HWND hwnd) {
         auto className = Util::getClassName(hwnd);
-        return className == QStringLiteral("Shell_TrayWnd") || className == QStringLiteral("Shell_SecondaryTrayWnd");
+        return className == QStringLiteral("Shell_TrayWnd")
+            || className == QStringLiteral("Shell_SecondaryTrayWnd")
+            || className == QStringLiteral("TopLevelWindowForOverflowXamlIsland");
     }
 }
