@@ -90,7 +90,6 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 
 - **README is wrong about config file**: it says `config.ini` but the code uses `config.json` via `ConfigManagerBase`. Trust the code.
 - **Project target** is `Win_Switcher`; **output binary** is `AltTaber.exe`
-- **Alt release** handling: When the overlay is visible and Alt is released, the selected window is activated and the overlay hides. The `stayOpenOnAltRelease` option overrides this.
 - **Icon cache** (`IconCacheDirectory` config) needs deletion if `icon.ico` changes on disk (Windows caches aggressively); referenced in comment at `CMakeLists.txt:21`
 - **No tests, no CI, no linters, no formatters** — manual testing only
 - **Admin elevation**: `ShellExecuteW(..., L"runas", ...)` re-launches; auto-start uses Scheduled Task (admin) vs Registry (non-admin) via `Startup.h`

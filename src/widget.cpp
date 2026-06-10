@@ -191,7 +191,6 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
 
         qInfo() << "[Release] Alt released"
                 << "visible=" << isVisible()
-                << "stayOpenOnAltRelease=" << cfg().getStayOpenOnAltRelease()
                 << "isForeground=" << isForeground()
                 << "groupMode=" << m_selectCtrl->isInGroupMode()
                 << "stayOpenMode=" << m_overlayCtrl->stayOpenMode()
@@ -203,14 +202,6 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
         if (!isVisible()) {
             QWidget::keyReleaseEvent(event);
             return;
-        }
-
-        if (cfg().getStayOpenOnAltRelease()) {
-            if (isForeground()) {
-                qInfo() << "[Release] stayOpenOnAltRelease — keeping overlay open, no rebuild";
-                m_overlayCtrl->setStayOpenMode(true);
-                return;
-            }
         }
 
         // Activate selected window, then hide

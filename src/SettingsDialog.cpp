@@ -361,6 +361,9 @@ void SettingsDialog::buildHotkeyPage() {
     contentLayout->setSpacing(8);
     contentLayout->setContentsMargins(12, 12, 12, 12);
 
+    const auto& c = ThemeManager::current();
+    scrollContent->setStyleSheet(QString("color: %1;").arg(c.textColor.name()));
+
     // Display order: Global first, then Overlay
     static const HotkeyAction displayOrder[] = {
         HotkeyAction::ShowSwitcher,
@@ -375,8 +378,6 @@ void SettingsDialog::buildHotkeyPage() {
         HotkeyAction::ActivateSelected,
         HotkeyAction::DismissSwitcher,
     };
-
-    const auto& c = ThemeManager::current();
     auto makeScopeHeader = [&](const QString& text) -> QLabel* {
         auto* header = new QLabel(text, scrollContent);
         header->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 13px; padding: 8px 0 2px 0;")
@@ -606,7 +607,6 @@ void SettingsDialog::applyStyleSheet() {
     ui->letterJumpCheck->setStyleSheet(checkStyle);
     ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
     ui->clickShowGroupCheck->setStyleSheet(checkStyle);
-    ui->stayOpenCheck->setStyleSheet(checkStyle);
     ui->iconCacheCheck->setStyleSheet(checkStyle);
 
     ui->aboutDesc->setStyleSheet(QString("color: %1; font-size: 14px;").arg(c.textColor.name()));
@@ -760,8 +760,6 @@ void SettingsDialog::retranslateUi() {
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
-    ui->stayOpenCheck->setText(tr("Keep overlay open after releasing Alt"));
-
     QString version = QApplication::applicationVersion();
     ui->aboutDesc->setText(tr("AltTaber - Window Switcher<br>"
                               "Version: %1<br><br>"
@@ -815,8 +813,6 @@ void SettingsDialog::loadSettings() {
     ui->mouseClickActivateCheck->setChecked(cfg().getMouseClickActivateEnabled());
     ui->clickShowGroupCheck->setChecked(cfg().getClickShowGroupForMultiWindow());
     ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
-    ui->stayOpenCheck->setChecked(cfg().getStayOpenOnAltRelease());
-
     int logLevelIdx = ui->logLevelCombo->findData(static_cast<int>(cfg().getLogLevel()));
     if (logLevelIdx >= 0) ui->logLevelCombo->setCurrentIndex(logLevelIdx);
     ui->logDirEdit->setText(cfg().getLogDirectory());
@@ -874,8 +870,6 @@ void SettingsDialog::applySettings() {
 
     cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
-    cfg().setStayOpenOnAltRelease(ui->stayOpenCheck->isChecked());
-
     cfg().setLogLevel(static_cast<Util::LogLevel>(ui->logLevelCombo->currentData().toInt()));
     cfg().setLogDirectory(ui->logDirEdit->text());
     Util::Logger::reconfigure();

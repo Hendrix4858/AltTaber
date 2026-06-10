@@ -112,14 +112,6 @@ public:
         set("ClickShowGroupForMultiWindow", enabled);
     }
 
-    bool getStayOpenOnAltRelease() {
-        return get("StayOpenOnAltRelease", false).toBool();
-    }
-
-    void setStayOpenOnAltRelease(bool enabled) {
-        set("StayOpenOnAltRelease", enabled);
-    }
-
     Util::LogLevel getLogLevel() {
         auto val = get("LogLevel", static_cast<int>(Util::LogLevel::Info)).toInt();
         if (val < 0 || val >= static_cast<int>(Util::LogLevel::None))

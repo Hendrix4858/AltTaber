@@ -251,6 +251,6 @@ void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {
         QStringList strs;
         for (const auto& b : it.value())
             strs << b.toString();
-        qDebug() << "[KeyHook]  " << hotkeyActionName(it.key()) << ":" << strs.join(", ");
+        qDebug() << "[KeyHook]  " << hotkeyActionName(it.key()) << ":" << it.value().size() << "binding(s) -" << strs.join(", ");
     }
 }
