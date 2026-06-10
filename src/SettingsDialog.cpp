@@ -40,10 +40,6 @@ SettingsDialog::SettingsDialog(QWidget* parent)
         SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
     }
 
-    QFont titleFont = ui->titleLabel->font();
-    titleFont.setPointSize(titleFont.pointSize() + 4);
-    titleFont.setBold(true);
-    ui->titleLabel->setFont(titleFont);
 
     ui->navList->addItem(tr("General"));
     ui->navList->addItem(tr("Display"));
@@ -394,11 +390,11 @@ void SettingsDialog::buildHotkeyPage() {
     for (auto action : displayOrder) {
         auto scope = hotkeyActionScope(action);
         if (scope != lastScope) {
-            contentLayout->addWidget(makeScopeHeader(tr("覆盖层快捷键（仅覆盖层可见时生效）")));
+            contentLayout->addWidget(makeScopeHeader(tr("Overlay Hotkeys (only when overlay is visible)")));
             lastScope = scope;
         }
         if (firstGlobal) {
-            contentLayout->addWidget(makeScopeHeader(tr("全局快捷键（始终生效）")));
+            contentLayout->addWidget(makeScopeHeader(tr("Global Hotkeys (always active)")));
             firstGlobal = false;
         }
         auto* recorder = new HotkeyRecorder(action, scrollContent);
@@ -444,7 +440,7 @@ void SettingsDialog::buildHotkeyPage() {
     }
 
     // ShowSwitcher empty warning label
-    m_showSwitcherWarning = new QLabel(tr("警告：显示覆盖层未绑定快捷键，AltTaber 将无法激活"), scrollContent);
+    m_showSwitcherWarning = new QLabel(tr("Warning: Show Window List has no hotkey assigned, AltTaber cannot be activated"), scrollContent);
     m_showSwitcherWarning->setStyleSheet("color: red; font-weight: bold; padding: 4px 0;");
     m_showSwitcherWarning->setVisible(false);
     contentLayout->addWidget(m_showSwitcherWarning);
@@ -543,9 +539,6 @@ void SettingsDialog::applyStyleSheet() {
 
     ui->topBar->setStyleSheet(QString("background-color: %1; border-bottom: 1px solid %2;")
                               .arg(c.panelColor.name(), c.borderColor.name()));
-
-    ui->titleLabel->setStyleSheet(QString("color: %1; background: transparent; border: none;")
-                                  .arg(c.textColor.name()));
 
     ui->searchEdit->setStyleSheet(QString(
         "QLineEdit {"
@@ -672,8 +665,6 @@ void SettingsDialog::applyStyleSheet() {
 }
 
 void SettingsDialog::retranslateUi() {
-    setWindowTitle(tr("Settings"));
-    ui->titleLabel->setText(tr("Settings"));
     ui->searchEdit->setPlaceholderText(tr("Search..."));
 
     if (ui->navList->count() >= 7) {
@@ -913,8 +904,11 @@ void SettingsDialog::applySettings() {
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {
-    if (event->type() == QEvent::LanguageChange)
+    if (event->type() == QEvent::LanguageChange) {
         retranslateUi();
+        buildHotkeyPage();
+        loadHotkeyBindings();
+    }
     QDialog::changeEvent(event);
 }
 

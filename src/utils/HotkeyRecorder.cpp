@@ -53,7 +53,7 @@ void HotkeyRecorder::rebuildUi() {
         m_layout->addWidget(btn);
     }
 
-    auto* addBtn = new QPushButton(QStringLiteral("+ \u6DFB\u52A0"), this);
+    auto* addBtn = new QPushButton(tr("+ Add"), this);
     addBtn->setFixedHeight(28);
     addBtn->setCursor(Qt::PointingHandCursor);
     connect(addBtn, &QPushButton::clicked, this, &HotkeyRecorder::onAddClicked);

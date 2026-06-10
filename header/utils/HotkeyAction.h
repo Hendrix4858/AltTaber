@@ -5,6 +5,7 @@
 #include <QList>
 #include <QMap>
 #include <QJsonObject>
+#include <QCoreApplication>
 #include <Qt>
 #include <QDebug>
 #include <windows.h>
@@ -89,17 +90,17 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
 
 inline QString hotkeyActionDisplayName(HotkeyAction action) {
     switch (action) {
-        case HotkeyAction::ShowSwitcher:        return QStringLiteral("\u663E\u793A\u8986\u76D6\u5C42");
-        case HotkeyAction::CycleProcessWindows: return QStringLiteral("\u663E\u793A\u540C\u8FDB\u7A0B\u7A97\u53E3\u5217\u8868");
-        case HotkeyAction::SwitchProcessWindow: return QStringLiteral("\u5207\u6362\u540C\u8FDB\u7A0B\u7A97\u53E3");
-        case HotkeyAction::EnterGroupMode:      return QStringLiteral("\u8FDB\u5165\u540C\u8FDB\u7A0B\u7A97\u53E3\u5217\u8868");
-        case HotkeyAction::CycleForward:        return QStringLiteral("\u524D\u8FDB\u9009\u62E9");
-        case HotkeyAction::CycleBackward:       return QStringLiteral("\u540E\u9000\u9009\u62E9");
-        case HotkeyAction::MoveSelectionUp:     return QStringLiteral("\u5411\u4E0A\u79FB\u52A8\u9009\u62E9");
-        case HotkeyAction::MoveSelectionDown:   return QStringLiteral("\u5411\u4E0B\u79FB\u52A8\u9009\u62E9");
-        case HotkeyAction::ActivateSelected:    return QStringLiteral("\u6FC0\u6D3B\u9009\u4E2D\u7A97\u53E3");
-        case HotkeyAction::DismissSwitcher:     return QStringLiteral("\u5173\u95ED\u8986\u76D6\u5C42");
-        case HotkeyAction::TogglePause:         return QStringLiteral("\u5207\u6362\u6682\u505C");
+        case HotkeyAction::ShowSwitcher:        return QCoreApplication::translate("HotkeyAction", "Show Window List");
+        case HotkeyAction::CycleProcessWindows: return QCoreApplication::translate("HotkeyAction", "Show Process Window List");
+        case HotkeyAction::SwitchProcessWindow: return QCoreApplication::translate("HotkeyAction", "Switch Process Window");
+        case HotkeyAction::EnterGroupMode:      return QCoreApplication::translate("HotkeyAction", "Enter Process Window List");
+        case HotkeyAction::CycleForward:        return QCoreApplication::translate("HotkeyAction", "Cycle Forward");
+        case HotkeyAction::CycleBackward:       return QCoreApplication::translate("HotkeyAction", "Cycle Backward");
+        case HotkeyAction::MoveSelectionUp:     return QCoreApplication::translate("HotkeyAction", "Move Selection Up");
+        case HotkeyAction::MoveSelectionDown:   return QCoreApplication::translate("HotkeyAction", "Move Selection Down");
+        case HotkeyAction::ActivateSelected:    return QCoreApplication::translate("HotkeyAction", "Activate Selected");
+        case HotkeyAction::DismissSwitcher:     return QCoreApplication::translate("HotkeyAction", "Dismiss Switcher");
+        case HotkeyAction::TogglePause:         return QCoreApplication::translate("HotkeyAction", "Toggle Pause");
     }
     return {};
 }

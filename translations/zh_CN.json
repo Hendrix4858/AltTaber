@@ -29,8 +29,8 @@
     "Activate window on mouse click": "点击图标激活窗口",
     "Show window list for multi-window apps": "多窗口时显示窗口列表（如 Alt+`）",
     "Keep overlay open after releasing Alt": "释放 Alt 后保持覆盖层打开",
-    "全局快捷键（始终生效）": "全局快捷键（始终生效）",
-    "覆盖层快捷键（仅覆盖层可见时生效）": "覆盖层快捷键（仅覆盖层可见时生效）",
+    "Global Hotkeys (always active)": "全局快捷键（始终生效）",
+    "Overlay Hotkeys (only when overlay is visible)": "窗口列表快捷键（仅窗口列表可见时生效）",
     "Blocked Windows": "屏蔽窗口",
     "Enabled": "启用",
     "Comment": "备注",
@@ -60,6 +60,7 @@
     "Log Directory:": "日志目录:",
     "Browse...": "浏览...",
     "Leave empty for default": "留空则使用默认路径",
+    "Warning: Show Window List has no hotkey assigned, AltTaber cannot be activated": "警告：显示窗口列表未绑定快捷键，AltTaber 将无法激活",
     "All": "全部",
     "Debug": "调试",
     "Info": "信息",
@@ -114,5 +115,21 @@
     "e.g. chrome.exe": "例如 chrome.exe",
     "e.g. C:/Program Files/Chrome": "例如 C:/Program Files/Chrome",
     "Optional description": "可选描述"
+  },
+  "HotkeyAction": {
+    "Show Window List": "显示窗口列表",
+    "Show Process Window List": "显示同进程窗口列表",
+    "Switch Process Window": "切换同进程窗口",
+    "Enter Process Window List": "进入同进程窗口列表",
+    "Cycle Forward": "前进选择",
+    "Cycle Backward": "后退选择",
+    "Move Selection Up": "向上移动",
+    "Move Selection Down": "向下移动",
+    "Activate Selected": "激活选中窗口",
+    "Dismiss Switcher": "关闭覆盖层",
+    "Toggle Pause": "切换暂停"
+  },
+  "HotkeyRecorder": {
+    "+ Add": "+ 添加"
   }
 }
