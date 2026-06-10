@@ -14,6 +14,7 @@
 #include "UpdateDialog.h"
 #include "SettingsDialog.h"
 #include "ThemeManager.h"
+#include "QuitReason.h"
 
 class SystemTray : public QSystemTrayIcon {
     Q_OBJECT
@@ -122,6 +123,7 @@ private:
         connect(m_actRestartAdmin, &QAction::triggered, this, [] {
             QString appPath = QApplication::applicationFilePath();
             ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
+            QuitReason::markIntentional();
             QApplication::quit();
         });
 
@@ -175,7 +177,10 @@ private:
             });
         }
 
-        connect(m_actQuit, &QAction::triggered, qApp, &QApplication::quit);
+        connect(m_actQuit, &QAction::triggered, this, [] {
+            QuitReason::markIntentional();
+            QApplication::quit();
+        });
 
         m_menu->addAction(m_actShow);
         m_menu->addAction(m_actUpdate);

@@ -1,4 +1,5 @@
 ﻿#include <QApplication>
+#include <QAbstractNativeEventFilter>
 #include <windows.h>
 #include <QTimer>
 #include <QMessageBox>
@@ -20,7 +21,22 @@
 #include "utils/Logger.h"
 #include "utils/ThemeManager.h"
 #include "utils/ConfigManager.h"
+#include "utils/QuitReason.h"
 #include <shellapi.h>
+
+struct SessionMonitor : QAbstractNativeEventFilter {
+    bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) override {
+        if (eventType == "windows_generic_MSG") {
+            MSG* msg = static_cast<MSG*>(message);
+            if (msg->message == WM_QUERYENDSESSION) {
+                qInfo() << "[Session] WM_QUERYENDSESSION - Windows session ending";
+            } else if (msg->message == WM_ENDSESSION) {
+                qInfo() << "[Session] WM_ENDSESSION - session ended:" << (bool)msg->wParam;
+            }
+        }
+        return false;
+    }
+};
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
@@ -58,7 +74,15 @@ int main(int argc, char* argv[]) {
         winSwitcher->requestShow(OverlayIntent::ShowSwitcher);
     });
 
+    SessionMonitor sessionMon;
+    a.installNativeEventFilter(&sessionMon);
+
     QObject::connect(&a, &QApplication::aboutToQuit, []() {
+        if (QuitReason::isIntentional()) {
+            qInfo() << "[Quit] Intentional quit via menu or update";
+        } else {
+            qInfo() << "[Quit] Unexpected quit (session end, external termination, or crash)";
+        }
         unhookWinEvent();
         Util::Logger::shutdown();
     });

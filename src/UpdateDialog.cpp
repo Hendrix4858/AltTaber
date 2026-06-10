@@ -12,6 +12,7 @@
 #include <QDir>
 #include "utils/SystemTray.h"
 #include "utils/ThemeManager.h"
+#include "utils/QuitReason.h"
 #include <QProcess>
 #include <QElapsedTimer>
 
@@ -60,6 +61,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
                 qDebug() << "release extract dir:" << relDir.absolutePath();
                 const auto batPath = writeBat(relDir.absolutePath());
                 QDesktopServices::openUrl(QUrl::fromLocalFile(batPath));
+                QuitReason::markIntentional();
                 qApp->quit();
             } else {
                 ui->textBrowser->setMarkdown("## Extract failed");
