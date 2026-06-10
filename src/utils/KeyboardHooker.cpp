@@ -145,6 +145,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             }
             if (checkedCount == 0)
                 qDebug() << "[KeyHook] No global actions have bindings registered";
+            else
+                qDebug() << "[KeyHook] ⚠️ No global binding matched for" << keyName;
 
             // Legacy convenience: Alt+Arrow routing when overlay visible but not foreground
             // Uses overlay bindings for vkCode match (Alt is already held)
@@ -178,6 +180,12 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 emit s_instance->altReleased();
             }
         }
+    }
+    if (nCode == HC_ACTION) {
+        auto* pKB = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
+            qDebug() << "[KeyHook] ⚠️ Key NOT eaten, falling through to Windows: vk="
+                     << pKB->vkCode << "sc=" << pKB->scanCode;
     }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }

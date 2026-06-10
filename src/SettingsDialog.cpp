@@ -29,16 +29,11 @@
 #include "utils/Util.h"
 
 SettingsDialog::SettingsDialog(QWidget* parent)
-    : QDialog(parent)
+    : QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowMinimizeButtonHint)
     , ui(new Ui::SettingsDialog) {
     QElapsedTimer t;
     t.start();
     ui->setupUi(this);
-    {
-        HWND h = (HWND)winId();
-        auto ex = GetWindowLongW(h, GWL_EXSTYLE);
-        SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
-    }
 
 
     ui->navList->addItem(tr("General"));
