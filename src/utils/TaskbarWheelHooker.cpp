@@ -23,10 +23,12 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
             auto el = UIAutomation::getElementUnderMouse();
             qDebug() << delta << el.getClassName() << el.getAutomationId() << el.getName();
             if (el.getClassName() == "CEF-OSC-WIDGET") {
-                qDebug() << "detect CEF, try active taskbar";
-                Util::switchToWindow(topLevelHwnd, true);
-                el = UIAutomation::getElementUnderMouse();
-                qDebug() << (el.getClassName() != "CEF-OSC-WIDGET" ? "successful!" : "failed");
+                qDebug() << "detect CEF, walk up to find TaskListButton";
+                el = UIAutomation::findAncestorByClassName(el, "Taskbar.TaskListButtonAutomationPeer");
+                if (!el.isValid()) {
+                    qDebug() << "no Taskbar button ancestor found, skip";
+                    return CallNextHookEx(nullptr, nCode, wParam, lParam);
+                }
             }
             if (el.getClassName() == "Taskbar.TaskListButtonAutomationPeer") {
                 auto appid = el.getAutomationId().mid(QStringLiteral("Appid: ").size());

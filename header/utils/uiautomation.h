@@ -19,6 +19,8 @@ public:
     static UIElement getElementUnderMouse();
     // 获取第一个有HWND的父元素
     static UIElement getParentWithHWND(const UIElement& element);
+    // 沿 RawView 向上查找第一个匹配 className 的祖先
+    static UIElement findAncestorByClassName(const UIElement& element, const QString& className);
     static void cleanup();
 
 private:
@@ -32,9 +34,10 @@ public:
     explicit UIElement(IUIAutomationElement* pElement) : pElement(pElement) {}
 
     UIElement(const UIElement&) = delete;
-    UIElement& operator=(const UIElement&) = delete; // 如果不实现又不delete，默认浅拷贝指针就寄了，直接卡死
+    UIElement& operator=(const UIElement&) = delete;
 
-    // 最好用std::unique_ptr管理，避免自己实现移动
+    UIElement(UIElement&& other) noexcept : pElement(std::exchange(other.pElement, nullptr)) {}
+
     UIElement& operator=(UIElement&& other) noexcept {
         // 1. 检查自移动
         if (this != &other) {

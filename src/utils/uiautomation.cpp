@@ -53,6 +53,42 @@ UIElement UIAutomation::getParentWithHWND(const UIElement& element) {
     return UIElement{pParent};
 }
 
+UIElement UIAutomation::findAncestorByClassName(const UIElement& element, const QString& className) {
+    if (!pAutomation || !element.isValid())
+        return {};
+
+    IUIAutomationTreeWalker* walker = nullptr;
+    if (FAILED(pAutomation->get_RawViewWalker(&walker)) || !walker)
+        return {};
+
+    IUIAutomationElement* current = element.inner();
+    current->AddRef();
+    UIElement result;
+
+    while (current) {
+        IUIAutomationElement* parent = nullptr;
+        if (FAILED(walker->GetParentElement(current, &parent)) || !parent)
+            break;
+
+        BSTR cls = nullptr;
+        if (SUCCEEDED(parent->get_CurrentClassName(&cls))) {
+            if (className == QString::fromWCharArray(cls)) {
+                result = UIElement{parent}; // takes ownership
+                SysFreeString(cls);
+                break;
+            }
+            SysFreeString(cls);
+        }
+
+        current->Release();
+        current = parent;
+    }
+
+    if (current) current->Release();
+    walker->Release();
+    return result;
+}
+
 void UIAutomation::cleanup() {
     if (pAutomation) {
         pAutomation->Release();
