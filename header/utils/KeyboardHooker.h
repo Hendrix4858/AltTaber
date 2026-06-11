@@ -21,15 +21,21 @@ public:
     static bool tryTakeRecordedKey(quint32& vk, quint32& scanCode,
                                    DWORD& flags, Qt::KeyboardModifiers& mods);
 
+    void resetActivationModifiers();
+
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     void altReleased();
+    void activationModifiersReleased();
 
 private:
     HHOOK h_keyboard = nullptr;
     bool m_paused = false;
     HWND m_ownerHwnd = nullptr;
     HotkeyBindings m_bindings;
+
+    Qt::KeyboardModifiers m_activationModifiers = Qt::NoModifier;
+    bool m_waitingForModifierRelease = false;
 
     friend LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 };

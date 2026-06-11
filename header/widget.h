@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <Windows.h>
 #include <QListView>
-#include <QElapsedTimer>
+
 #include "utils/HotkeyAction.h"
 #include "OverlayController.h"
 
@@ -51,8 +51,12 @@ public:
 
     Q_INVOKABLE void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     Q_INVOKABLE void handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void onActivationModifiersReleased();
 
     void updateOverlayBindings(const HotkeyBindings& bindings);
+
+signals:
+    void overlayDismissed();
 
 private:
     void setupLabelFont();
@@ -72,8 +76,7 @@ private:
     TaskbarWindowCycler* m_taskbarCycler;
     GroupWindowCycler* m_cyc;
 
-    QElapsedTimer m_lastAltReleaseTime;
-    static constexpr int kAltReleaseDedupMs = 100;
+
 };
 
 #endif //WIN_SWITCHER_WIDGET_H

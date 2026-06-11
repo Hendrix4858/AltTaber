@@ -104,14 +104,16 @@ int main(int argc, char* argv[]) {
                                   winSwitcher, &Widget::handleGlobalAction, Qt::QueuedConnection);
     qInfo() << "[Main]   hotkeyTriggered connected:" << (bool)conn1;
 
-    qInfo() << "[Main] Connecting kbHooker::altReleased -> post Alt KeyRelease event";
-    auto conn2 = QObject::connect(&kbHooker, &KeyboardHooker::altReleased, winSwitcher,
-                     [winSwitcher]() {
-        qInfo() << "[Main] altReleased signal received, posting KeyRelease(Alt)";
-        auto event = new QKeyEvent(QEvent::KeyRelease, Qt::Key_Alt, Qt::NoModifier);
-        QApplication::postEvent(winSwitcher, event);
-    }, Qt::QueuedConnection);
-    qInfo() << "[Main]   altReleased connected:" << (bool)conn2;
+    qInfo() << "[Main] Connecting kbHooker::activationModifiersReleased -> Widget::onActivationModifiersReleased (QueuedConnection)";
+    auto conn2 = QObject::connect(&kbHooker, &KeyboardHooker::activationModifiersReleased,
+                                  winSwitcher, &Widget::onActivationModifiersReleased,
+                                  Qt::QueuedConnection);
+    qInfo() << "[Main]   activationModifiersReleased connected:" << (bool)conn2;
+
+    qInfo() << "[Main] Connecting Widget::overlayDismissed -> kbHooker::resetActivationModifiers";
+    auto connReset = QObject::connect(winSwitcher, &Widget::overlayDismissed,
+                                      &kbHooker, &KeyboardHooker::resetActivationModifiers);
+    qInfo() << "[Main]   overlayDismissed connected:" << (bool)connReset;
 
     // Re-inject bindings when config is saved (settings dialog or notepad edit)
     QObject::connect(&cfg(), &ConfigManager::configEdited, &a, [&kbHooker, &tbHooker, winSwitcher]() {
@@ -122,6 +124,7 @@ int main(int argc, char* argv[]) {
         kbHooker.setPaused(cfg().getPaused());
         tbHooker.setPaused(cfg().getPaused());
         winSwitcher->updateOverlayBindings(b);
+        kbHooker.resetActivationModifiers();
     });
 
     qInfo() << "[Main] Connecting tbHooker::tabWheelEvent -> TaskbarWindowCycler::rotate";

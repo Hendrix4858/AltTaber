@@ -15,6 +15,7 @@ enum class OverlayIntent {
     AltReleased,     // Alt key released — activate selected + hide
     Dismiss,         // Escape / app inactive / foreground lost
     FallbackShow,    // System Alt+Tab detected (ForegroundStaging) — takeover
+    ActivationModifiersReleased,  // All activation modifiers released — activate + hide
 };
 
 class OverlayController : public QObject {

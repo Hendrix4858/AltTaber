@@ -176,52 +176,6 @@ void Widget::keyPressEvent(QKeyEvent* event) {
 }
 
 void Widget::keyReleaseEvent(QKeyEvent* event) {
-    qDebug() << "[Release] keyReleaseEvent key=" << event->key()
-             << "visible=" << isVisible()
-             << "groupMode=" << m_selectCtrl->isInGroupMode()
-             << "stayOpen=" << m_overlayCtrl->stayOpenMode()
-             << "currentRow=" << lv->currentIndex().row();
-
-    if (event->key() == Qt::Key_Alt) {
-        if (m_lastAltReleaseTime.isValid() && m_lastAltReleaseTime.elapsed() < kAltReleaseDedupMs) {
-            qDebug() << "[Release] Skipping duplicate Alt release";
-            return;
-        }
-        m_lastAltReleaseTime.start();
-
-        qInfo() << "[Release] Alt released"
-                << "visible=" << isVisible()
-                << "isForeground=" << isForeground()
-                << "groupMode=" << m_selectCtrl->isInGroupMode()
-                << "stayOpenMode=" << m_overlayCtrl->stayOpenMode()
-                << "currentRow=" << lv->currentIndex().row();
-
-        m_cyc->clearGroupWindowOrder();
-        m_selectCtrl->resetState();
-
-        if (!isVisible()) {
-            QWidget::keyReleaseEvent(event);
-            return;
-        }
-
-        // Activate selected window, then hide
-        if (m_selectCtrl->isInGroupMode()) {
-            HWND targetHwnd = nullptr;
-            QString targetExe, targetTitle;
-            if (auto idx = lv->currentIndex(); idx.isValid())
-                if (auto& g = m_model->groupAt(idx.row()); !g.windows.empty()) {
-                    targetHwnd = g.windows.first().hwnd;
-                    targetExe = g.exePath;
-                    targetTitle = g.windows.first().title;
-                }
-            m_selectCtrl->exitGroupWindowMode(false);
-            if (targetHwnd)
-                activateWindowWithVerification(targetHwnd, targetExe, targetTitle);
-        } else {
-            activateCurrentGroupWindow();
-        }
-        m_overlayCtrl->handleIntent(OverlayIntent::AltReleased);
-    }
     QWidget::keyReleaseEvent(event);
 }
 
@@ -256,6 +210,7 @@ bool Widget::requestShow(OverlayIntent why) {
 void Widget::hideOverlay() {
     qInfo() << "[Widget::hideOverlay]";
     m_overlayCtrl->handleIntent(OverlayIntent::Dismiss);
+    emit overlayDismissed();
 }
 
 Widget::OverlayState Widget::overlayState() const {
@@ -364,6 +319,35 @@ void Widget::activateCurrentGroupWindow() {
     if (auto index = lv->currentIndex(); index.isValid())
         if (auto& group = m_model->groupAt(index.row()); !group.windows.empty())
             activateWindowWithVerification(group.windows.first().hwnd, group.exePath, group.windows.first().title);
+}
+
+void Widget::onActivationModifiersReleased() {
+    qInfo() << "[ActivationRelease] All activation modifiers released"
+            << "visible=" << isVisible()
+            << "groupMode=" << m_selectCtrl->isInGroupMode();
+
+    m_cyc->clearGroupWindowOrder();
+    m_selectCtrl->resetState();
+
+    if (!isVisible()) return;
+
+    if (m_selectCtrl->isInGroupMode()) {
+        HWND targetHwnd = nullptr;
+        QString targetExe, targetTitle;
+        if (auto idx = lv->currentIndex(); idx.isValid())
+            if (auto& g = m_model->groupAt(idx.row()); !g.windows.empty()) {
+                targetHwnd = g.windows.first().hwnd;
+                targetExe = g.exePath;
+                targetTitle = g.windows.first().title;
+            }
+        m_selectCtrl->exitGroupWindowMode(false);
+        if (targetHwnd)
+            activateWindowWithVerification(targetHwnd, targetExe, targetTitle);
+    } else {
+        activateCurrentGroupWindow();
+    }
+
+    m_overlayCtrl->handleIntent(OverlayIntent::ActivationModifiersReleased);
 }
 
 void Widget::activateWindowWithVerification(HWND targetHwnd, const QString& exePath,

@@ -183,11 +183,10 @@ void OverlayController::transition(OverlayIntent intent) {
         break;
 
     case OverlayState::Visible:
-        if (intent == OverlayIntent::AltReleased) {
-            qInfo() << "[Transition] Visible + AltReleased → hide";
-            hideWindow();
-        } else if (intent == OverlayIntent::Dismiss) {
-            qInfo() << "[Transition] Visible + Dismiss → hide";
+        if (intent == OverlayIntent::AltReleased ||
+            intent == OverlayIntent::ActivationModifiersReleased ||
+            intent == OverlayIntent::Dismiss) {
+            qInfo() << "[Transition] Visible +" << (int)intent << "→ hide";
             hideWindow();
         } else {
             qDebug() << "[Transition] Visible +" << (int)intent << "→ no-op";

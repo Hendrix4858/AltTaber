@@ -138,6 +138,14 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     qDebug() << "[KeyHook]   match=" << match;
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
+
+                        // Record activation modifiers for ShowSwitcher
+                        if (it.key() == HotkeyAction::ShowSwitcher && binding.modifiers != Qt::NoModifier) {
+                            s_instance->m_activationModifiers = binding.modifiers;
+                            s_instance->m_waitingForModifierRelease = true;
+                            qDebug() << "[KeyHook] Activation modifiers saved:" << binding.modifiers;
+                        }
+
                         emit s_instance->hotkeyTriggered(it.key(), mods);
                         return 1;
                     }
@@ -178,6 +186,21 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (pKB->vkCode == VK_LMENU || pKB->vkCode == VK_RMENU) {
                 qDebug() << "[KeyHook] Alt UP";
                 emit s_instance->altReleased();
+            }
+
+            if (s_instance->m_waitingForModifierRelease) {
+                Qt::KeyboardModifiers currentMods = toQtModifiers(s_modState);
+                bool allReleased = (s_instance->m_activationModifiers & currentMods) == 0;
+                qDebug() << "[KeyHook] Activation check: target="
+                         << s_instance->m_activationModifiers
+                         << "current=" << currentMods
+                         << "allReleased=" << allReleased;
+                if (allReleased) {
+                    qInfo() << "[KeyHook] All activation modifiers released";
+                    emit s_instance->activationModifiersReleased();
+                    s_instance->m_waitingForModifierRelease = false;
+                    s_instance->m_activationModifiers = Qt::NoModifier;
+                }
             }
         }
     }
@@ -249,6 +272,12 @@ bool KeyboardHooker::tryTakeRecordedKey(quint32& vk, quint32& scanCode,
 
 void KeyboardHooker::setPaused(bool paused) {
     m_paused = paused;
+}
+
+void KeyboardHooker::resetActivationModifiers() {
+    m_waitingForModifierRelease = false;
+    m_activationModifiers = Qt::NoModifier;
+    qDebug() << "[KeyHook] Activation modifiers reset";
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {
