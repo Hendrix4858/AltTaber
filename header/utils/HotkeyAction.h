@@ -22,6 +22,8 @@ enum class HotkeyAction {
     ActivateSelected,
     DismissSwitcher,
     TogglePause,
+    SwitchToNextWindow,
+    SwitchToPreviousWindow,
 };
 
 constexpr inline HotkeyAction AllActions[] = {
@@ -36,6 +38,8 @@ constexpr inline HotkeyAction AllActions[] = {
     HotkeyAction::ActivateSelected,
     HotkeyAction::DismissSwitcher,
     HotkeyAction::TogglePause,
+    HotkeyAction::SwitchToNextWindow,
+    HotkeyAction::SwitchToPreviousWindow,
 };
 
 enum class HotkeyScope { Global, Overlay };
@@ -46,6 +50,8 @@ inline HotkeyScope hotkeyActionScope(HotkeyAction action) {
         case HotkeyAction::CycleProcessWindows:
         case HotkeyAction::SwitchProcessWindow:
         case HotkeyAction::TogglePause:
+        case HotkeyAction::SwitchToNextWindow:
+        case HotkeyAction::SwitchToPreviousWindow:
             return HotkeyScope::Global;
         default:
             return HotkeyScope::Overlay;
@@ -65,6 +71,8 @@ inline QString hotkeyActionName(HotkeyAction action) {
         case HotkeyAction::ActivateSelected:    return "ActivateSelected";
         case HotkeyAction::DismissSwitcher:     return "DismissSwitcher";
         case HotkeyAction::TogglePause:         return "TogglePause";
+        case HotkeyAction::SwitchToNextWindow:     return "SwitchToNextWindow";
+        case HotkeyAction::SwitchToPreviousWindow: return "SwitchToPreviousWindow";
     }
     return {};
 }
@@ -83,6 +91,8 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
         m.insert("ActivateSelected",    HotkeyAction::ActivateSelected);
         m.insert("DismissSwitcher",     HotkeyAction::DismissSwitcher);
         m.insert("TogglePause",         HotkeyAction::TogglePause);
+        m.insert("SwitchToNextWindow",     HotkeyAction::SwitchToNextWindow);
+        m.insert("SwitchToPreviousWindow", HotkeyAction::SwitchToPreviousWindow);
         return m;
     }();
     return map.value(name);
@@ -101,6 +111,8 @@ inline QString hotkeyActionDisplayName(HotkeyAction action) {
         case HotkeyAction::ActivateSelected:    return QCoreApplication::translate("HotkeyAction", "Activate Selected");
         case HotkeyAction::DismissSwitcher:     return QCoreApplication::translate("HotkeyAction", "Dismiss Switcher");
         case HotkeyAction::TogglePause:         return QCoreApplication::translate("HotkeyAction", "Toggle Pause");
+        case HotkeyAction::SwitchToNextWindow:     return QCoreApplication::translate("HotkeyAction", "Switch to Next Window");
+        case HotkeyAction::SwitchToPreviousWindow: return QCoreApplication::translate("HotkeyAction", "Switch to Previous Window");
     }
     return {};
 }
@@ -176,6 +188,10 @@ inline HotkeyBindings defaultHotkeyBindings() {
     defaults[HotkeyAction::ActivateSelected]    = {};
     defaults[HotkeyAction::DismissSwitcher]     = {};
     defaults[HotkeyAction::TogglePause]         = {};
+    defaults[HotkeyAction::SwitchToNextWindow]     = {};
+    defaults[HotkeyAction::SwitchToPreviousWindow] = {
+        makePhysicalBinding(Qt::AltModifier | Qt::ShiftModifier, VK_TAB, 0x0F)
+    };
     return defaults;
 }
 

@@ -16,6 +16,7 @@ enum class OverlayIntent {
     Dismiss,         // Escape / app inactive / foreground lost
     FallbackShow,    // System Alt+Tab detected (ForegroundStaging) — takeover
     ActivationModifiersReleased,  // All activation modifiers released — activate + hide
+    ShowSwitcherBackward,  // Alt+Shift+Tab pressed — show overlay, select last group
 };
 
 class OverlayController : public QObject {
@@ -74,6 +75,7 @@ private:
     OverlayState m_overlayState = OverlayState::Hidden;
     bool m_stayOpenMode = false;
     bool m_listDirty = true;
+    bool m_selectBackward = false;
 
     HotkeyBindings m_overlayBindings;
 };

@@ -116,7 +116,11 @@ bool OverlayController::prepareListWidget() {
     }
 
     auto count = m_model->groupCount();
-    if (count >= 2) {
+
+    if (m_selectBackward && count >= 2) {
+        lv->setCurrentIndex(m_model->index(count - 1));
+        m_selectBackward = false;
+    } else if (count >= 2) {
         auto foreWin = GetForegroundWindow();
         bool isFirstItemForeground = false;
         for (auto& info : winGroupList.at(0).windows) {
@@ -172,8 +176,11 @@ void OverlayController::transition(OverlayIntent intent) {
     switch (m_overlayState) {
 
     case OverlayState::Hidden:
-        if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow) {
-            qInfo() << "[Transition] Hidden + Show = refreshing list + show";
+        if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
+            intent == OverlayIntent::ShowSwitcherBackward) {
+            m_selectBackward = (intent == OverlayIntent::ShowSwitcherBackward);
+            qInfo() << "[Transition] Hidden + Show = refreshing list + show (backward="
+                    << m_selectBackward << ")";
             m_listDirty = true;
             refreshWindowList();
             showWindow();

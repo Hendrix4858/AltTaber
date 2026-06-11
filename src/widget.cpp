@@ -288,6 +288,15 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
         qInfo() << "[Action] TogglePause";
         cfg().setPaused(!cfg().getPaused());
         return;
+    case HotkeyAction::SwitchToPreviousWindow:
+        qInfo() << "[Action] SwitchToPreviousWindow"
+                << "visible=" << visible;
+        if (!visible) {
+            requestShow(OverlayIntent::ShowSwitcherBackward);
+        } else {
+            m_selectCtrl->handleOverlayAction(HotkeyAction::CycleBackward, modifiers);
+        }
+        return;
     default:
         return;
     }

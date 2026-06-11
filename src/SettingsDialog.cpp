@@ -365,6 +365,8 @@ void SettingsDialog::buildHotkeyPage() {
         HotkeyAction::CycleProcessWindows,
         HotkeyAction::SwitchProcessWindow,
         HotkeyAction::TogglePause,
+        HotkeyAction::SwitchToNextWindow,
+        HotkeyAction::SwitchToPreviousWindow,
         HotkeyAction::EnterGroupMode,
         HotkeyAction::CycleForward,
         HotkeyAction::CycleBackward,
