@@ -138,14 +138,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     qDebug() << "[KeyHook]   match=" << match;
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
-
-                        // Record activation modifiers for ShowSwitcher
-                        if (it.key() == HotkeyAction::ShowSwitcher && binding.modifiers != Qt::NoModifier) {
-                            s_instance->m_activationModifiers = binding.modifiers;
-                            s_instance->m_waitingForModifierRelease = true;
-                            qDebug() << "[KeyHook] Activation modifiers saved:" << binding.modifiers;
-                        }
-
                         emit s_instance->hotkeyTriggered(it.key(), mods);
                         return 1;
                     }
@@ -278,6 +270,17 @@ void KeyboardHooker::resetActivationModifiers() {
     m_waitingForModifierRelease = false;
     m_activationModifiers = Qt::NoModifier;
     qDebug() << "[KeyHook] Activation modifiers reset";
+}
+
+void KeyboardHooker::notifyOverlayShown() {
+    Qt::KeyboardModifiers currentMods = toQtModifiers(s_modState);
+    if (currentMods != Qt::NoModifier) {
+        m_activationModifiers = currentMods;
+        m_waitingForModifierRelease = true;
+        qInfo() << "[KeyHook] Overlay shown, tracking modifiers:" << currentMods;
+    } else {
+        qDebug() << "[KeyHook] Overlay shown but no modifiers held, nothing to track";
+    }
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {

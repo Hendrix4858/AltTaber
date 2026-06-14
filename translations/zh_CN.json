@@ -27,7 +27,7 @@
     "Letter Jump": "字母跳转",
     "Enable letter jump (A-Z)": "启用字母跳转 (A-Z)",
     "Activate window on mouse click": "点击图标激活窗口",
-    "Show window list for multi-window apps": "多窗口时显示窗口列表（如 Alt+`）",
+    "Show window list for multi-window apps": "多窗口程序进入同进程窗口列表",
     "Global Hotkeys (always active)": "全局快捷键（始终生效）",
     "Overlay Hotkeys (only when overlay is visible)": "窗口列表快捷键（仅窗口列表可见时生效）",
     "Blocked Windows": "屏蔽窗口",

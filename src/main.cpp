@@ -115,6 +115,11 @@ int main(int argc, char* argv[]) {
                                       &kbHooker, &KeyboardHooker::resetActivationModifiers);
     qInfo() << "[Main]   overlayDismissed connected:" << (bool)connReset;
 
+    qInfo() << "[Main] Connecting Widget::overlayShown -> kbHooker::notifyOverlayShown";
+    auto connShown = QObject::connect(winSwitcher, &Widget::overlayShown,
+                                      &kbHooker, &KeyboardHooker::notifyOverlayShown);
+    qInfo() << "[Main]   overlayShown connected:" << (bool)connShown;
+
     // Re-inject bindings when config is saved (settings dialog or notepad edit)
     QObject::connect(&cfg(), &ConfigManager::configEdited, &a, [&kbHooker, &tbHooker, winSwitcher]() {
         qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
@@ -127,7 +132,6 @@ int main(int argc, char* argv[]) {
         kbHooker.resetActivationModifiers();
     });
 
-    qInfo() << "[Main] Connecting tbHooker::tabWheelEvent -> TaskbarWindowCycler::rotate";
     auto conn3 = QObject::connect(&tbHooker, &TaskbarWheelHooker::tabWheelEvent,
                                    winSwitcher->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
     qInfo() << "[Main]   tabWheelEvent connected:" << (bool)conn3;

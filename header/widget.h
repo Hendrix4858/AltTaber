@@ -57,6 +57,7 @@ public:
 
 signals:
     void overlayDismissed();
+    void overlayShown();
 
 private:
     void setupLabelFont();

@@ -204,7 +204,10 @@ bool Widget::requestShow(OverlayIntent why) {
     qInfo() << "[Widget::requestShow] why=" << (int)why << "thread=" << QThread::currentThread();
     m_selectCtrl->resetAll();
     m_overlayCtrl->handleIntent(why);
-    return m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
+    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
+    if (visible)
+        emit overlayShown();
+    return visible;
 }
 
 void Widget::hideOverlay() {

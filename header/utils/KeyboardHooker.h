@@ -22,6 +22,7 @@ public:
                                    DWORD& flags, Qt::KeyboardModifiers& mods);
 
     void resetActivationModifiers();
+    void notifyOverlayShown();
 
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);
