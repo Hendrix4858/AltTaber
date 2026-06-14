@@ -130,6 +130,9 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/Logger.h
         src/utils/Logger.cpp
         header/utils/ThemeManager.h
+        src/utils/ThemeManager.cpp
+        header/utils/WheelEventProcessor.h
+        src/utils/WheelEventProcessor.cpp
         header/utils/Application.h
         src/utils/Application.cpp)
 target_link_libraries(Win_Switcher

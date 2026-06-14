@@ -1,6 +1,7 @@
 ﻿// You may need to build the project (run Qt uic code generator) to get "ui_UpdateDialog.h" resolved
 
 #include "UpdateDialog.h"
+#include <windows.h>
 #include <QCommandLineParser>
 #include "ui_UpdateDialog.h"
 #include <QDebug>

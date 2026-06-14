@@ -8,37 +8,15 @@
 namespace WindowEnumerator {
 
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
-        QStringList blockedClassNames = {
-            "Progman",
-            "Windows.UI.Core.CoreWindow",
-            "CEF-OSC-WIDGET",
-            "WorkerW",
-            "Shell_TrayWnd"
-        };
-        QStringList blockedExePaths = {
-            R"(C:\Windows\System32\wscript.exe)"
-        };
-        QStringList blockedFileNames = {
-            "Nahimic3.exe",
-            "Follower.exe",
-            "QQ Follower.exe"
-        };
-
         LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-        QString className;
 
         if ((skipVisibleCheck || IsWindowVisible(hwnd))
             && !Util::isWindowCloaked(hwnd)
             && (!GetWindow(hwnd, GW_OWNER) || exStyle & WS_EX_APPWINDOW)
             && (exStyle & WS_EX_TOOLWINDOW) == 0
             && GetWindowTextLength(hwnd) > 0
-            && (className = Util::getClassName(hwnd)).size() > 0
-            && !blockedClassNames.contains(className)
-            && !className.startsWith("imestatuspop_classname{")
         ) {
-            auto path = Util::getWindowProcessPath(hwnd);
-            if (!blockedExePaths.contains(path) && !blockedFileNames.contains(QFileInfo(path).fileName()))
-                return true;
+            return true;
         }
         return false;
     }

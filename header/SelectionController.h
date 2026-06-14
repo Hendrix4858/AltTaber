@@ -10,6 +10,7 @@
 class WindowGroupModel;
 class WindowManager;
 class GroupWindowCycler;
+class WheelEventProcessor;
 
 enum class InputSource {
     QtEvent,
@@ -71,10 +72,7 @@ private:
     QList<WindowGroup> m_backupGroupList;
     int m_backupGroupIndex = 0;
 
-    // Wheel state (moved from Widget)
-    int lastWheelRow = -1;
-    HWND lastWheelHwnd = nullptr;
-    bool lastWheelIsRollUp = true;
+    WheelEventProcessor* m_wheelProcessor = nullptr;
 };
 
 #endif //WIN_SWITCHER_SELECTIONCONTROLLER_H

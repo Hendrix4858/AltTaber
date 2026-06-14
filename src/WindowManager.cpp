@@ -22,7 +22,7 @@ void WindowManager::recordWindowActivation(HWND hwnd) {
 }
 
 void WindowManager::reloadFilterRules() {
-    WindowFilterRule rule;
+    WindowFilterRule rule = WindowFilter::builtinRules();
     auto blocked = cfg().getBlockedWindows();
     for (const auto& entry : blocked) {
         if (!entry.enabled) continue;
@@ -34,7 +34,8 @@ void WindowManager::reloadFilterRules() {
         rule.entries.append(fe);
     }
     m_filter.setRules(rule);
-    qInfo() << "[Filter] reloaded" << rule.entries.size() << "rules";
+    qInfo() << "[Filter] reloaded" << rule.entries.size() << "rules"
+            << "(builtin:" << WindowFilter::builtinRules().entries.size() << ")";
 }
 
 QList<HWND> WindowManager::filteredHwndsForExe(const QString& exePath) {

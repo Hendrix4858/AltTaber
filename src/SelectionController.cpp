@@ -5,12 +5,19 @@
 #include "utils/Util.h"
 #include "utils/ConfigManager.h"
 #include "utils/ThemeManager.h"
+#include "utils/WheelEventProcessor.h"
 #include <QWheelEvent>
 #include <QApplication>
 
 SelectionController::SelectionController(QListView* listView, WindowGroupModel* model,
                                          WindowManager* wm, GroupWindowCycler* cyc, QObject* parent)
-    : QObject(parent), m_lv(listView), m_model(model), m_wm(wm), m_cyc(cyc) {}
+    : QObject(parent), m_lv(listView), m_model(model), m_wm(wm), m_cyc(cyc) {
+    m_wheelProcessor = new WheelEventProcessor(this);
+    connect(m_wheelProcessor, &WheelEventProcessor::foregroundChanged,
+            this, &SelectionController::foregroundChanged);
+    connect(m_wheelProcessor, &WheelEventProcessor::labelTextChanged,
+            this, &SelectionController::labelTextChanged);
+}
 
 void SelectionController::setLabelWidget(QWidget* label) {
     m_labelWidget = label;
@@ -183,49 +190,7 @@ bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, boo
 
     if (event->type() == QEvent::Wheel) {
         auto* wheelEvent = static_cast<QWheelEvent*>(event);
-        auto cursorPos = wheelEvent->position().toPoint();
-        if (auto index = m_lv->indexAt(cursorPos); index.isValid()) {
-            if (m_lv->currentIndex() != index)
-                m_lv->setCurrentIndex(index);
-            auto windowGroup = m_model->groupAt(index.row());
-            if (windowGroup.windows.isEmpty()) return false;
-
-            if (lastWheelRow != index.row()) {
-                lastWheelRow = index.row();
-                lastWheelHwnd = nullptr;
-                m_cyc->clearGroupWindowOrder();
-            }
-            auto targetExe = windowGroup.exePath;
-            bool isRollUp = wheelEvent->angleDelta().x() > 0;
-            auto& order = m_cyc->groupWindowOrder();
-            if (order.isEmpty())
-                order = m_wm->filteredHwndsForExe(targetExe);
-
-            if (!lastWheelHwnd) {
-                lastWheelHwnd = order.first();
-            } else {
-                if (lastWheelIsRollUp == isRollUp)
-                    lastWheelHwnd = GroupWindowCycler::rotateWindowInGroup(order, lastWheelHwnd, isRollUp);
-            }
-            lastWheelIsRollUp = isRollUp;
-
-            HWND nextFocus = lastWheelHwnd;
-            if (isRollUp) {
-                Util::bringWindowToTop(lastWheelHwnd, nullptr);
-            } else {
-                auto& orderForNormal = m_cyc->groupWindowOrder();
-                if (auto normal = GroupWindowCycler::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false)) {
-                    ShowWindow(normal, SW_SHOWMINNOACTIVE);
-                    lastWheelHwnd = normal;
-                    nextFocus = lastWheelHwnd;
-                }
-                if (auto normal = GroupWindowCycler::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false))
-                    nextFocus = normal;
-            }
-            emit foregroundChanged(nextFocus);
-            emit labelTextChanged(Util::getWindowTitle(nextFocus));
-            return true;
-        }
+        return m_wheelProcessor->handleWheelEvent(wheelEvent, m_lv, m_model, m_wm, m_cyc);
     }
     return false;
 }
@@ -330,8 +295,7 @@ bool SelectionController::tryEnterGroupForWindow(HWND hwnd) {
 void SelectionController::resetState() {
     m_jumpLastLetter = {};
     m_jumpLastIndex = -1;
-    lastWheelRow = -1;
-    lastWheelHwnd = nullptr;
+    m_wheelProcessor->reset();
 }
 
 void SelectionController::resetAll() {

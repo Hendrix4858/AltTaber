@@ -22,6 +22,9 @@ public:
     void setRules(const WindowFilterRule& rules);
     const WindowFilterRule& rules() const { return m_rule; }
 
+    static WindowFilterRule builtinRules();
+    bool isAllowed(const WindowDescriptor& desc) const;
+
 private:
     bool shouldInclude(const WindowDescriptor& desc) const;
 

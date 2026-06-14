@@ -11,12 +11,12 @@
 namespace Util {
 
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
-        // System filter
+        // Structural check (requires HWND)
         if (!WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck))
             return false;
-        // User filter from config
+        // System + user filter via WindowFilter
         WindowFilter filter;
-        WindowFilterRule rule;
+        WindowFilterRule rule = WindowFilter::builtinRules();
         auto blocked = cfg().getBlockedWindows();
         for (const auto& entry : blocked) {
             if (!entry.enabled) continue;
@@ -29,8 +29,7 @@ namespace Util {
         }
         filter.setRules(rule);
         WindowDescriptor desc = WindowDescriptorBuilder::fromHwnd(hwnd);
-        QList<WindowDescriptor> list = {desc};
-        return !filter.filter(list).isEmpty();
+        return filter.isAllowed(desc);
     }
 
     QList<HWND> enumWindows() {
