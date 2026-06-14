@@ -11,12 +11,16 @@ class WindowGroupModel;
 class WindowManager;
 
 enum class OverlayIntent {
-    ShowSwitcher,    // Alt+Tab pressed — show overlay from Hidden
-    AltReleased,     // Alt key released — activate selected + hide
-    Dismiss,         // Escape / app inactive / foreground lost
-    FallbackShow,    // System Alt+Tab detected (ForegroundStaging) — takeover
-    ActivationModifiersReleased,  // All activation modifiers released — activate + hide
-    ShowSwitcherBackward,  // Alt+Shift+Tab pressed — show overlay, select last group
+    ShowSwitcher,
+    Dismiss,
+    FallbackShow,
+    SessionEndConditionMet,
+    ShowSwitcherBackward,
+};
+
+struct OverlaySessionInfo {
+    HotkeyAction triggeringAction = HotkeyAction::ShowSwitcher;
+    SessionEndTrigger endTrigger = SessionEndTrigger::ModifierRelease;
 };
 
 class OverlayController : public QObject {
@@ -48,8 +52,13 @@ public:
     void setOverlayBindings(const HotkeyBindings& bindings);
     const HotkeyBindings& overlayBindings() const { return m_overlayBindings; }
 
+    void setSessionInfo(const OverlaySessionInfo& info) { m_sessionInfo = info; }
+
     void notifyForegroundChanged(HWND hwnd);
     void warmupCache();
+
+signals:
+    void sessionFinished();
 
 private:
     // ── State machine ──
@@ -76,6 +85,7 @@ private:
     bool m_stayOpenMode = false;
     bool m_listDirty = true;
     bool m_selectBackward = false;
+    OverlaySessionInfo m_sessionInfo;
 
     HotkeyBindings m_overlayBindings;
 };

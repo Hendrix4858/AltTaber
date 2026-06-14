@@ -58,6 +58,37 @@ inline HotkeyScope hotkeyActionScope(HotkeyAction action) {
     }
 }
 
+enum class HotkeyLifecycle {
+    Instant,
+    OverlaySession
+};
+
+enum class SessionEndTrigger {
+    ModifierRelease,
+    ExplicitAction,
+    FocusLost
+};
+
+struct ActionMetadata {
+    HotkeyLifecycle lifecycle = HotkeyLifecycle::Instant;
+    SessionEndTrigger endTrigger = SessionEndTrigger::ExplicitAction;
+};
+
+inline ActionMetadata getActionMetadata(HotkeyAction action) {
+    switch (action) {
+        case HotkeyAction::ShowSwitcher:
+        case HotkeyAction::SwitchToPreviousWindow:
+        case HotkeyAction::CycleProcessWindows:
+        case HotkeyAction::SwitchToNextWindow:
+            return {HotkeyLifecycle::OverlaySession, SessionEndTrigger::ModifierRelease};
+        case HotkeyAction::TogglePause:
+        case HotkeyAction::SwitchProcessWindow:
+            return {HotkeyLifecycle::Instant, SessionEndTrigger::ExplicitAction};
+        default:
+            return {HotkeyLifecycle::OverlaySession, SessionEndTrigger::ExplicitAction};
+    }
+}
+
 inline QString hotkeyActionName(HotkeyAction action) {
     switch (action) {
         case HotkeyAction::ShowSwitcher:        return "ShowSwitcher";

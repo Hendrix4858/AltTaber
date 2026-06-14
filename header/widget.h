@@ -34,7 +34,8 @@ public:
 
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     void warmupCache();
-    Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher);
+    Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher,
+                                  HotkeyAction triggeringAction = HotkeyAction::ShowSwitcher);
     void hideOverlay();
     void notifyForegroundChanged(HWND hwnd);
     OverlayController* overlayController() const { return m_overlayCtrl; }

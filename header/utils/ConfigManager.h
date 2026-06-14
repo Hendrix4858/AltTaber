@@ -219,8 +219,7 @@ public:
                 if (b.isValid())
                     arr.append(b.toJson());
             }
-            if (!arr.isEmpty())
-                hotkeys[hotkeyActionName(it.key())] = arr;
+            hotkeys[hotkeyActionName(it.key())] = arr;
         }
         m_root["Hotkeys"] = hotkeys;
         m_dirty = true;

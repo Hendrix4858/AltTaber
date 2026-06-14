@@ -133,6 +133,25 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
         m_wm->reloadFilterRules();
     });
 
+    connect(m_overlayCtrl, &OverlayController::sessionFinished, this, [this]() {
+        qInfo() << "[sessionFinished] activating selected window";
+        if (m_selectCtrl->isInGroupMode()) {
+            HWND targetHwnd = nullptr;
+            QString targetExe, targetTitle;
+            if (auto idx = lv->currentIndex(); idx.isValid())
+                if (auto& g = m_model->groupAt(idx.row()); !g.windows.empty()) {
+                    targetHwnd = g.windows.first().hwnd;
+                    targetExe = g.exePath;
+                    targetTitle = g.windows.first().title;
+                }
+            m_selectCtrl->exitGroupWindowMode(false);
+            if (targetHwnd)
+                activateWindowWithVerification(targetHwnd, targetExe, targetTitle);
+        } else {
+            activateCurrentGroupWindow();
+        }
+    });
+
     qInfo() << "Widget initialized in" << t.elapsed() << "ms";
 }
 
@@ -200,9 +219,16 @@ void Widget::warmupCache() {
     m_overlayCtrl->warmupCache();
 }
 
-bool Widget::requestShow(OverlayIntent why) {
-    qInfo() << "[Widget::requestShow] why=" << (int)why << "thread=" << QThread::currentThread();
+bool Widget::requestShow(OverlayIntent why, HotkeyAction triggeringAction) {
+    qInfo() << "[Widget::requestShow] why=" << (int)why
+            << "action=" << hotkeyActionName(triggeringAction)
+            << "thread=" << QThread::currentThread();
     m_selectCtrl->resetAll();
+
+    auto meta = getActionMetadata(triggeringAction);
+    if (meta.lifecycle == HotkeyLifecycle::OverlaySession)
+        m_overlayCtrl->setSessionInfo({triggeringAction, meta.endTrigger});
+
     m_overlayCtrl->handleIntent(why);
     bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
     if (visible)
@@ -247,7 +273,7 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
     case HotkeyAction::ShowSwitcher:
         if (!visible) {
             qInfo() << "[Action] ShowSwitcher -> requestShow";
-            requestShow();
+            requestShow(OverlayIntent::ShowSwitcher, action);
         } else {
             qInfo() << "[Action] ShowSwitcher -> overlay visible -> CycleForward";
             m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
@@ -261,7 +287,7 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
             auto hwnds = m_wm->filteredHwndsForExe(targetExe);
             qInfo() << "[Action] CycleProcessWindows hwnds=" << hwnds.size();
             if (hwnds.size() >= 2) {
-                requestShow();
+                requestShow(OverlayIntent::ShowSwitcher, action);
                 m_selectCtrl->tryEnterGroupForWindow(foreWin);
             }
         }
@@ -291,11 +317,20 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
         qInfo() << "[Action] TogglePause";
         cfg().setPaused(!cfg().getPaused());
         return;
+    case HotkeyAction::SwitchToNextWindow:
+        qInfo() << "[Action] SwitchToNextWindow"
+                << "visible=" << visible;
+        if (!visible) {
+            requestShow(OverlayIntent::ShowSwitcher, action);
+        } else {
+            m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
+        }
+        return;
     case HotkeyAction::SwitchToPreviousWindow:
         qInfo() << "[Action] SwitchToPreviousWindow"
                 << "visible=" << visible;
         if (!visible) {
-            requestShow(OverlayIntent::ShowSwitcherBackward);
+            requestShow(OverlayIntent::ShowSwitcherBackward, action);
         } else {
             m_selectCtrl->handleOverlayAction(HotkeyAction::CycleBackward, modifiers);
         }
@@ -334,7 +369,7 @@ void Widget::activateCurrentGroupWindow() {
 }
 
 void Widget::onActivationModifiersReleased() {
-    qInfo() << "[ActivationRelease] All activation modifiers released"
+    qInfo() << "[ActivationRelease] forwarding to controller"
             << "visible=" << isVisible()
             << "groupMode=" << m_selectCtrl->isInGroupMode();
 
@@ -343,23 +378,7 @@ void Widget::onActivationModifiersReleased() {
 
     if (!isVisible()) return;
 
-    if (m_selectCtrl->isInGroupMode()) {
-        HWND targetHwnd = nullptr;
-        QString targetExe, targetTitle;
-        if (auto idx = lv->currentIndex(); idx.isValid())
-            if (auto& g = m_model->groupAt(idx.row()); !g.windows.empty()) {
-                targetHwnd = g.windows.first().hwnd;
-                targetExe = g.exePath;
-                targetTitle = g.windows.first().title;
-            }
-        m_selectCtrl->exitGroupWindowMode(false);
-        if (targetHwnd)
-            activateWindowWithVerification(targetHwnd, targetExe, targetTitle);
-    } else {
-        activateCurrentGroupWindow();
-    }
-
-    m_overlayCtrl->handleIntent(OverlayIntent::ActivationModifiersReleased);
+    m_overlayCtrl->handleIntent(OverlayIntent::SessionEndConditionMet);
 }
 
 void Widget::activateWindowWithVerification(HWND targetHwnd, const QString& exePath,

@@ -190,10 +190,17 @@ void OverlayController::transition(OverlayIntent intent) {
         break;
 
     case OverlayState::Visible:
-        if (intent == OverlayIntent::AltReleased ||
-            intent == OverlayIntent::ActivationModifiersReleased ||
-            intent == OverlayIntent::Dismiss) {
-            qInfo() << "[Transition] Visible +" << (int)intent << "→ hide";
+        if (intent == OverlayIntent::SessionEndConditionMet) {
+            if (m_sessionInfo.endTrigger == SessionEndTrigger::ModifierRelease) {
+                qInfo() << "[Transition] ModifierRelease → emit sessionFinished + hide";
+                emit sessionFinished();
+                hideWindow();
+            } else {
+                qInfo() << "[Transition] SessionEndConditionMet but endTrigger="
+                        << (int)m_sessionInfo.endTrigger << "→ no-op (waiting for explicit action)";
+            }
+        } else if (intent == OverlayIntent::Dismiss) {
+            qInfo() << "[Transition] Dismiss → hide";
             hideWindow();
         } else {
             qDebug() << "[Transition] Visible +" << (int)intent << "→ no-op";
@@ -221,7 +228,7 @@ void OverlayController::showWindow() {
     }
 
     m_overlayState = OverlayState::Visible;
-    m_stayOpenMode = false;
+    m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
     Util::closeSystemWindows();
     qInfo() << "[OverlayCtrl] State -> Visible, calling forceShow...";
     bool ok = forceShow();
