@@ -227,6 +227,7 @@ void OverlayController::showWindow() {
     }
 
     m_overlayState = OverlayState::Visible;
+    emit stateChanged(m_overlayState);
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
     qInfo() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
             << "endTrigger=" << (int)m_sessionInfo.endTrigger;
@@ -235,6 +236,7 @@ void OverlayController::showWindow() {
     bool ok = forceShow();
     qInfo() << "[OverlayCtrl] showWindow forceShow=" << ok;
     if (ok) {
+        emit showRequested();
         auto* lv = qobject_cast<QListView*>(m_lv);
         if (lv) {
             lv->setFocusPolicy(Qt::StrongFocus);
@@ -243,6 +245,7 @@ void OverlayController::showWindow() {
         }
     } else {
         m_overlayState = OverlayState::Hidden;
+        emit stateChanged(OverlayState::Hidden);
         m_listDirty = true;
     }
 }
@@ -250,6 +253,8 @@ void OverlayController::showWindow() {
 void OverlayController::hideWindow() {
     qInfo() << "[OverlayCtrl] hideWindow state=" << (int)m_overlayState;
     m_overlayState = OverlayState::Hidden;
+    emit stateChanged(m_overlayState);
+    emit hideRequested();
     m_listDirty = true;
     m_widget->hide();
 }

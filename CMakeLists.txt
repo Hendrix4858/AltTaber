@@ -102,10 +102,14 @@ add_executable(Win_Switcher src/main.cpp
         header/utils/SingleApp.h
         header/utils/Startup.h
         header/utils/SystemTray.h
+        src/utils/SystemTray.cpp
         header/utils/ConfigManager.h
         header/utils/ConfigManagerBase.h
         src/utils/ConfigManagerBase.cpp
         header/utils/HotkeyAction.h
+        header/utils/HotkeyActionTypes.h
+        header/utils/HotkeyStrings.h
+        header/utils/HotkeyBinding.h
         src/utils/HotkeyAction.cpp
         src/utils/HotkeyRecorder.cpp
         header/utils/HotkeyRecorder.h
@@ -125,7 +129,9 @@ add_executable(Win_Switcher src/main.cpp
         src/utils/JsonTranslator.cpp
         header/utils/Logger.h
         src/utils/Logger.cpp
-        header/utils/ThemeManager.h)
+        header/utils/ThemeManager.h
+        header/utils/Application.h
+        src/utils/Application.cpp)
 target_link_libraries(Win_Switcher
         Qt::Core
         Qt::Gui

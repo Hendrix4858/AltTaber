@@ -59,6 +59,9 @@ public:
 
 signals:
     void sessionFinished();
+    void showRequested();
+    void hideRequested();
+    void stateChanged(OverlayController::OverlayState state);
 
 private:
     // ── State machine ──

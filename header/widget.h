@@ -30,8 +30,6 @@ protected:
     void hideEvent(QHideEvent* event) override;
 
 public:
-    using OverlayState = OverlayController::OverlayState;
-
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     void warmupCache();
     Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher,
@@ -43,7 +41,6 @@ public:
     HWND hWnd() { return (HWND) winId(); }
     bool isForeground() { return GetForegroundWindow() == hWnd(); }
 
-    OverlayState overlayState() const;
     ~Widget() override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void handleListItemClicked(const QModelIndex& index);

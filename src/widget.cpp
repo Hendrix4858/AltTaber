@@ -68,10 +68,15 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_selectCtrl->setLabelWidget(ui->label);
     m_taskbarCycler = new TaskbarWindowCycler(m_cyc, m_wm, this);
 
+    // Relay OverlayController state signals outward for backward compatibility
+    connect(m_overlayCtrl, &OverlayController::showRequested, this, &Widget::overlayShown);
+    connect(m_overlayCtrl, &OverlayController::hideRequested, this, &Widget::overlayDismissed);
+
     connect(lv, &QListView::clicked, this, &Widget::handleListItemClicked);
 
     connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
-        if (state == Qt::ApplicationInactive && isVisible()) {
+        if (state == Qt::ApplicationInactive
+            && m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible) {
             hideOverlay();
         }
     });
@@ -235,20 +240,12 @@ bool Widget::requestShow(OverlayIntent why, HotkeyAction triggeringAction) {
     }
 
     m_overlayCtrl->handleIntent(why);
-    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
-    if (visible)
-        emit overlayShown();
-    return visible;
+    return m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
 }
 
 void Widget::hideOverlay() {
     qInfo() << "[Widget::hideOverlay]";
     m_overlayCtrl->handleIntent(OverlayIntent::Dismiss);
-    emit overlayDismissed();
-}
-
-Widget::OverlayState Widget::overlayState() const {
-    return m_overlayCtrl->overlayState();
 }
 
 bool Widget::eventFilter(QObject* watched, QEvent* event) {
@@ -271,12 +268,11 @@ void Widget::handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers 
 }
 
 void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
     qInfo() << "[Widget::handleGlobalAction] ENTER action=" << hotkeyActionName(action)
             << "modifiers=" << modifiers
-            << "overlayState=" << (int)m_overlayCtrl->overlayState()
-            << "visible=" << isVisible()
+            << "visible=" << visible
             << "thread=" << QThread::currentThread();
-    bool visible = isVisible();
 
     switch (action) {
     case HotkeyAction::SwitchToNextWindow:
@@ -361,7 +357,7 @@ void Widget::updateOverlayBindings(const HotkeyBindings& bindings) {
 }
 
 void Widget::setupLabelFont() {
-    static auto reloadLabelFontCfg = [this] {
+    auto reloadLabelFontCfg = [this] {
         const QStringList Fonts = {"Microsoft YaHei UI", "Microsoft YaHei", "Consolas"};
         auto labelFont = ui->label->font();
         labelFont.setPointSize(cfg().get("label/font_size", 10).toInt());
@@ -373,7 +369,7 @@ void Widget::setupLabelFont() {
     };
     reloadLabelFontCfg();
 
-    connect(&cfg(), &ConfigManager::configEdited, this, [] {
+    connect(&cfg(), &ConfigManager::configEdited, this, [reloadLabelFontCfg] {
         reloadLabelFontCfg();
     });
 }
@@ -385,14 +381,15 @@ void Widget::activateCurrentGroupWindow() {
 }
 
 void Widget::onActivationModifiersReleased() {
+    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
     qInfo() << "[ActivationRelease] forwarding to controller"
-            << "visible=" << isVisible()
+            << "visible=" << visible
             << "groupMode=" << m_selectCtrl->isInGroupMode();
 
     m_cyc->clearGroupWindowOrder();
     m_selectCtrl->resetState();
 
-    if (!isVisible()) return;
+    if (!visible) return;
 
     m_overlayCtrl->handleIntent(OverlayIntent::SessionEndConditionMet);
 }
