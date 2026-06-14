@@ -229,6 +229,8 @@ public:
     HotkeyBindings effectiveHotkeyBindings() {
         auto bindings = getHotkeyBindings();
         normalizeHotkeyBindings(bindings);
+        for (auto action : AllActions)
+            ensureRequiredBindings(action, bindings[action]);
         return bindings;
     }
 

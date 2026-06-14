@@ -77,7 +77,6 @@
     "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>"
   },
   "SystemTray": {
-    "Show Window": "显示窗口",
     "Check for Updates": "检查更新",
     "Settings": "设置",
     "Restart as Administrator": "以管理员身份重新启动",
