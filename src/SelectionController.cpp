@@ -36,8 +36,10 @@ int SelectionController::currentRow() const {
     return m_lv->currentIndex().row();
 }
 
-void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers,
+                                              InputSource source) {
     qInfo() << "[Action] overlayAction=" << hotkeyActionName(action)
+            << "source=" << (source == InputSource::Hook ? "Hook" : "QtEvent")
             << "groupMode=" << m_isInGroupWindowMode;
 
     switch (action) {

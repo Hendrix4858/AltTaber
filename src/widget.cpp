@@ -226,8 +226,13 @@ bool Widget::requestShow(OverlayIntent why, HotkeyAction triggeringAction) {
     m_selectCtrl->resetAll();
 
     auto meta = getActionMetadata(triggeringAction);
-    if (meta.lifecycle == HotkeyLifecycle::OverlaySession)
+    qInfo() << "[requestShow] action=" << hotkeyActionName(triggeringAction)
+            << "lifecycle=" << (int)meta.lifecycle
+            << "endTrigger=" << (int)meta.endTrigger;
+    if (meta.lifecycle == HotkeyLifecycle::OverlaySession) {
         m_overlayCtrl->setSessionInfo({triggeringAction, meta.endTrigger});
+        qInfo() << "[requestShow] sessionInfo set: endTrigger=" << (int)meta.endTrigger;
+    }
 
     m_overlayCtrl->handleIntent(why);
     bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
@@ -258,7 +263,11 @@ void Widget::handleListItemClicked(const QModelIndex& index) {
 }
 
 void Widget::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    m_selectCtrl->handleOverlayAction(action, modifiers);
+    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::QtEvent);
+}
+
+void Widget::handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::Hook);
 }
 
 void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
@@ -270,12 +279,12 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
     bool visible = isVisible();
 
     switch (action) {
-    case HotkeyAction::ShowSwitcher:
+    case HotkeyAction::SwitchToNextWindow:
         if (!visible) {
-            qInfo() << "[Action] ShowSwitcher -> requestShow";
+            qInfo() << "[Action] SwitchToNextWindow -> requestShow";
             requestShow(OverlayIntent::ShowSwitcher, action);
         } else {
-            qInfo() << "[Action] ShowSwitcher -> overlay visible -> CycleForward";
+            qInfo() << "[Action] SwitchToNextWindow -> overlay visible -> CycleForward";
             m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
         }
         return;
@@ -317,15 +326,22 @@ void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modif
         qInfo() << "[Action] TogglePause";
         cfg().setPaused(!cfg().getPaused());
         return;
-    case HotkeyAction::SwitchToNextWindow:
-        qInfo() << "[Action] SwitchToNextWindow"
-                << "visible=" << visible;
+    case HotkeyAction::ShowSwitcherStayOpen:
+    {
+        auto meta = getActionMetadata(action);
+        qInfo() << "[Action] ShowSwitcherStayOpen"
+                << "visible=" << visible
+                << "lifecycle=" << (int)meta.lifecycle
+                << "endTrigger=" << (int)meta.endTrigger;
         if (!visible) {
             requestShow(OverlayIntent::ShowSwitcher, action);
         } else {
+            m_overlayCtrl->setStayOpenMode(true);
             m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
+            qInfo() << "[Action] ShowSwitcherStayOpen -> stayOpen + CycleForward";
         }
         return;
+    }
     case HotkeyAction::SwitchToPreviousWindow:
         qInfo() << "[Action] SwitchToPreviousWindow"
                 << "visible=" << visible;

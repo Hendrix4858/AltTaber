@@ -35,7 +35,7 @@ public:
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     void warmupCache();
     Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher,
-                                  HotkeyAction triggeringAction = HotkeyAction::ShowSwitcher);
+                                  HotkeyAction triggeringAction = HotkeyAction::SwitchToNextWindow);
     void hideOverlay();
     void notifyForegroundChanged(HWND hwnd);
     OverlayController* overlayController() const { return m_overlayCtrl; }
@@ -51,6 +51,7 @@ public:
     TaskbarWindowCycler* taskbarCycler() const { return m_taskbarCycler; }
 
     Q_INVOKABLE void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    Q_INVOKABLE void handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     Q_INVOKABLE void handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     void onActivationModifiersReleased();
 

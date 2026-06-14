@@ -116,7 +116,7 @@
     "Optional description": "可选描述"
   },
   "HotkeyAction": {
-    "Show Window List": "显示窗口列表",
+    "Switch to Next Window": "切换到下一个窗口",
     "Show Process Window List": "显示同进程窗口列表",
     "Switch Process Window": "切换同进程窗口",
     "Enter Process Window List": "进入同进程窗口列表",
@@ -126,7 +126,9 @@
     "Move Selection Down": "向下移动",
     "Activate Selected": "激活选中窗口",
     "Dismiss Switcher": "关闭窗口列表",
-    "Toggle Pause": "切换暂停"
+    "Toggle Pause": "切换暂停",
+    "Switch to Previous Window": "切换到上一个窗口",
+    "Keep Window Displayed": "保持窗口显示"
   },
   "HotkeyRecorder": {
     "+ Add": "+ 添加"

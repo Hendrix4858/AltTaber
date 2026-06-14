@@ -361,12 +361,12 @@ void SettingsDialog::buildHotkeyPage() {
 
     // Display order: Global first, then Overlay
     static const HotkeyAction displayOrder[] = {
-        HotkeyAction::ShowSwitcher,
+        HotkeyAction::SwitchToNextWindow,
         HotkeyAction::CycleProcessWindows,
         HotkeyAction::SwitchProcessWindow,
         HotkeyAction::TogglePause,
-        HotkeyAction::SwitchToNextWindow,
         HotkeyAction::SwitchToPreviousWindow,
+        HotkeyAction::ShowSwitcherStayOpen,
         HotkeyAction::EnterGroupMode,
         HotkeyAction::CycleForward,
         HotkeyAction::CycleBackward,
@@ -437,8 +437,8 @@ void SettingsDialog::buildHotkeyPage() {
         });
     }
 
-    // ShowSwitcher empty warning label
-    m_showSwitcherWarning = new QLabel(tr("Warning: Show Window List has no hotkey assigned, AltTaber cannot be activated"), scrollContent);
+    // SwitchToNextWindow empty warning label
+    m_showSwitcherWarning = new QLabel(tr("Warning: Switch to Next Window has no hotkey assigned, AltTaber cannot be activated"), scrollContent);
     m_showSwitcherWarning->setStyleSheet("color: red; font-weight: bold; padding: 4px 0;");
     m_showSwitcherWarning->setVisible(false);
     contentLayout->addWidget(m_showSwitcherWarning);
@@ -478,9 +478,9 @@ void SettingsDialog::loadHotkeyBindings() {
     checkLetterJumpConflict();
 
     if (m_showSwitcherWarning) {
-        auto showBinds = bindings.value(HotkeyAction::ShowSwitcher);
+        auto showBinds = bindings.value(HotkeyAction::SwitchToNextWindow);
         m_showSwitcherWarning->setVisible(
-            bindings.contains(HotkeyAction::ShowSwitcher) && showBinds.isEmpty());
+            bindings.contains(HotkeyAction::SwitchToNextWindow) && showBinds.isEmpty());
     }
 }
 

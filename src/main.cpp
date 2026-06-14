@@ -104,6 +104,12 @@ int main(int argc, char* argv[]) {
                                   winSwitcher, &Widget::handleGlobalAction, Qt::QueuedConnection);
     qInfo() << "[Main]   hotkeyTriggered connected:" << (bool)conn1;
 
+    qInfo() << "[Main] Connecting kbHooker::overlayKeyTriggered -> Widget::handleHookOverlayAction (QueuedConnection)";
+    auto connHook = QObject::connect(&kbHooker, &KeyboardHooker::overlayKeyTriggered,
+                                     winSwitcher, &Widget::handleHookOverlayAction,
+                                     Qt::QueuedConnection);
+    qInfo() << "[Main]   overlayKeyTriggered connected:" << (bool)connHook;
+
     qInfo() << "[Main] Connecting kbHooker::activationModifiersReleased -> Widget::onActivationModifiersReleased (QueuedConnection)";
     auto conn2 = QObject::connect(&kbHooker, &KeyboardHooker::activationModifiersReleased,
                                   winSwitcher, &Widget::onActivationModifiersReleased,

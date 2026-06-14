@@ -51,7 +51,7 @@ private:
     QPushButton* m_btnEditBlocked = nullptr;
     QPushButton* m_btnExportBlocked = nullptr;
     QPushButton* m_btnImportBlocked = nullptr;
-    QLabel* m_showSwitcherWarning = nullptr;
+    QLabel* m_showSwitcherWarning = nullptr; // checks SwitchToNextWindow bindings
 };
 
 #endif

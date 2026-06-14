@@ -26,6 +26,7 @@ public:
 
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void overlayKeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     void altReleased();
     void activationModifiersReleased();
 

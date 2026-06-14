@@ -191,13 +191,12 @@ void OverlayController::transition(OverlayIntent intent) {
 
     case OverlayState::Visible:
         if (intent == OverlayIntent::SessionEndConditionMet) {
-            if (m_sessionInfo.endTrigger == SessionEndTrigger::ModifierRelease) {
+            if (m_sessionInfo.endTrigger == SessionEndTrigger::ModifierRelease && !m_stayOpenMode) {
                 qInfo() << "[Transition] ModifierRelease → emit sessionFinished + hide";
                 emit sessionFinished();
                 hideWindow();
             } else {
-                qInfo() << "[Transition] SessionEndConditionMet but endTrigger="
-                        << (int)m_sessionInfo.endTrigger << "→ no-op (waiting for explicit action)";
+                qInfo() << "[Transition] SessionEndConditionMet → no-op (stayOpen or explicit action)";
             }
         } else if (intent == OverlayIntent::Dismiss) {
             qInfo() << "[Transition] Dismiss → hide";
@@ -229,11 +228,20 @@ void OverlayController::showWindow() {
 
     m_overlayState = OverlayState::Visible;
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
+    qInfo() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
+            << "endTrigger=" << (int)m_sessionInfo.endTrigger;
     Util::closeSystemWindows();
     qInfo() << "[OverlayCtrl] State -> Visible, calling forceShow...";
     bool ok = forceShow();
     qInfo() << "[OverlayCtrl] showWindow forceShow=" << ok;
-    if (!ok) {
+    if (ok) {
+        auto* lv = qobject_cast<QListView*>(m_lv);
+        if (lv) {
+            lv->setFocusPolicy(Qt::StrongFocus);
+            lv->setFocus(Qt::OtherFocusReason);
+            qInfo() << "[OverlayCtrl] QListView focus set";
+        }
+    } else {
         m_overlayState = OverlayState::Hidden;
         m_listDirty = true;
     }

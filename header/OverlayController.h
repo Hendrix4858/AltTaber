@@ -19,7 +19,7 @@ enum class OverlayIntent {
 };
 
 struct OverlaySessionInfo {
-    HotkeyAction triggeringAction = HotkeyAction::ShowSwitcher;
+    HotkeyAction triggeringAction = HotkeyAction::SwitchToNextWindow;
     SessionEndTrigger endTrigger = SessionEndTrigger::ModifierRelease;
 };
 

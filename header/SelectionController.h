@@ -11,6 +11,11 @@ class WindowGroupModel;
 class WindowManager;
 class GroupWindowCycler;
 
+enum class InputSource {
+    QtEvent,
+    Hook
+};
+
 class SelectionController : public QObject {
     Q_OBJECT
 
@@ -21,7 +26,8 @@ public:
     bool handleEventFilter(QObject* watched, QEvent* event, bool stayOpenMode);
     bool jumpToLetter(QChar letter);
 
-    void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers,
+                             InputSource source = InputSource::QtEvent);
     void handleListItemClicked(const QModelIndex& index, bool stayOpenMode);
 
     void showLabelForItem(const QModelIndex& index);

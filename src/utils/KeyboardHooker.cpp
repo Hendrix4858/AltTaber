@@ -148,26 +148,22 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             else
                 qDebug() << "[KeyHook] ⚠️ No global binding matched for" << keyName;
 
-            // Legacy convenience: Alt+Arrow routing when overlay visible but not foreground
-            // Uses overlay bindings for vkCode match (Alt is already held)
-            if (s_modState.alt) {
+            // Overlay key routing: when overlay is visible, intercept overlay-scoped
+            // keys and forward via dedicated signal to prevent Windows from processing
+            // them (e.g. Tab changing focus) before the widget receives them
+            {
                 bool overlayVisible = IsWindowVisible(s_instance->m_ownerHwnd);
-                bool isForeground = s_instance->m_ownerHwnd == GetForegroundWindow();
-                if (overlayVisible && !isForeground) {
-                    static const HotkeyAction legacyActions[] = {
-                        HotkeyAction::CycleForward,
-                        HotkeyAction::CycleBackward,
-                        HotkeyAction::MoveSelectionUp,
-                        HotkeyAction::MoveSelectionDown,
-                    };
-                    for (auto action : legacyActions) {
-                        auto it = s_instance->m_bindings.find(action);
-                        if (it == s_instance->m_bindings.end()) continue;
+                if (overlayVisible) {
+                    for (auto it = s_instance->m_bindings.begin();
+                         it != s_instance->m_bindings.end(); ++it) {
+                        if (hotkeyActionScope(it.key()) != HotkeyScope::Overlay)
+                            continue;
                         for (const auto& b : it.value()) {
-                            if (b.vkCode == pKB->vkCode) {
-                                qDebug() << "[KeyHook] Alt+routing ->"
-                                         << hotkeyActionName(action);
-                                emit s_instance->hotkeyTriggered(action, mods);
+                            if (b.matchesPhysical(pKB->vkCode, pKB->scanCode,
+                                                  (pKB->flags & LLKHF_EXTENDED) != 0, mods)) {
+                                qInfo() << "[KeyHook] overlay-key-routing ->"
+                                        << hotkeyActionName(it.key());
+                                emit s_instance->overlayKeyTriggered(it.key(), mods);
                                 return 1;
                             }
                         }
