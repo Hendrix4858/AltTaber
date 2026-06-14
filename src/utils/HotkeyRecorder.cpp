@@ -43,13 +43,19 @@ void HotkeyRecorder::rebuildUi() {
     }
 
     for (int i = 0; i < m_bindings.size(); ++i) {
-        auto* btn = new QPushButton(bindingButtonText(m_bindings[i]) + QStringLiteral(" \u00D7"), this);
+        bool protect = isProtectedBinding(m_action, m_bindings[i]);
+        QString text = bindingButtonText(m_bindings[i]);
+        auto* btn = new QPushButton(protect ? text : text + QStringLiteral(" \u00D7"), this);
         btn->setFixedHeight(28);
-        btn->setCursor(Qt::PointingHandCursor);
-        btn->setProperty("bindingIndex", i);
-        connect(btn, &QPushButton::clicked, this, [this, i]() {
-            onRemoveClicked(i);
-        });
+        if (protect) {
+            btn->setEnabled(false);
+        } else {
+            btn->setCursor(Qt::PointingHandCursor);
+            btn->setProperty("bindingIndex", i);
+            connect(btn, &QPushButton::clicked, this, [this, i]() {
+                onRemoveClicked(i);
+            });
+        }
         m_layout->addWidget(btn);
     }
 
@@ -66,7 +72,7 @@ void HotkeyRecorder::onAddClicked() {
 
 
 void HotkeyRecorder::onRemoveClicked(int index) {
-    if (index >= 0 && index < m_bindings.size()) {
+    if (index >= 0 && index < m_bindings.size() && !isProtectedBinding(m_action, m_bindings[index])) {
         m_bindings.removeAt(index);
         rebuildUi();
         emit bindingsChanged(m_action, m_bindings);

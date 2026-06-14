@@ -227,6 +227,33 @@ inline HotkeyBindings defaultHotkeyBindings() {
     return defaults;
 }
 
+inline QList<HotkeyBinding> requiredBindingsForAction(HotkeyAction action) {
+    switch (action) {
+        case HotkeyAction::DismissSwitcher:
+            return {makePhysicalBinding(Qt::NoModifier, VK_ESCAPE, 0x01)};
+        default:
+            return {};
+    }
+}
+
+inline bool isProtectedBinding(HotkeyAction action, const HotkeyBinding& binding) {
+    auto required = requiredBindingsForAction(action);
+    for (const auto& rb : required)
+        if (rb == binding) return true;
+    return false;
+}
+
+inline void ensureRequiredBindings(HotkeyAction action, QList<HotkeyBinding>& bindings) {
+    auto required = requiredBindingsForAction(action);
+    for (const auto& rb : required) {
+        bool found = false;
+        for (const auto& b : bindings)
+            if (b == rb) { found = true; break; }
+        if (!found)
+            bindings.prepend(rb);
+    }
+}
+
 void normalizeHotkeyBindings(HotkeyBindings& bindings);
 
 namespace HotkeyStrings {

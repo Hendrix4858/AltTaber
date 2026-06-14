@@ -7,5 +7,6 @@ void normalizeHotkeyBindings(HotkeyBindings& bindings) {
             if (defaults.contains(action) && !defaults[action].isEmpty())
                 bindings[action] = defaults[action];
         }
+        ensureRequiredBindings(action, bindings[action]);
     }
 }
