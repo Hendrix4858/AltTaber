@@ -1,11 +1,11 @@
 #include "SettingsDialog.h"
 #include "ui_SettingsDialog.h"
-#include "utils/ConfigManager.h"
-#include "utils/LanguageManager.h"
-#include "utils/Startup.h"
-#include "utils/ThemeManager.h"
-#include "utils/HotkeyRecorder.h"
-#include "utils/KeyboardHooker.h"
+#include "core/ConfigManager.h"
+#include "core/LanguageManager.h"
+#include "lifecycle/Startup.h"
+#include "core/ThemeManager.h"
+#include "hook/HotkeyRecorder.h"
+#include "hook/KeyboardHooker.h"
 #include "AddBlockedDialog.h"
 
 #include <QApplication>
@@ -21,7 +21,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
-#include "utils/Logger.h"
+#include "lifecycle/Logger.h"
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFile>

@@ -1,11 +1,11 @@
-﻿#ifndef WIN_SWITCHER_WIDGET_H
+#ifndef WIN_SWITCHER_WIDGET_H
 #define WIN_SWITCHER_WIDGET_H
 
 #include <QWidget>
 #include <Windows.h>
 #include <QListView>
 
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 #include "OverlayController.h"
 
 class WindowGroupModel;

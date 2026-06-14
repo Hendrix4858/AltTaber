@@ -1,5 +1,5 @@
-#include "utils/Logger.h"
-#include "utils/ConfigManager.h"
+#include "lifecycle/Logger.h"
+#include "core/ConfigManager.h"
 #include <QApplication>
 #include <QDir>
 #include <QFileInfo>

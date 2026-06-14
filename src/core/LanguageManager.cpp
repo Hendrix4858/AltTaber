@@ -1,7 +1,7 @@
-#include "utils/LanguageManager.h"
-#include "utils/ConfigManager.h"
-#include "utils/SystemTray.h"
-#include "utils/JsonTranslator.h"
+#include "core/LanguageManager.h"
+#include "core/ConfigManager.h"
+#include "lifecycle/SystemTray.h"
+#include "core/JsonTranslator.h"
 
 #include <QApplication>
 #include <QDebug>

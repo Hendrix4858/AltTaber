@@ -1,5 +1,5 @@
-﻿#include <ShObjIdl_core.h>
-#include "utils/QtWin.h"
+#include <ShObjIdl_core.h>
+#include "lifecycle/QtWin.h"
 #include <windows.h>
 #include <QtDebug>
 

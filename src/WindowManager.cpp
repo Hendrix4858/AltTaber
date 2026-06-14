@@ -2,7 +2,7 @@
 #include "WindowEnumerator.h"
 #include "WindowGrouper.h"
 #include "WindowFilter.h"
-#include "utils/ConfigManager.h"
+#include "core/ConfigManager.h"
 
 WindowManager::WindowManager(HWND selfHwnd, QObject* parent)
     : QObject(parent), m_selfHwnd(selfHwnd) {

@@ -1,8 +1,8 @@
-#include "utils/SystemTray.h"
-#include "utils/ThemeManager.h"
-#include "utils/ConfigManager.h"
-#include "utils/Startup.h"
-#include "utils/QuitReason.h"
+#include "lifecycle/SystemTray.h"
+#include "core/ThemeManager.h"
+#include "core/ConfigManager.h"
+#include "lifecycle/Startup.h"
+#include "core/QuitReason.h"
 #include "UpdateDialog.h"
 #include "SettingsDialog.h"
 #include <QMenu>

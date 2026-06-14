@@ -1,6 +1,6 @@
-﻿#include "utils/TaskbarWheelHooker.h"
+#include "hook/TaskbarWheelHooker.h"
 #include <QTimer>
-#include "utils/uiautomation.h"
+#include "hook/uiautomation.h"
 #include "utils/AppUtil.h"
 #include "utils/Util.h"
 #include <QTime>

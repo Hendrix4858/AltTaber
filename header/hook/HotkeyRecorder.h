@@ -6,7 +6,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QKeyEvent>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class HotkeyRecorder : public QWidget {
     Q_OBJECT

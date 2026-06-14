@@ -6,7 +6,7 @@
 #include <QMap>
 #include <QLabel>
 #include <QPushButton>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {

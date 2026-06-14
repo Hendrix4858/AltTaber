@@ -5,8 +5,8 @@
 #include <QMap>
 #include <QJsonObject>
 #include <QDebug>
-#include "utils/HotkeyActionTypes.h"
-#include "utils/HotkeyStrings.h"
+#include "core/HotkeyActionTypes.h"
+#include "core/HotkeyStrings.h"
 
 struct HotkeyBinding {
     enum class KeyMode { Logical, Physical };

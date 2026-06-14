@@ -1,4 +1,4 @@
-﻿// You may need to build the project (run Qt uic code generator) to get "ui_UpdateDialog.h" resolved
+// You may need to build the project (run Qt uic code generator) to get "ui_UpdateDialog.h" resolved
 
 #include "UpdateDialog.h"
 #include <windows.h>
@@ -11,9 +11,9 @@
 #include <QJsonArray>
 #include <QDesktopServices>
 #include <QDir>
-#include "utils/SystemTray.h"
-#include "utils/ThemeManager.h"
-#include "utils/QuitReason.h"
+#include "lifecycle/SystemTray.h"
+#include "core/ThemeManager.h"
+#include "core/QuitReason.h"
 #include <QProcess>
 #include <QElapsedTimer>
 

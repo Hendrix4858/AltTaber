@@ -1,4 +1,4 @@
-#include "utils/IconUtil.h"
+#include "lifecycle/IconUtil.h"
 #include <QDebug>
 #include <QFileInfo>
 #include <QFileIconProvider>
@@ -11,10 +11,10 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDateTime>
-#include "utils/QtWin.h"
+#include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
 #include "utils/WindowUtil.h"
-#include "utils/ConfigManager.h"
+#include "core/ConfigManager.h"
 #include <ShObjIdl_core.h>
 #include <commoncontrols.h>
 #include <atlbase.h>

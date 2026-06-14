@@ -3,8 +3,8 @@
 
 #include <QApplication>
 #include "ConfigManagerBase.h"
-#include "utils/Logger.h"
-#include "utils/HotkeyAction.h"
+#include "lifecycle/Logger.h"
+#include "core/HotkeyAction.h"
 
 enum DisplayMonitor {
     PrimaryMonitor,

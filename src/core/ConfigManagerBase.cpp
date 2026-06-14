@@ -1,4 +1,4 @@
-#include "utils/ConfigManagerBase.h"
+#include "core/ConfigManagerBase.h"
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QSettings>

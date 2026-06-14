@@ -1,4 +1,4 @@
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 void normalizeHotkeyBindings(HotkeyBindings& bindings) {
     auto defaults = defaultHotkeyBindings();

@@ -21,12 +21,16 @@ cmake --build build
 
 | Path | Purpose |
 |------|---------|
-| `header/` | All `.h` files (flat under `header/`, utils under `header/utils/`) |
-| `src/` | Matching `.cpp` files |
-| `header/utils/Util.h` | Umbrella: includes MiscUtil+ProcessUtil+IconUtil+WindowUtil |
-| `header/utils/AppUtil.h` | Umbrella: includes UwpHelper+StartMenuHelper+AppExeResolver |
+| `header/` | Root-level `.h` files (Widget, WindowManager, core domain models) |
+| `header/utils/` | Pure stateless utility functions (MiscUtil, ProcessUtil, WindowUtil, AppUtil) |
+| `header/hook/` | System hooks and input processing (KeyboardHooker, TaskbarWheelHooker, winEventHook, WheelEventProcessor) |
+| `header/core/` | Core domain model and configuration (HotkeyAction types, ConfigManager, ThemeManager, i18n) |
+| `header/lifecycle/` | Application bootstrap and platform bindings (Application, SystemTray, SingleApp, Logger, IconUtil) |
+| `src/` | Matching `.cpp` files mirroring the header structure |
 | `ui/` | Qt Designer `.ui` files |
 | `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
+
+**Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).
 
 ## Architecture (Entrypoint)
 

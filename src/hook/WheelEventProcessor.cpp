@@ -1,4 +1,4 @@
-#include "utils/WheelEventProcessor.h"
+#include "hook/WheelEventProcessor.h"
 #include "WindowGroupModel.h"
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"

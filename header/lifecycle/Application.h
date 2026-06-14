@@ -4,7 +4,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QApplication>
 #include <QTimer>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class WindowManager;
 class Widget;

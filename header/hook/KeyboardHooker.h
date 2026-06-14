@@ -1,10 +1,10 @@
-﻿#ifndef WIN_SWITCHER_KEYBOARDHOOKER_H
+#ifndef WIN_SWITCHER_KEYBOARDHOOKER_H
 #define WIN_SWITCHER_KEYBOARDHOOKER_H
 
 #include <Windows.h>
 #include <QObject>
 #include <atomic>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class KeyboardHooker : public QObject {
     Q_OBJECT

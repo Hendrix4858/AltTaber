@@ -1,6 +1,6 @@
-#include "utils/HotkeyRecorder.h"
-#include "utils/HotkeyAction.h"
-#include "utils/KeyboardHooker.h"
+#include "hook/HotkeyRecorder.h"
+#include "core/HotkeyAction.h"
+#include "hook/KeyboardHooker.h"
 #include <QApplication>
 #include <QStyle>
 #include <QTimer>

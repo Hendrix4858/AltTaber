@@ -1,4 +1,4 @@
-#include "utils/JsonTranslator.h"
+#include "core/JsonTranslator.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>

@@ -5,7 +5,7 @@
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QPushButton>
-#include "utils/ConfigManager.h"
+#include "core/ConfigManager.h"
 
 class AddBlockedDialog : public QDialog {
     Q_OBJECT

@@ -1,4 +1,4 @@
-﻿#include "utils/Application.h"
+#include "lifecycle/Application.h"
 
 int main(int argc, char* argv[]) {
     Application app(argc, argv);

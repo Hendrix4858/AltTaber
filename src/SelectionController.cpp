@@ -3,9 +3,9 @@
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"
 #include "utils/Util.h"
-#include "utils/ConfigManager.h"
-#include "utils/ThemeManager.h"
-#include "utils/WheelEventProcessor.h"
+#include "core/ConfigManager.h"
+#include "core/ThemeManager.h"
+#include "hook/WheelEventProcessor.h"
 #include <QWheelEvent>
 #include <QApplication>
 

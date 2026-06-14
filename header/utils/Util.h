@@ -1,9 +1,9 @@
-﻿#ifndef WIN_SWITCHER_UTIL_H
+#ifndef WIN_SWITCHER_UTIL_H
 #define WIN_SWITCHER_UTIL_H
 
 #include "utils/MiscUtil.h"
 #include "utils/ProcessUtil.h"
-#include "utils/IconUtil.h"
+#include "lifecycle/IconUtil.h"
 #include "utils/WindowUtil.h"
 
 #endif //WIN_SWITCHER_UTIL_H

@@ -1,5 +1,5 @@
-#include "utils/ThemeManager.h"
-#include "utils/ConfigManager.h"
+#include "core/ThemeManager.h"
+#include "core/ConfigManager.h"
 #include <QSettings>
 
 ThemeManager& ThemeManager::instance() {

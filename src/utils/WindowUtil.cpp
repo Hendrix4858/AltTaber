@@ -4,7 +4,7 @@
 #include "utils/MiscUtil.h"
 #include "utils/ProcessUtil.h"
 #include "utils/AppUtil.h"
-#include "utils/ConfigManager.h"
+#include "core/ConfigManager.h"
 #include "WindowFilter.h"
 #include "WindowDescriptorBuilder.h"
 

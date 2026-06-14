@@ -2,9 +2,9 @@
 #include "WindowGroupModel.h"
 #include "WindowManager.h"
 #include "utils/Util.h"
-#include "utils/ConfigManager.h"
-#include "utils/SystemTray.h"
-#include "utils/ThemeManager.h"
+#include "core/ConfigManager.h"
+#include "lifecycle/SystemTray.h"
+#include "core/ThemeManager.h"
 #include <QDebug>
 #include <QWindow>
 #include <QScreen>

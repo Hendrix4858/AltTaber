@@ -5,7 +5,7 @@
 #include <QWidget>
 #include <QScreen>
 #include <Windows.h>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class WindowGroupModel;
 class WindowManager;
