@@ -39,4 +39,4 @@ if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
 
 Pop-Location
 Write-Host "=== Done ==="
-Get-ChildItem (Join-Path $ProjectRoot "Output")
+Get-ChildItem (Join-Path $ProjectRoot "build\output")
