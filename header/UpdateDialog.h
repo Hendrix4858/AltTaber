@@ -58,7 +58,7 @@ private:
         QFile file;
     } downloadStatus;
 
-    enum class Phase { Initial, FetchError, UpToDate, HasUpdate, DownloadFailed, DownloadSucceed };
+    enum class Phase { Initial, Fetching, FetchError, UpToDate, HasUpdate, DownloadFailed, DownloadSucceed, Installing };
     Phase m_phase = Phase::Initial;
     QString m_errorCache;
 };

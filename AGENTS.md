@@ -59,7 +59,7 @@ cmake --build "build/x64" --target installer    # build → windeployqt → Inno
 | `src/` | Matching `.cpp` files mirroring the header structure |
 | `ui/` | Qt Designer `.ui` files |
 | `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
-| `installer/` | Inno Setup script (`setup.iss`) and legacy build script (`build-installer.ps1`) |
+| `installer/` | Inno Setup template (`setup.iss.in` — version injected from CMake via `configure_file`) and legacy build script (`build-installer.ps1`) |
 
 **Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).
 

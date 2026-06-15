@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.6.1
+    VERSION 0.6.2
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -48,6 +48,12 @@ configure_file(
         VersionInfo.rc.in
         ${VERSIONINFO_RC}
         @ONLY # 只处理@var@格式的变量
+)
+# 生成 Inno Setup 脚本（注入 @PROJECT_VERSION@）
+configure_file(
+        installer/setup.iss.in
+        ${CMAKE_CURRENT_BINARY_DIR}/setup.iss
+        @ONLY
 )
 
 include_directories(header)
@@ -243,7 +249,7 @@ if (ISCC)
     endif ()
     add_custom_target(installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
-        COMMAND ${ISCC} "/DMyAppVersion=${PROJECT_VERSION}" "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}/installer/setup.iss"
+        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
         COMMENT "Compiling AltTaber installer (${ARCH_SUFFIX}) ..."
         DEPENDS ${installer_deps}
     )

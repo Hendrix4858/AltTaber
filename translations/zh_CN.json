@@ -138,6 +138,8 @@
   "UpdateDialog": {
     "AltTaber Updater": "AltTaber 更新",
     "## Fetching...": "## 正在获取...",
+    "## Fetching update...": "## 正在获取更新...",
+    "## Installing...": "## 正在安装...",
     "## Failed to fetch update info❎\n%1": "## 获取更新信息失败❎\n%1",
     "New Version: v%1 (%2)": "新版本: v%1 (%2)",
     "Current Version: v%1": "当前版本: v%1",

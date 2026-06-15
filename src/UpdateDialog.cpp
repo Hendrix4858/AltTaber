@@ -17,6 +17,7 @@
 #include <QProcess>
 #include <QFileInfo>
 #include <QEvent>
+#include <QTimer>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     QElapsedTimer t;
@@ -57,7 +58,12 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         QProcess::startDetached(filePath, {"/VERYSILENT", "/SUPPRESSMSGBOXES",
                                            "/CLOSEAPPLICATIONS"});
         QuitReason::markIntentional();
-        qApp->quit();
+        m_phase = Phase::Installing;
+        ui->progressBar->show();
+        ui->progressBar->setMaximum(0);
+        ui->progressBar->setValue(0);
+        retranslateTexts();
+        QTimer::singleShot(800, qApp, &QApplication::quit);
     });
 }
 
@@ -91,7 +97,10 @@ void UpdateDialog::applyThemeStyle() {
 }
 
 void UpdateDialog::fetchGithubReleaseInfo() {
-    m_phase = Phase::Initial;
+    m_phase = Phase::Fetching;
+    ui->progressBar->show();
+    ui->progressBar->setMaximum(0);
+    ui->progressBar->setValue(0);
     retranslateTexts();
     const QString ApiUrl = QString("https://api.github.com/repos/%1/%2/releases/latest").arg(Owner, Repo);
     QNetworkRequest request(ApiUrl);
@@ -100,6 +109,10 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Failed to fetch update info" << reply->errorString();
+            qWarning() << "GitHub API status:"
+                       << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
+                       << reply->readAll();
+            ui->progressBar->hide();
             m_phase = Phase::FetchError;
             m_errorCache = reply->errorString();
             retranslateTexts();
@@ -139,6 +152,7 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         relInfo.downloadUrl = selectedAsset["browser_download_url"].toString();
 
         qInfo() << "Update info fetched" << relInfo.ver << relInfo.downloadUrl;
+        ui->progressBar->hide();
 
         bool needUpdate = relInfo.ver > version;
         m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;
@@ -240,8 +254,8 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
 
 void UpdateDialog::changeEvent(QEvent* event) {
     if (event->type() == QEvent::LanguageChange) {
-        retranslateTexts();
         ui->retranslateUi(this);
+        retranslateTexts();
     }
     QDialog::changeEvent(event);
 }
@@ -252,6 +266,9 @@ void UpdateDialog::retranslateTexts() {
     switch (m_phase) {
     case Phase::Initial:
         ui->textBrowser->setMarkdown(tr("## Fetching..."));
+        break;
+    case Phase::Fetching:
+        ui->textBrowser->setMarkdown(tr("## Fetching update..."));
         break;
     case Phase::FetchError:
         ui->textBrowser->setMarkdown(tr("## Failed to fetch update info❎\n%1").arg(m_errorCache));
@@ -271,6 +288,9 @@ void UpdateDialog::retranslateTexts() {
         break;
     case Phase::DownloadSucceed:
         ui->textBrowser->setMarkdown(tr("## Download success✅"));
+        break;
+    case Phase::Installing:
+        ui->textBrowser->setMarkdown(tr("## Installing..."));
         break;
     }
 }

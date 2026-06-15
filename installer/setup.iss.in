@@ -2,9 +2,7 @@
 ; Requires Inno Setup 6+
 
 #define MyAppName "AltTaber"
-#ifndef MyAppVersion
-  #define MyAppVersion "0.6.1"
-#endif
+#define MyAppVersion "@PROJECT_VERSION@"
 #ifndef MyAppArch
   #define MyAppArch "win64"
 #endif
