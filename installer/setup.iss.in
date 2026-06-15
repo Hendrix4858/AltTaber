@@ -84,6 +84,50 @@ begin
   end;
 end;
 
+procedure BackupAndWriteMarker;
+var
+  MarkerPath, BackupDir: String;
+  FindRec: TFindRec;
+begin
+  if DirExists(ExpandConstant('{app}')) then begin
+    BackupDir := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\backup\{#MyAppVersion}');
+    if not DirExists(BackupDir) then
+      ForceDirectories(BackupDir);
+
+    if FindFirst(ExpandConstant('{app}\*.exe'), FindRec) then begin
+      try
+        repeat
+          FileCopy(ExpandConstant('{app}\') + FindRec.Name,
+                   BackupDir + '\' + FindRec.Name, False);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+
+    if FindFirst(ExpandConstant('{app}\*.dll'), FindRec) then begin
+      try
+        repeat
+          FileCopy(ExpandConstant('{app}\') + FindRec.Name,
+                   BackupDir + '\' + FindRec.Name, False);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+  end;
+
+  MarkerPath := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\update_marker.txt');
+  ForceDirectories(ExpandConstant('{userappdata}\MrBeanCpp\AltTaber'));
+  SaveStringToFile(MarkerPath, 'pending', False);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+    BackupAndWriteMarker;
+end;
+
 function InitializeUninstall: Boolean;
 begin
   Result := True;

@@ -4,6 +4,9 @@
 #include <QMessageBox>
 #include <qoperatingsystemversion.h>
 #include <QStyleHints>
+#include <QProcess>
+#include <QDir>
+#include <QCoreApplication>
 
 #include "lifecycle/Application.h"
 #include "widget.h"
@@ -22,6 +25,7 @@
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
+#include "core/UpdateMarker.h"
 
 bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) {
     if (eventType == "windows_generic_MSG") {
@@ -41,6 +45,28 @@ Application::Application(int argc, char* argv[])
     m_app.setApplicationName("AltTaber");
     m_app.setApplicationVersion(APP_VERSION);
     Util::Logger::init();
+
+    // --- Update rollback and cleanup ---
+    {
+        auto marker = UpdateMarker::read();
+
+        if (marker == "ok" && UpdateMarker::hasBackup()) {
+            qInfo() << "[Update] Cleaning up stale backup (previous update ok)";
+            UpdateMarker::cleanupBackup();
+        }
+
+        if (marker == "pending" && UpdateMarker::hasBackup()) {
+            int attempts = UpdateMarker::readRollbackCount();
+            UpdateMarker::writeRollbackCount(attempts + 1);
+            if (attempts >= 1) {
+                qWarning() << "[Update] Prior init attempt detected, initiating rollback";
+                if (tryRollback())
+                    return;
+            } else {
+                qInfo() << "[Update] First attempt after update, proceeding normally";
+            }
+        }
+    }
 
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");
     if (m_singleApp->isRunning()) {
@@ -78,6 +104,12 @@ Application::Application(int argc, char* argv[])
         qInfo() << "[Main] Scheduling warmupCache via singleShot(0)";
         QTimer::singleShot(0, m_widget, &Widget::warmupCache);
     }
+
+    UpdateMarker::removeMarker();
+    UpdateMarker::resetRollbackCount();
+    if (UpdateMarker::hasBackup())
+        UpdateMarker::cleanupBackup();
+    qInfo() << "[Main] Update marker cleaned up, init complete";
 
     qInfo() << "[Main] Entering event loop";
 }
@@ -194,6 +226,48 @@ void Application::wireSignals(const HotkeyBindings& bindings) {
                      m_widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
 
     qInfo() << "[Main] Hotkey system initialized";
+}
+
+bool Application::tryRollback() {
+    auto backupDir = UpdateMarker::latestBackupDir();
+    if (backupDir.isEmpty()) {
+        qWarning() << "[Rollback] No backup directory found";
+        return false;
+    }
+
+    auto appDir = QCoreApplication::applicationDirPath();
+    auto markerPath = UpdateMarker::markerPath();
+    auto batPath = QDir::temp().absoluteFilePath("AltTaber_rollback.bat");
+
+    QFile bat(batPath);
+    if (!bat.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+
+    QString content = QString(
+        "@echo off\r\n"
+        "timeout /t 3 /nobreak >nul\r\n"
+        "xcopy \"%1\\*.*\" \"%2\\\" /E /Y /I >nul 2>&1\r\n"
+        "if exist \"%3\" del \"%3\" >nul 2>&1\r\n"
+        "rmdir /S /Q \"%1\" >nul 2>&1\r\n"
+        "start \"\" \"%2\\AltTaber.exe\"\r\n"
+        "del \"%~f0\"\r\n"
+    ).arg(QDir::toNativeSeparators(backupDir),
+          QDir::toNativeSeparators(appDir),
+          QDir::toNativeSeparators(markerPath));
+
+    bat.write(content.toUtf8());
+    bat.close();
+
+    qWarning() << "[Rollback] Starting rollback from"
+               << backupDir << "to" << appDir;
+
+    if (!QProcess::startDetached(batPath)) {
+        qWarning() << "[Rollback] Failed to start rollback script";
+        return false;
+    }
+
+    QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+    return true;
 }
 
 int Application::run() {
