@@ -1,44 +1,11 @@
 #include "core/ConfigManagerBase.h"
 #include <QJsonDocument>
 #include <QJsonValue>
-#include <QSettings>
-#include <QCoreApplication>
 
 ConfigManagerBase::ConfigManagerBase(const QString& filepath)
     : m_filePath(filepath) {
-    if (QFile::exists(filepath)) {
+    if (QFile::exists(filepath))
         load();
-    } else {
-        // Try migrating from old INI config
-        QString iniPath = QCoreApplication::applicationDirPath() + "/config.ini";
-        if (QFile::exists(iniPath)) {
-            qInfo() << "Migrating config from config.ini to config.json";
-            QSettings ini(iniPath, QSettings::IniFormat);
-            for (const auto& key : ini.allKeys())
-                set(key, ini.value(key));
-
-            // Convert old INI-style BlockedWindows flat keys to JSON array
-            if (m_root.contains("BlockedWindows") && m_root["BlockedWindows"].isObject()) {
-                QJsonObject old = m_root["BlockedWindows"].toObject();
-                int count = old["count"].toInt(0);
-                QJsonArray arr;
-                for (int i = 0; i < count; ++i) {
-                    QJsonObject entry;
-                    QString t = old[QStringLiteral("%1_title").arg(i)].toString();
-                    QString c = old[QStringLiteral("%1_class").arg(i)].toString();
-                    if (!t.isEmpty() || !c.isEmpty()) {
-                        entry["title"] = t;
-                        entry["class"] = c;
-                        arr.append(entry);
-                    }
-                }
-                m_root["BlockedWindows"] = arr;
-            }
-
-            QFile::remove(iniPath);
-            save();
-        }
-    }
 
     connect(&proc_editor, &QProcess::finished, this, [this] {
         qDebug() << "#Config file edit finished";

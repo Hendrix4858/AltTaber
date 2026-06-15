@@ -36,13 +36,6 @@ public:
         QDir().mkpath(configDir);
         auto filePath = configDir + "/" + FileName;
 
-        // Migrate from old config in app directory
-        auto oldPath = QApplication::applicationDirPath() + "/" + FileName;
-        if (QFile::exists(oldPath) && !QFile::exists(filePath)) {
-            QFile::copy(oldPath, filePath);
-            QFile::remove(oldPath);
-        }
-
         static ConfigManager instance{filePath};
         return instance;
     }
@@ -166,7 +159,7 @@ public:
     // BlockedWindows stored as JSON array
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;
-        QJsonArray arr = m_root["BlockedWindows"].toArray();
+        QJsonArray arr = m_root.value("BlockedWindows").toArray();
         for (const auto& val : arr) {
             QJsonObject obj = val.toObject();
             BlockedWindowEntry entry;
@@ -201,7 +194,7 @@ public:
 
     HotkeyBindings getHotkeyBindings() {
         HotkeyBindings result;
-        QJsonObject hotkeys = m_root["Hotkeys"].toObject();
+        QJsonObject hotkeys = m_root.value("Hotkeys").toObject();
 
         for (auto it = hotkeys.begin(); it != hotkeys.end(); ++it) {
             auto action = hotkeyActionFromName(it.key());
@@ -244,6 +237,10 @@ public:
         normalizeHotkeyBindings(bindings);
         for (auto action : AllActions)
             ensureRequiredBindings(action, bindings[action]);
+        if (!m_root.contains("Hotkeys")) {
+            setHotkeyBindings(bindings);
+            sync();
+        }
         return bindings;
     }
 
