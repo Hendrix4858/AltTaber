@@ -37,6 +37,8 @@ bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* messag
 
 Application::Application(int argc, char* argv[])
     : m_app(argc, argv) {
+    m_app.setOrganizationName("MrBeanCpp");
+    m_app.setApplicationName("AltTaber");
     Util::Logger::init();
 
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");

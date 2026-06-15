@@ -9,13 +9,12 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QDesktopServices>
-#include <QDir>
+#include <QElapsedTimer>
+
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include "core/QuitReason.h"
 #include <QProcess>
-#include <QElapsedTimer>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     QElapsedTimer t;
@@ -39,39 +38,16 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     connect(ui->btn_update, &QPushButton::clicked, this, [this] {
         ui->btn_update->setEnabled(false);
         auto url = relInfo.downloadUrl;
-        archive.fileName = QUrl(url).fileName();
-        download(url, qApp->applicationDirPath() + '/' + archive.fileName);
+        auto fileName = QUrl(url).fileName();
+        download(url, qApp->applicationDirPath() + '/' + fileName);
     });
     qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
         qInfo() << "Download succeed" << filePath;
-        if (filePath.endsWith(".zip")) {
-            auto relDir = QDir(qApp->applicationDirPath() + '/' + archive.extractDir);
-            relDir.removeRecursively();
-            QProcess expandProcess;
-            expandProcess.start("powershell", QStringList()
-                << "-Command"
-                << QString("Expand-Archive -Path '%1' -DestinationPath '%2' -Force")
-                    .arg(filePath).arg(relDir.absolutePath()));
-            expandProcess.waitForFinished();
-            if (expandProcess.exitCode() == 0 && relDir.exists()) {
-                auto entryInfos = relDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
-                if (entryInfos.size() == 1 && entryInfos.first().isDir()) {
-                    relDir.cd(entryInfos.first().fileName());
-                }
-                qDebug() << "release extract dir:" << relDir.absolutePath();
-                const auto batPath = writeBat(relDir.absolutePath());
-                QDesktopServices::openUrl(QUrl::fromLocalFile(batPath));
-                QuitReason::markIntentional();
-                qApp->quit();
-            } else {
-                ui->textBrowser->setMarkdown("## Extract failed");
-            }
-        } else {
-            // 其他格式可能需要7z.exe支持
-            qWarning() << "Unsupported file type" << filePath;
-            ui->textBrowser->setMarkdown("## Unsupported file type❎");
-        }
+        QProcess::startDetached(filePath, {"/VERYSILENT", "/SUPPRESSMSGBOXES",
+                                           "/NORESTART", "/CLOSEAPPLICATIONS"});
+        QuitReason::markIntentional();
+        qApp->quit();
     });
 }
 
@@ -181,27 +157,6 @@ void UpdateDialog::download(const QString& url, const QString& savePath) {
             emit downloadSucceed(downloadStatus.file.fileName());
         }
     });
-}
-
-QString UpdateDialog::writeBat(const QString& sourceDir, const QString& targetDir) const {
-    QFile file(qApp->applicationDirPath() + "/copy.bat");
-    if (file.open(QFile::WriteOnly | QFile::Text)) {
-        QTextStream text(&file);
-        text << "@timeout /t 1 /NOBREAK" << '\n';
-        text << "@cd /d %~dp0" << '\n'; //切换到bat目录，否则为qt的exe目录
-        text << "@echo ##Copying files, please wait......\n";
-        text << QString("xcopy \"%1\" \"%2\" /E /H /Y\n").arg(QDir::toNativeSeparators(sourceDir), QDir::toNativeSeparators(targetDir));
-        text << "@echo -------------------------------------------------------\n";
-        text << "@echo ##Update SUCCESSFUL(Maybe)\n";
-        text << "@echo -------------------------------------------------------\n";
-        // text << "@pause\n";
-        text << QString("@del \"%1\"\n").arg(archive.fileName);
-        text << QString("@rd /S /Q \"%1\"\n").arg(archive.extractDir);
-        text << QString("@start \"\" \"%1\" --verify-update \"%2->%3\"\n").arg(QFile(qApp->applicationFilePath()).fileName())
-                                                                          .arg(version.toString(), relInfo.ver.toString());
-        text << "@del %0";
-    }
-    return file.fileName();
 }
 
 QVersionNumber UpdateDialog::normalizeVersion(const QString& ver) {

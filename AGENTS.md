@@ -15,6 +15,7 @@ cmake --build build
 - **Requires**: CMake ≥3.29, MSVC 2022, Qt 6 (Core, Gui, Widgets, Xml, Network)
 - **MSVC flag**: `/utf-8` is forced on MSVC (`CMakeLists.txt:130`)
 - **Release**: `WIN32_EXECUTABLE=ON` → no console; Debug keeps console for qDebug output
+- **Installer**: `installer/build-installer.ps1` → Release build → `windeployqt` → Inno Setup → `Output/AltTaber-v0.5.0-Setup.exe`
 - **Links**: `Dwmapi.lib`
 
 ## Source Layout
@@ -29,6 +30,8 @@ cmake --build build
 | `src/` | Matching `.cpp` files mirroring the header structure |
 | `ui/` | Qt Designer `.ui` files |
 | `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
+| `installer/` | Inno Setup script (`setup.iss`) and build script (`build-installer.ps1`) |
+| `Output/` | Built installer `.exe` (gitignored) |
 
 **Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).
 
@@ -48,7 +51,7 @@ cmake --build build
 - **`WindowManager`** — Builds window group list, MRU activation tracking, group window rotation.
 - **`WindowGroupModel`** — `QAbstractListModel` feeding a `QListView`.
 - **`KeyboardHooker`** — WH_KEYBOARD_LL, emits `hotkeyTriggered(action, modifiers)` and `altReleased()`. Uses `Qt::QueuedConnection`.
-- **`ConfigManager`** — Singleton via `cfg()`. Config file: **`config.json`** (JSON, not `config.ini` as the README claims).
+- **`ConfigManager`** — Singleton via `cfg()`. Config file: **`config.json`** (JSON, not `config.ini` as the README claims). Path: `%APPDATA%\MrBeanCpp\AltTaber\config.json`.
 - **`SystemTray`** — Singleton via `sysTray()`. Menu: Update, Settings, Pause, Restart as Admin, Startup, Display Monitor, Quit.
 - **`ThemeManager`** — Dark/Light/System. Reads Windows registry for System theme detection.
 
@@ -72,7 +75,8 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 
 ## Config
 
-- File: `<appdir>/config.json` (auto-created on first run)
+- File: `<userappdata>/MrBeanCpp/AltTaber/config.json` (auto-created on first run)
+- Migrates from old `<appdir>/config.json` on first run after upgrade
 - Settings opened with `editConfigFile()` which launches notepad; closing notepad triggers `configEdited` signal → hotkey re-injection
 - Icon cache: `<appdir>/icon_cache/` by default
 
@@ -93,6 +97,9 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 ## Gotchas
 
 - **README is wrong about config file**: it says `config.ini` but the code uses `config.json` via `ConfigManagerBase`. Trust the code.
+- **Config path**: `%APPDATA%\MrBeanCpp\AltTaber\config.json`. Uninstall preserves config unless user explicitly deletes it.
+- **Installer**: Inno Setup `setup.iss` builds `AltTaber-vX.Y.Z-Setup.exe`. Update flow: download setup.exe → `/VERYSILENT` → replaces zip+bat chain.
+- **AppId** must remain `AltTaber.MrBeanCpp` forever for Inno upgrade detection.
 - **Project target** is `Win_Switcher`; **output binary** is `AltTaber.exe`
 - **Icon cache** (`IconCacheDirectory` config) needs deletion if `icon.ico` changes on disk (Windows caches aggressively); referenced in comment at `CMakeLists.txt:21`
 - **No tests, no CI, no linters, no formatters** — manual testing only

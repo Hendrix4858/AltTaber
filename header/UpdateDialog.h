@@ -27,7 +27,6 @@ private:
     void applyThemeStyle();
     void fetchGithubReleaseInfo();
     void download(const QString& url, const QString& savePath);
-    QString writeBat(const QString& sourceDir, const QString& targetDir = qApp->applicationDirPath()) const;
     static QVersionNumber normalizeVersion(const QString& ver);
     static QString toLocalTime(const QString& isoTime);
 
@@ -56,11 +55,6 @@ private:
         QNetworkReply* reply = nullptr;
         QFile file;
     } downloadStatus;
-
-    struct {
-        QString fileName;
-        const QString extractDir = "_extract";
-    } archive;
 };
 
 

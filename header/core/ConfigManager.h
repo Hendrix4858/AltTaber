@@ -2,6 +2,9 @@
 #define WIN_SWITCHER_CONFIGMANAGER_H
 
 #include <QApplication>
+#include <QStandardPaths>
+#include <QDir>
+#include <QFile>
 #include "ConfigManagerBase.h"
 #include "lifecycle/Logger.h"
 #include "core/HotkeyAction.h"
@@ -29,7 +32,17 @@ public:
     ConfigManager& operator=(const ConfigManager&) = delete;
 
     static ConfigManager& instance() {
-        static const auto filePath = QApplication::applicationDirPath() + "/" + FileName;
+        auto configDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QDir().mkpath(configDir);
+        auto filePath = configDir + "/" + FileName;
+
+        // Migrate from old config in app directory
+        auto oldPath = QApplication::applicationDirPath() + "/" + FileName;
+        if (QFile::exists(oldPath) && !QFile::exists(filePath)) {
+            QFile::copy(oldPath, filePath);
+            QFile::remove(oldPath);
+        }
+
         static ConfigManager instance{filePath};
         return instance;
     }
