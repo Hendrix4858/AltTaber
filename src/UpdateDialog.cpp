@@ -38,6 +38,21 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     manager.setTransferTimeout(10000); // 10s -> Operation canceled
     ui->progressBar->hide();
     connect(ui->btn_recheck, &QPushButton::clicked, this, &UpdateDialog::fetchGithubReleaseInfo);
+    connect(ui->ckPreRelease, &QCheckBox::toggled, this, [this](bool checked) {
+        m_includePreRelease = checked;
+        if (!m_cachedReleases.isEmpty()) {
+            for (const auto& val : m_cachedReleases) {
+                auto obj = val.toObject();
+                if (!m_includePreRelease && obj["prerelease"].toBool())
+                    continue;
+                applyRelease(obj);
+                return;
+            }
+            m_phase = Phase::FetchError;
+            m_errorCache = tr("No matching release found");
+            retranslateTexts();
+        }
+    });
     connect(ui->btn_update, &QPushButton::clicked, this, [this] {
         ui->btn_update->setEnabled(false);
         auto url = relInfo.downloadUrl;
@@ -102,7 +117,7 @@ void UpdateDialog::fetchGithubReleaseInfo() {
     ui->progressBar->setMaximum(0);
     ui->progressBar->setValue(0);
     retranslateTexts();
-    const QString ApiUrl = QString("https://api.github.com/repos/%1/%2/releases/latest").arg(Owner, Repo);
+    const QString ApiUrl = QString("https://api.github.com/repos/%1/%2/releases").arg(Owner, Repo);
     QNetworkRequest request(ApiUrl);
     auto* reply = manager.get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
@@ -121,44 +136,59 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         }
         const auto data = reply->readAll();
         const QJsonDocument doc = QJsonDocument::fromJson(data);
-        const auto obj = doc.object();
+        m_cachedReleases = doc.array();
 
-        relInfo.ver = normalizeVersion(obj["tag_name"].toString());
-        relInfo.description = obj["body"].toString();
-        relInfo.publishTime = toLocalTime(obj["published_at"].toString());
+        for (const auto& val : m_cachedReleases) {
+            auto obj = val.toObject();
+            if (!m_includePreRelease && obj["prerelease"].toBool())
+                continue;
+            applyRelease(obj);
+            return;
+        }
 
-        const auto assets = obj["assets"].toArray();
-        bool foundInstaller = false;
-        QJsonObject selectedAsset;
+        ui->progressBar->hide();
+        m_phase = Phase::FetchError;
+        m_errorCache = tr("No matching release found");
+        retranslateTexts();
+    });
+}
+
+void UpdateDialog::applyRelease(const QJsonObject& obj) {
+    relInfo.ver = normalizeVersion(obj["tag_name"].toString());
+    relInfo.description = obj["body"].toString();
+    relInfo.publishTime = toLocalTime(obj["published_at"].toString());
+
+    const auto assets = obj["assets"].toArray();
+    bool foundInstaller = false;
+    QJsonObject selectedAsset;
+    for (const auto& a : assets) {
+        const auto o = a.toObject();
+        if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive)) {
+            selectedAsset = o;
+            foundInstaller = true;
+            break;
+        }
+    }
+    if (!foundInstaller) {
         for (const auto& a : assets) {
             const auto o = a.toObject();
-            if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive)) {
+            if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive)) {
                 selectedAsset = o;
-                foundInstaller = true;
                 break;
             }
         }
-        if (!foundInstaller) {
-            for (const auto& a : assets) {
-                const auto o = a.toObject();
-                if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive)) {
-                    selectedAsset = o;
-                    break;
-                }
-            }
-        }
-        if (selectedAsset.isEmpty() && !assets.isEmpty())
-            selectedAsset = assets.first().toObject();
-        relInfo.downloadUrl = selectedAsset["browser_download_url"].toString();
+    }
+    if (selectedAsset.isEmpty() && !assets.isEmpty())
+        selectedAsset = assets.first().toObject();
+    relInfo.downloadUrl = selectedAsset["browser_download_url"].toString();
 
-        qInfo() << "Update info fetched" << relInfo.ver << relInfo.downloadUrl;
-        ui->progressBar->hide();
+    qInfo() << "Update info applied" << relInfo.ver << relInfo.downloadUrl;
+    ui->progressBar->hide();
 
-        bool needUpdate = relInfo.ver > version;
-        m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;
-        retranslateTexts();
-        ui->btn_update->setEnabled(needUpdate);
-    });
+    bool needUpdate = relInfo.ver > version;
+    m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;
+    retranslateTexts();
+    ui->btn_update->setEnabled(needUpdate);
 }
 
 void UpdateDialog::download(const QString& url, const QString& savePath) {
@@ -262,6 +292,7 @@ void UpdateDialog::retranslateTexts() {
     setWindowTitle(tr("AltTaber Updater"));
     ui->btn_recheck->setText(tr(" Check again "));
     ui->btn_update->setText(tr("Update"));
+    ui->ckPreRelease->setText(tr("Include pre-releases"));
 
     switch (m_phase) {
     case Phase::Initial:

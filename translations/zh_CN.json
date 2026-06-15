@@ -158,6 +158,8 @@
     "Update Success to v%1": "更新成功至 v%1",
     "Update failed, version not change": "更新失败，版本未变更",
     "Update may failed, version changed but not to target": "更新可能失败，版本已变更但未达到目标版本",
-    "Invalid version change": "无效的版本变更"
+    "Invalid version change": "无效的版本变更",
+    "Include pre-releases": "包含预发布版本",
+    "No matching release found": "未找到匹配的版本"
   }
 }
