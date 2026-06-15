@@ -4,7 +4,7 @@
 #define MyAppName "AltTaber"
 #define MyAppVersion "0.5.0"
 #define MyAppPublisher "MrBeanCpp"
-#define MyAppURL "https://github.com/MrBeanCpp/AltTaber"
+#define MyAppURL "https://github.com/Hendrix4858/AltTaber"
 #define MyAppExeName "AltTaber.exe"
 #define MyAppId "AltTaber.MrBeanCpp"
 

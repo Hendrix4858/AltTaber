@@ -74,7 +74,7 @@
     "Icon cache has been cleared.": "图标缓存已清除。",
     "Are you sure you want to clear the icon cache?\nIcons will be re-extracted on next use.": "确定清除图标缓存吗？\n下次使用时将重新提取图标。",
 
-    "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' style='color: #0078D4;'>MrBeanCpp/AltTaber</a>"
+    "AltTaber - Window Switcher<br>Version: %1<br><br>A modern Alt+Tab replacement for Windows.<br><br>GitHub: <a href='https://github.com/Hendrix4858/AltTaber' style='color: #0078D4;'>Hendrix4858/AltTaber</a>": "AltTaber - 窗口切换器<br>版本: %1<br><br>一个现代化的 Windows Alt+Tab 增强工具。<br><br>GitHub: <a href='https://github.com/Hendrix4858/AltTaber' style='color: #0078D4;'>Hendrix4858/AltTaber</a>"
   },
   "SystemTray": {
     "Check for Updates": "检查更新",

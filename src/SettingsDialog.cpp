@@ -761,8 +761,8 @@ void SettingsDialog::retranslateUi() {
     ui->aboutDesc->setText(tr("AltTaber - Window Switcher<br>"
                               "Version: %1<br><br>"
                               "A modern Alt+Tab replacement for Windows.<br><br>"
-                              "GitHub: <a href='https://github.com/MrBeanCpp/AltTaber' "
-                              "style='color: #0078D4;'>MrBeanCpp/AltTaber</a>")
+                               "GitHub: <a href='https://github.com/Hendrix4858/AltTaber' "
+                               "style='color: #0078D4;'>Hendrix4858/AltTaber</a>")
                            .arg(version));
 
     ui->btnOk->setText(tr("OK"));
