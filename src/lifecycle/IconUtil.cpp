@@ -258,7 +258,7 @@ namespace Util {
 
         DiskCache::instance().save(path, icon);
         IconCache.insert(path, icon);
-        qInfo() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
+        qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
         return icon;
     }
 

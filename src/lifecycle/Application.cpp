@@ -159,32 +159,20 @@ void Application::initHooks(const HotkeyBindings& bindings) {
 void Application::wireSignals(const HotkeyBindings& bindings) {
     Q_UNUSED(bindings);
 
-    qInfo() << "[Main] Connecting kbHooker::hotkeyTriggered -> Widget::handleGlobalAction (QueuedConnection)";
-    auto conn1 = QObject::connect(m_keyboardHooker, &KeyboardHooker::hotkeyTriggered,
-                                  m_widget, &Widget::handleGlobalAction, Qt::QueuedConnection);
-    qInfo() << "[Main]   hotkeyTriggered connected:" << (bool)conn1;
+    QObject::connect(m_keyboardHooker, &KeyboardHooker::hotkeyTriggered,
+                     m_widget, &Widget::handleGlobalAction, Qt::QueuedConnection);
 
-    qInfo() << "[Main] Connecting kbHooker::overlayKeyTriggered -> Widget::handleHookOverlayAction (QueuedConnection)";
-    auto connHook = QObject::connect(m_keyboardHooker, &KeyboardHooker::overlayKeyTriggered,
-                                     m_widget, &Widget::handleHookOverlayAction,
-                                     Qt::QueuedConnection);
-    qInfo() << "[Main]   overlayKeyTriggered connected:" << (bool)connHook;
+    QObject::connect(m_keyboardHooker, &KeyboardHooker::overlayKeyTriggered,
+                     m_widget, &Widget::handleHookOverlayAction, Qt::QueuedConnection);
 
-    qInfo() << "[Main] Connecting kbHooker::activationModifiersReleased -> Widget::onActivationModifiersReleased (QueuedConnection)";
-    auto conn2 = QObject::connect(m_keyboardHooker, &KeyboardHooker::activationModifiersReleased,
-                                  m_widget, &Widget::onActivationModifiersReleased,
-                                  Qt::QueuedConnection);
-    qInfo() << "[Main]   activationModifiersReleased connected:" << (bool)conn2;
+    QObject::connect(m_keyboardHooker, &KeyboardHooker::activationModifiersReleased,
+                     m_widget, &Widget::onActivationModifiersReleased, Qt::QueuedConnection);
 
-    qInfo() << "[Main] Connecting Widget::overlayDismissed -> kbHooker::resetActivationModifiers";
-    auto connReset = QObject::connect(m_widget, &Widget::overlayDismissed,
-                                      m_keyboardHooker, &KeyboardHooker::resetActivationModifiers);
-    qInfo() << "[Main]   overlayDismissed connected:" << (bool)connReset;
+    QObject::connect(m_widget, &Widget::overlayDismissed,
+                     m_keyboardHooker, &KeyboardHooker::resetActivationModifiers);
 
-    qInfo() << "[Main] Connecting Widget::overlayShown -> kbHooker::notifyOverlayShown";
-    auto connShown = QObject::connect(m_widget, &Widget::overlayShown,
-                                      m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
-    qInfo() << "[Main]   overlayShown connected:" << (bool)connShown;
+    QObject::connect(m_widget, &Widget::overlayShown,
+                     m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
 
     // Re-inject bindings when config is saved
     QObject::connect(&cfg(), &ConfigManager::configEdited, &m_app, [this]() {
@@ -198,14 +186,13 @@ void Application::wireSignals(const HotkeyBindings& bindings) {
         m_keyboardHooker->resetActivationModifiers();
     });
 
-    auto conn3 = QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
-                                   m_widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
-    qInfo() << "[Main]   tabWheelEvent connected:" << (bool)conn3;
+    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
+                     m_widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
 
-    qInfo() << "[Main] Connecting tbHooker::leaveTaskbar -> TaskbarWindowCycler::clearOrder";
-    auto conn4 = QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::leaveTaskbar,
-                                   m_widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
-    qInfo() << "[Main]   leaveTaskbar connected:" << (bool)conn4;
+    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::leaveTaskbar,
+                     m_widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
+
+    qInfo() << "[Main] Hotkey system initialized";
 }
 
 int Application::run() {

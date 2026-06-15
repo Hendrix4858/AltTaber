@@ -139,8 +139,8 @@ bool OverlayController::prepareListWidget() {
 
 void OverlayController::handleIntent(OverlayIntent intent) {
     reconcileState();
-    qInfo() << "[OverlayCtrl] handleIntent intent=" << (int)intent
-            << "state=" << (int)m_overlayState;
+    qDebug() << "[OverlayCtrl] handleIntent intent=" << (int)intent
+             << "state=" << (int)m_overlayState;
     transition(intent);
 }
 
@@ -168,10 +168,10 @@ void OverlayController::reconcileState() {
 //  Only this function may call showWindow/hideWindow/refreshWindowList
 // ─────────────────────────────────────────────────────────
 void OverlayController::transition(OverlayIntent intent) {
-    qInfo() << "[Transition] state=" << (int)m_overlayState
-            << "intent=" << (int)intent
-            << "stayOpen=" << m_stayOpenMode
-            << "listDirty=" << m_listDirty;
+    qDebug() << "[Transition] state=" << (int)m_overlayState
+             << "intent=" << (int)intent
+             << "stayOpen=" << m_stayOpenMode
+             << "listDirty=" << m_listDirty;
 
     switch (m_overlayState) {
 
@@ -179,8 +179,8 @@ void OverlayController::transition(OverlayIntent intent) {
         if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
             intent == OverlayIntent::ShowSwitcherBackward) {
             m_wasInvokedBackward = (intent == OverlayIntent::ShowSwitcherBackward);
-            qInfo() << "[Transition] Hidden + Show = refreshing list + show (backward="
-                    << m_wasInvokedBackward << ")";
+            qDebug() << "[Transition] Hidden + Show = refreshing list + show (backward="
+                     << m_wasInvokedBackward << ")";
             m_listDirty = true;
             refreshWindowList();
             showWindow();
@@ -217,11 +217,10 @@ void OverlayController::transition(OverlayIntent intent) {
 //  Action primitives — only called from transition()
 // ─────────────────────────────────────────────────────────
 void OverlayController::showWindow() {
-    qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState
-            << "listDirty=" << m_listDirty;
+    qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState;
 
     if (m_listDirty) {
-        qInfo() << "[OverlayCtrl] list dirty, refreshing...";
+        qDebug() << "[OverlayCtrl] list dirty, refreshing...";
         if (!refreshWindowList())
             return;
     }
@@ -229,19 +228,19 @@ void OverlayController::showWindow() {
     m_overlayState = OverlayState::Visible;
     emit stateChanged(m_overlayState);
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
-    qInfo() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
-            << "endTrigger=" << (int)m_sessionInfo.endTrigger;
+    qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
+             << "endTrigger=" << (int)m_sessionInfo.endTrigger;
     Util::closeSystemWindows();
-    qInfo() << "[OverlayCtrl] State -> Visible, calling forceShow...";
+    qDebug() << "[OverlayCtrl] State -> Visible, calling forceShow...";
     bool ok = forceShow();
-    qInfo() << "[OverlayCtrl] showWindow forceShow=" << ok;
+    qDebug() << "[OverlayCtrl] showWindow forceShow=" << ok;
     if (ok) {
         emit showRequested();
         auto* listView = qobject_cast<QListView*>(m_listView);
         if (listView) {
             listView->setFocusPolicy(Qt::StrongFocus);
             listView->setFocus(Qt::OtherFocusReason);
-            qInfo() << "[OverlayCtrl] QListView focus set";
+            qDebug() << "[OverlayCtrl] QListView focus set";
         }
     } else {
         m_overlayState = OverlayState::Hidden;
@@ -260,11 +259,11 @@ void OverlayController::hideWindow() {
 }
 
 bool OverlayController::refreshWindowList() {
-    qInfo() << "[OverlayCtrl] refreshWindowList";
+    qDebug() << "[OverlayCtrl] refreshWindowList";
     bool ok = prepareListWidget();
     if (ok) {
         m_listDirty = false;
-        qInfo() << "[OverlayCtrl] refreshWindowList ok, groupCount=" << m_model->groupCount();
+        qDebug() << "[OverlayCtrl] refreshWindowList ok, groupCount=" << m_model->groupCount();
     } else {
         qWarning() << "[OverlayCtrl] refreshWindowList failed";
     }
