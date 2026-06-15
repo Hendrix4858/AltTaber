@@ -1,7 +1,6 @@
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
-#include "lifecycle/Startup.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
 #include "SettingsDialog.h"
@@ -11,6 +10,7 @@
 #include <QApplication>
 #include <windows.h>
 #include <shellapi.h>
+#include <shlobj_core.h>
 
 SystemTray& SystemTray::instance() {
     static SystemTray instance;
@@ -34,13 +34,11 @@ void SystemTray::retranslateMenu() {
     m_actSettings->setText(tr("Settings"));
     m_actPause->setText(tr("Pause"));
     m_actRestartAdmin->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
-    m_startupBaseText = tr("Start with Windows");
     m_menuMonitor->setTitle(tr("Display Monitor"));
     auto actions = m_monitorGroup->actions();
     actions[PrimaryMonitor]->setText(tr("Primary Monitor"));
     actions[MouseMonitor]->setText(tr("Mouse Monitor"));
     m_actQuit->setText(tr("Quit >"));
-    updateStartupText();
 }
 
 void SystemTray::applyMenuTheme() {
@@ -55,13 +53,6 @@ void SystemTray::applyMenuTheme() {
         .arg(c.trayBg.name(), c.trayText.name(), c.trayBorder.name(), c.traySelected.name()));
 }
 
-void SystemTray::updateStartupText() {
-    auto text = m_startupBaseText;
-    if (IsUserAnAdmin() && !Startup::isOn_reg())
-        text += QString::fromUtf8("\xF0\x9F\x94\x91");
-    m_actStartup->setText(text);
-}
-
 void SystemTray::setMenu(QWidget* parent) {
     m_menu = new QMenu(parent);
     applyMenuTheme();
@@ -71,8 +62,6 @@ void SystemTray::setMenu(QWidget* parent) {
     m_actPause = new QAction(m_menu);
     m_actPause->setCheckable(true);
     m_actRestartAdmin = new QAction(m_menu);
-    m_actStartup = new QAction(m_menu);
-    m_actStartup->setCheckable(true);
     m_menuMonitor = new QMenu(m_menu);
     m_actQuit = new QAction(m_menu);
 
@@ -107,14 +96,6 @@ void SystemTray::setMenu(QWidget* parent) {
         QApplication::quit();
     });
 
-    connect(m_actStartup, &QAction::triggered, this, [this](bool checked) {
-        Startup::toggle();
-        if (Startup::isOn() == checked)
-            this->showMessage(tr("auto Startup mode"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
-        else
-            this->showMessage(tr("Action Failed"), tr("Failed to change Startup mode"), Warning);
-    });
-
     connect(m_actPause, &QAction::triggered, this, [this](bool checked) {
         cfg().setPaused(checked);
         this->showMessage(tr("Pause"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
@@ -122,12 +103,10 @@ void SystemTray::setMenu(QWidget* parent) {
 
     connect(m_menu, &QMenu::aboutToShow, this, [this] {
         applyMenuTheme();
-        m_actStartup->setChecked(Startup::isOn());
         m_actPause->setChecked(cfg().getPaused());
         bool isAdmin = IsUserAnAdmin();
         m_actRestartAdmin->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
         m_actRestartAdmin->setEnabled(!isAdmin);
-        updateStartupText();
     });
 
     // Display Monitor submenu
@@ -168,7 +147,6 @@ void SystemTray::setMenu(QWidget* parent) {
     m_menu->addAction(m_actPause);
     m_menu->addSeparator();
     m_menu->addAction(m_actRestartAdmin);
-    m_menu->addAction(m_actStartup);
     m_menu->addMenu(m_menuMonitor);
     m_menu->addAction(m_actQuit);
     this->setContextMenu(m_menu);

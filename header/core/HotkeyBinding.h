@@ -69,14 +69,14 @@ inline HotkeyBinding makePhysicalBinding(Qt::KeyboardModifiers mods, quint32 vk,
 inline HotkeyBindings defaultHotkeyBindings() {
     HotkeyBindings defaults;
     defaults[HotkeyAction::SwitchToNextWindow]     = {makePhysicalBinding(Qt::AltModifier, VK_TAB, 0x0F)};
-    defaults[HotkeyAction::CycleProcessWindows]     = {};
+    defaults[HotkeyAction::CycleProcessWindows]     = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
     defaults[HotkeyAction::SwitchProcessWindow]     = {};
-    defaults[HotkeyAction::EnterGroupMode]          = {};
+    defaults[HotkeyAction::EnterGroupMode]          = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
     defaults[HotkeyAction::CycleForward]            = {makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F)};
     defaults[HotkeyAction::CycleBackward]           = {makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F)};
     defaults[HotkeyAction::MoveSelectionUp]         = {};
     defaults[HotkeyAction::MoveSelectionDown]       = {};
-    defaults[HotkeyAction::ActivateSelected]        = {};
+    defaults[HotkeyAction::ActivateSelected]        = {makePhysicalBinding(Qt::NoModifier, VK_RETURN, 0x1C)};
     defaults[HotkeyAction::DismissSwitcher]         = {makePhysicalBinding(Qt::NoModifier, VK_ESCAPE, 0x01)};
     defaults[HotkeyAction::TogglePause]             = {};
     defaults[HotkeyAction::SwitchToPreviousWindow]  = {

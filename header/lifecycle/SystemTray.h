@@ -24,7 +24,6 @@ signals:
 private:
     explicit SystemTray(QWidget* parent = nullptr);
     void applyMenuTheme();
-    void updateStartupText();
     void setMenu(QWidget* parent);
 
     QMenu* m_menu = nullptr;
@@ -32,11 +31,9 @@ private:
     QAction* m_actSettings = nullptr;
     QAction* m_actPause = nullptr;
     QAction* m_actRestartAdmin = nullptr;
-    QAction* m_actStartup = nullptr;
     QMenu* m_menuMonitor = nullptr;
     QActionGroup* m_monitorGroup = nullptr;
     QAction* m_actQuit = nullptr;
-    QString m_startupBaseText;
 };
 
 inline SystemTray& sysTray() { return SystemTray::instance(); }
