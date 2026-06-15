@@ -173,7 +173,7 @@ namespace Util {
         }
     }
 
-    void bringWindowToTop(HWND hwnd, HWND hWndInsertAfter) {
+    void focusWindow(HWND hwnd, HWND hWndInsertAfter) {
         if (isTopMost(hwnd)) return;
         LockSetForegroundWindow(LSFW_LOCK);
         if (IsIconic(hwnd))

@@ -4,22 +4,41 @@
 #include "utils/MiscUtil.h"
 #include "utils/ProcessUtil.h"
 #include "utils/AppUtil.h"
-#include "utils/ConfigManager.h"
+#include "core/ConfigManager.h"
+#include "WindowFilter.h"
+#include "WindowDescriptorBuilder.h"
 
 namespace Util {
 
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
-        // Build filter rules from user config
-        WindowFilterRules rules;
+    bool isWindowAllowed(HWND hwnd, bool skipVisibleCheck) {
+        // Structural check (requires HWND)
+        if (!WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck))
+            return false;
+        // System + user filter via WindowFilter
+        WindowFilter filter;
+        WindowFilterRule rule = WindowFilter::builtinRules();
         auto blocked = cfg().getBlockedWindows();
         for (const auto& entry : blocked) {
-            rules.blockedByUser.append({entry.title, entry.className});
+            if (!entry.enabled) continue;
+            WindowBlockRule blockRule;
+            blockRule.title = entry.title;
+            blockRule.className = entry.className;
+            blockRule.processName = entry.processName;
+            blockRule.processPath = entry.processPath;
+            rule.rules.append(blockRule);
         }
-        return WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck, &rules);
+        filter.setRules(rule);
+        WindowDescriptor desc = WindowDescriptorBuilder::fromHwnd(hwnd);
+        return filter.isAllowed(desc);
     }
 
     QList<HWND> enumWindows() {
-        return WindowEnumerator::enumAllWindows();
+        auto descriptors = WindowEnumerator::enumAllWindows();
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     BOOL CALLBACK EnumChildWindowsProc(HWND hwnd, LPARAM lParam) {
@@ -34,7 +53,7 @@ namespace Util {
         return list;
     }
 
-    void closeWindowedPopupClass() {
+    void closeXamlWindowedPopup() {
         HWND hwnd = GetForegroundWindow();
         QString className = getClassName(hwnd);
         if (className == "Xaml_WindowedPopupClass") {
@@ -52,15 +71,25 @@ namespace Util {
 
     void closeSystemWindows() {
         closeStartMenu();
-        closeWindowedPopupClass();
+        closeXamlWindowedPopup();
     }
 
     QList<HWND> listValidWindows() {
-        return WindowEnumerator::enumValidWindows();
+        auto descriptors = WindowEnumerator::enumValidWindows();
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     QList<HWND> listValidWindows(const QString& exePath) {
-        return WindowEnumerator::enumValidWindows(exePath);
+        auto descriptors = WindowEnumerator::enumValidWindows(exePath);
+        QList<HWND> hwnds;
+        hwnds.reserve(descriptors.size());
+        for (const auto& d : descriptors)
+            hwnds.append(d.hwnd);
+        return hwnds;
     }
 
     QList<HWND> findTopWindows(const QString& className, const QString& title) {
@@ -94,7 +123,17 @@ namespace Util {
     }
 
     bool isTaskbarWindow(HWND hwnd) {
-        auto className = Util::getClassName(hwnd);
-        return className == QStringLiteral("Shell_TrayWnd") || className == QStringLiteral("Shell_SecondaryTrayWnd");
+        const auto className = Util::getClassName(hwnd);
+
+        if (className == QStringLiteral("Shell_TrayWnd"))
+            return true;
+        if (className == QStringLiteral("Shell_SecondaryTrayWnd"))
+            return true;
+        if (className == QStringLiteral("TopLevelWindowForOverflowXamlIsland"))
+            return true;
+        if (className.startsWith(QStringLiteral("Xaml")))
+            return true;
+
+        return false;
     }
 }

@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.29)
 project(Win_Switcher)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -52,6 +52,10 @@ add_executable(Win_Switcher src/main.cpp
         src/WindowEnumerator.cpp
         header/WindowEnumerator.h
         src/WindowGrouper.cpp
+        src/WindowFilter.cpp
+        header/WindowFilter.h
+        src/WindowDescriptorBuilder.cpp
+        header/WindowDescriptorBuilder.h
         header/WindowGrouper.h
         src/ActivationHistory.cpp
         header/ActivationHistory.h
@@ -65,61 +69,72 @@ add_executable(Win_Switcher src/main.cpp
         header/GroupWindowCycler.h
         src/TaskbarWindowCycler.cpp
         header/TaskbarWindowCycler.h
-        src/utils/winEventHook.cpp
-        header/utils/winEventHook.h
+        src/hook/winEventHook.cpp
+        header/hook/winEventHook.h
         src/utils/WindowUtil.cpp
         header/utils/WindowUtil.h
         src/utils/ProcessUtil.cpp
         header/utils/ProcessUtil.h
-        src/utils/IconUtil.cpp
-        header/utils/IconUtil.h
+        src/lifecycle/IconUtil.cpp
+        header/lifecycle/IconUtil.h
         src/utils/MiscUtil.cpp
         header/utils/MiscUtil.h
         header/utils/Util.h
         header/utils/setWindowBlur.h
         src/utils/setWindowBlur.cpp
-        src/utils/IconOnlyDelegate.cpp
-        header/utils/IconOnlyDelegate.h
-        header/utils/uiautomation.h
-        src/utils/uiautomation.cpp
+        src/lifecycle/IconOnlyDelegate.cpp
+        header/lifecycle/IconOnlyDelegate.h
+        header/hook/uiautomation.h
+        src/hook/uiautomation.cpp
         src/utils/UwpHelper.cpp
         header/utils/UwpHelper.h
         src/utils/StartMenuHelper.cpp
         header/utils/StartMenuHelper.h
         src/utils/AppExeResolver.cpp
         header/utils/AppUtil.h
-        src/utils/KeyboardHooker.cpp
-        header/utils/KeyboardHooker.h
-        src/utils/TaskbarWheelHooker.cpp
-        header/utils/TaskbarWheelHooker.h
-        src/utils/QtWin.cpp
-        header/utils/QtWin.h
-        header/utils/ComInitializer.h
-        header/utils/SingleApp.h
-        header/utils/Startup.h
-        header/utils/SystemTray.h
-        header/utils/ConfigManager.h
-        header/utils/ConfigManagerBase.h
-        src/utils/ConfigManagerBase.cpp
-        header/utils/HotkeyAction.h
-        src/utils/HotkeyAction.cpp
-        src/utils/HotkeyRecorder.cpp
-        header/utils/HotkeyRecorder.h
+        src/hook/KeyboardHooker.cpp
+        header/hook/KeyboardHooker.h
+        src/hook/TaskbarWheelHooker.cpp
+        header/hook/TaskbarWheelHooker.h
+        src/lifecycle/QtWin.cpp
+        header/lifecycle/QtWin.h
+        header/lifecycle/ComInitializer.h
+        header/lifecycle/SingleApp.h
+        header/lifecycle/Startup.h
+        header/lifecycle/SystemTray.h
+        src/lifecycle/SystemTray.cpp
+        header/core/ConfigManager.h
+        header/core/ConfigManagerBase.h
+        src/core/ConfigManagerBase.cpp
+        header/core/HotkeyAction.h
+        header/core/HotkeyActionTypes.h
+        header/core/HotkeyStrings.h
+        header/core/HotkeyBinding.h
+        src/core/HotkeyAction.cpp
+        src/hook/HotkeyRecorder.cpp
+        header/hook/HotkeyRecorder.h
         src/UpdateDialog.cpp
         header/UpdateDialog.h
         ui/UpdateDialog.ui
-        src/utils/ScheduledTask.cpp
-        header/utils/ScheduledTask.h
+        src/lifecycle/ScheduledTask.cpp
+        header/lifecycle/ScheduledTask.h
         header/SettingsDialog.h
         src/SettingsDialog.cpp
+        header/AddBlockedDialog.h
+        src/AddBlockedDialog.cpp
         ui/SettingsDialog.ui
-        header/utils/LanguageManager.h
-        src/utils/LanguageManager.cpp
-        header/utils/JsonTranslator.h
-        src/utils/JsonTranslator.cpp
-        header/utils/Logger.h
-        src/utils/Logger.cpp
-        header/utils/ThemeManager.h)
+        header/core/LanguageManager.h
+        src/core/LanguageManager.cpp
+        header/core/JsonTranslator.h
+        src/core/JsonTranslator.cpp
+        header/lifecycle/Logger.h
+        src/lifecycle/Logger.cpp
+        header/core/ThemeManager.h
+        src/core/ThemeManager.cpp
+        header/hook/WheelEventProcessor.h
+        src/hook/WheelEventProcessor.cpp
+        header/lifecycle/Application.h
+        src/lifecycle/Application.cpp)
 target_link_libraries(Win_Switcher
         Qt::Core
         Qt::Gui

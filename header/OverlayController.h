@@ -5,16 +5,22 @@
 #include <QWidget>
 #include <QScreen>
 #include <Windows.h>
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class WindowGroupModel;
 class WindowManager;
 
 enum class OverlayIntent {
-    ShowSwitcher,    // Alt+Tab pressed — show overlay from Hidden
-    AltReleased,     // Alt key released — activate selected + hide
-    Dismiss,         // Escape / app inactive / foreground lost
-    FallbackShow,    // System Alt+Tab detected (ForegroundStaging) — takeover
+    ShowSwitcher,
+    Dismiss,
+    FallbackShow,
+    SessionEndConditionMet,
+    ShowSwitcherBackward,
+};
+
+struct OverlaySessionInfo {
+    HotkeyAction triggeringAction = HotkeyAction::SwitchToNextWindow;
+    SessionEndTrigger endTrigger = SessionEndTrigger::ModifierRelease;
 };
 
 class OverlayController : public QObject {
@@ -46,8 +52,16 @@ public:
     void setOverlayBindings(const HotkeyBindings& bindings);
     const HotkeyBindings& overlayBindings() const { return m_overlayBindings; }
 
+    void setSessionInfo(const OverlaySessionInfo& info) { m_sessionInfo = info; }
+
     void notifyForegroundChanged(HWND hwnd);
     void warmupCache();
+
+signals:
+    void sessionFinished();
+    void showRequested();
+    void hideRequested();
+    void stateChanged(OverlayController::OverlayState state);
 
 private:
     // ── State machine ──
@@ -63,16 +77,18 @@ private:
     bool forceShow();
 
     QWidget* m_widget;
-    QWidget* m_lv;
+    QWidget* m_listView;
     QWidget* m_label;
     WindowGroupModel* m_model;
-    WindowManager* m_wm;
+    WindowManager* m_windowManager;
 
-    const QMargins m_margin{24, 24, 24, 24};
+    const QMargins m_overlayMargin{24, 24, 24, 24};
 
     OverlayState m_overlayState = OverlayState::Hidden;
     bool m_stayOpenMode = false;
     bool m_listDirty = true;
+    bool m_wasInvokedBackward = false;
+    OverlaySessionInfo m_sessionInfo;
 
     HotkeyBindings m_overlayBindings;
 };

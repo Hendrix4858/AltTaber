@@ -5,27 +5,26 @@
 
 namespace WindowGrouper {
 
-    QList<WindowGroup> groupWindows(const QList<HWND>& hwnds,
+    QList<WindowGroup> groupWindows(const QList<WindowDescriptor>& windows,
                                     const ActivationHistory* history,
                                     HWND selfHwnd) {
         QList<WindowGroup> result;
         QMap<QString, int> pathIndex;
 
-        for (auto hwnd : hwnds) {
-            if (hwnd == selfHwnd) continue;
-            auto path = Util::getWindowProcessPath(hwnd);
-            if (path.isEmpty()) continue;
+        for (const auto& desc : windows) {
+            if (desc.hwnd == selfHwnd) continue;
+            if (desc.processPath.isEmpty()) continue;
 
-            if (auto it = pathIndex.find(path); it != pathIndex.end()) {
+            if (auto it = pathIndex.find(desc.processPath); it != pathIndex.end()) {
                 result[it.value()].addWindow(
-                    {Util::getWindowTitle(hwnd), Util::getClassName(hwnd), hwnd});
+                    {desc.title, desc.className, desc.hwnd});
             } else {
                 WindowGroup group;
-                group.exePath = path;
-                group.icon = Util::getCachedIcon(path, hwnd);
+                group.exePath = desc.processPath;
+                group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
                 group.addWindow(
-                    {Util::getWindowTitle(hwnd), Util::getClassName(hwnd), hwnd});
-                pathIndex[path] = result.size();
+                    {desc.title, desc.className, desc.hwnd});
+                pathIndex[desc.processPath] = result.size();
                 result.append(group);
             }
         }
@@ -35,9 +34,9 @@ namespace WindowGrouper {
                       [history](const WindowGroup& a, const WindowGroup& b) {
                 qint64 latestA = 0, latestB = 0;
                 for (const auto& win : a.windows)
-                    latestA = qMax(latestA, history->latestActivation(win.hwnd));
+                    latestA = qMax(latestA, history->lastActivationTime(win.hwnd));
                 for (const auto& win : b.windows)
-                    latestB = qMax(latestB, history->latestActivation(win.hwnd));
+                    latestB = qMax(latestB, history->lastActivationTime(win.hwnd));
                 return latestA > latestB;
             });
         }

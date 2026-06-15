@@ -5,11 +5,17 @@
 #include <QListView>
 #include <QKeyEvent>
 #include "WindowTypes.h"
-#include "utils/HotkeyAction.h"
+#include "core/HotkeyAction.h"
 
 class WindowGroupModel;
 class WindowManager;
 class GroupWindowCycler;
+class WheelEventProcessor;
+
+enum class InputSource {
+    KeyboardInput,
+    LowLevelHook
+};
 
 class SelectionController : public QObject {
     Q_OBJECT
@@ -21,16 +27,19 @@ public:
     bool handleEventFilter(QObject* watched, QEvent* event, bool stayOpenMode);
     bool jumpToLetter(QChar letter);
 
-    void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers,
+                             InputSource source = InputSource::KeyboardInput);
     void handleListItemClicked(const QModelIndex& index, bool stayOpenMode);
 
     void showLabelForItem(const QModelIndex& index);
     void setLabelWidget(QWidget* label);
 
-    bool isInGroupMode() const { return m_isInGroupWindowMode; }
+    bool isInGroupMode() const { return m_isGroupExpanded; }
     int currentRow() const;
 
-    void exitGroupWindowMode(bool activateSelected);
+    void collapseGroup(bool activateSelected);
+
+    bool tryEnterGroupForWindow(HWND hwnd);
 
     void resetState();
     void resetAll();
@@ -44,14 +53,14 @@ signals:
     void foregroundChanged(HWND hwnd);
 
 private:
-    void enterGroupWindowMode();
+    void expandGroup();
     void cycleSelection(int direction); // +1 forward, -1 backward
     bool handleLetterJump(QChar pressedLetter);
 
-    QListView* m_lv;
+    QListView* m_listView;
     WindowGroupModel* m_model;
-    WindowManager* m_wm;
-    GroupWindowCycler* m_cyc;
+    WindowManager* m_windowManager;
+    GroupWindowCycler* m_groupCycler;
     QWidget* m_labelWidget = nullptr;
 
     // Letter jump state
@@ -59,14 +68,11 @@ private:
     int m_jumpLastIndex = -1;
 
     // Group mode state
-    bool m_isInGroupWindowMode = false;
-    QList<WindowGroup> m_backupGroupList;
-    int m_backupGroupIndex = 0;
+    bool m_isGroupExpanded = false;
+    QList<WindowGroup> m_expandedGroupBackup;
+    int m_expandedGroupBackupIndex = 0;
 
-    // Wheel state (moved from Widget)
-    int lastWheelRow = -1;
-    HWND lastWheelHwnd = nullptr;
-    bool lastWheelIsRollUp = true;
+    WheelEventProcessor* m_wheelProcessor = nullptr;
 };
 
 #endif //WIN_SWITCHER_SELECTIONCONTROLLER_H

@@ -3,14 +3,21 @@
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"
 #include "utils/Util.h"
-#include "utils/ConfigManager.h"
-#include "utils/ThemeManager.h"
+#include "core/ConfigManager.h"
+#include "core/ThemeManager.h"
+#include "hook/WheelEventProcessor.h"
 #include <QWheelEvent>
 #include <QApplication>
 
 SelectionController::SelectionController(QListView* listView, WindowGroupModel* model,
                                          WindowManager* wm, GroupWindowCycler* cyc, QObject* parent)
-    : QObject(parent), m_lv(listView), m_model(model), m_wm(wm), m_cyc(cyc) {}
+    : QObject(parent), m_listView(listView), m_model(model), m_windowManager(wm), m_groupCycler(cyc) {
+    m_wheelProcessor = new WheelEventProcessor(this);
+    connect(m_wheelProcessor, &WheelEventProcessor::foregroundChanged,
+            this, &SelectionController::foregroundChanged);
+    connect(m_wheelProcessor, &WheelEventProcessor::labelTextChanged,
+            this, &SelectionController::labelTextChanged);
+}
 
 void SelectionController::setLabelWidget(QWidget* label) {
     m_labelWidget = label;
@@ -20,7 +27,7 @@ void SelectionController::showLabelForItem(const QModelIndex& index) {
     if (!index.isValid()) return;
 
     QString text;
-    if (m_isInGroupWindowMode) {
+    if (m_isGroupExpanded) {
         auto& group = m_model->groupAt(index.row());
         if (!group.windows.isEmpty())
             text = group.windows.first().title;
@@ -33,75 +40,77 @@ void SelectionController::showLabelForItem(const QModelIndex& index) {
 }
 
 int SelectionController::currentRow() const {
-    return m_lv->currentIndex().row();
+    return m_listView->currentIndex().row();
 }
 
-void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers,
+                                              InputSource source) {
     qInfo() << "[Action] overlayAction=" << hotkeyActionName(action)
-            << "groupMode=" << m_isInGroupWindowMode;
+            << "source=" << (source == InputSource::LowLevelHook ? "LowLevelHook" : "KeyboardInput")
+            << "groupMode=" << m_isGroupExpanded;
 
     switch (action) {
     case HotkeyAction::CycleForward: {
-        if (m_isInGroupWindowMode && (modifiers & Qt::AltModifier)) {
-            int savedIndex = m_backupGroupIndex;
+        if (m_isGroupExpanded && (modifiers & Qt::AltModifier)) {
+            int savedIndex = m_expandedGroupBackupIndex;
             bool shiftPressed = (modifiers & Qt::ShiftModifier);
-            exitGroupWindowMode(false);
+            collapseGroup(false);
             int count = m_model->groupCount();
             if (count <= 0) return;
             int nextIndex = shiftPressed
                 ? (savedIndex - 1 + count) % count
                 : (savedIndex + 1) % count;
-            m_lv->setCurrentIndex(m_model->index(nextIndex));
+            m_listView->setCurrentIndex(m_model->index(nextIndex));
             showLabelForItem(m_model->index(nextIndex));
             return;
         }
-        auto i = m_lv->currentIndex().row();
+        auto i = m_listView->currentIndex().row();
         bool shiftPressed = (modifiers & Qt::ShiftModifier);
         auto count = m_model->groupCount();
         if (count <= 0) return;
         auto nextIndex = (i - (2 * (int)shiftPressed - 1) + count) % count;
-        m_lv->setCurrentIndex(m_model->index(nextIndex));
+        m_listView->setCurrentIndex(m_model->index(nextIndex));
         if (!(modifiers & Qt::AltModifier))
             showLabelForItem(m_model->index(nextIndex));
         return;
     }
     case HotkeyAction::CycleBackward: {
-        auto i = m_lv->currentIndex().row();
+        auto i = m_listView->currentIndex().row();
         auto count = m_model->groupCount();
         if (count <= 0) return;
         auto nextIndex = (i - 1 + count) % count;
-        m_lv->setCurrentIndex(m_model->index(nextIndex));
+        m_listView->setCurrentIndex(m_model->index(nextIndex));
         showLabelForItem(m_model->index(nextIndex));
         return;
     }
-    case HotkeyAction::EnterGroupMode: {
-        if (m_isInGroupWindowMode) {
+    case HotkeyAction::ExpandGroup: {
+        if (m_isGroupExpanded) {
             auto count = m_model->groupCount();
             if (count <= 0) return;
-            auto next = (m_lv->currentIndex().row() + 1) % count;
-            m_lv->setCurrentIndex(m_model->index(next));
+            auto next = (m_listView->currentIndex().row() + 1) % count;
+            m_listView->setCurrentIndex(m_model->index(next));
         } else {
-            enterGroupWindowMode();
+            expandGroup();
         }
         return;
     }
     case HotkeyAction::MoveSelectionUp: {
-        if (auto index = m_lv->currentIndex(); index.isValid()) {
-            auto center = m_lv->visualRect(index).center();
-            auto wheelEvent = new QWheelEvent(center, m_lv->mapToGlobal(center), {},
+        if (auto index = m_listView->currentIndex(); index.isValid()) {
+            auto center = m_listView->visualRect(index).center();
+            auto wheelEvent = new QWheelEvent(center, m_listView->mapToGlobal(center), {},
                                               {120, 0},
                                               Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-            QApplication::postEvent(m_lv, wheelEvent);
+            QApplication::postEvent(m_listView, wheelEvent);
         }
         return;
     }
     case HotkeyAction::MoveSelectionDown: {
-        if (auto index = m_lv->currentIndex(); index.isValid()) {
-            auto center = m_lv->visualRect(index).center();
-            auto wheelEvent = new QWheelEvent(center, m_lv->mapToGlobal(center), {},
+        if (auto index = m_listView->currentIndex(); index.isValid()) {
+            auto center = m_listView->visualRect(index).center();
+            auto wheelEvent = new QWheelEvent(center, m_listView->mapToGlobal(center), {},
                                               {-120, 0},
                                               Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-            QApplication::postEvent(m_lv, wheelEvent);
+            QApplication::postEvent(m_listView, wheelEvent);
         }
         return;
     }
@@ -136,7 +145,7 @@ bool SelectionController::handleLetterJump(QChar pressedLetter) {
                      ? (currentPos + 1) % matchingIndices.size()
                      : 0;
     int targetIndex = matchingIndices[newPos];
-    m_lv->setCurrentIndex(m_model->index(targetIndex));
+    m_listView->setCurrentIndex(m_model->index(targetIndex));
     showLabelForItem(m_model->index(targetIndex));
     m_jumpLastLetter = pressedLetter;
     m_jumpLastIndex = targetIndex;
@@ -151,7 +160,7 @@ bool SelectionController::jumpToLetter(QChar letter) {
 }
 
 bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, bool stayOpenMode) {
-    if (watched != m_lv) return false;
+    if (watched != m_listView) return false;
 
     if (event->type() == QEvent::KeyPress && stayOpenMode) {
         auto* keyEvent = static_cast<QKeyEvent*>(event);
@@ -181,69 +190,27 @@ bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, boo
 
     if (event->type() == QEvent::Wheel) {
         auto* wheelEvent = static_cast<QWheelEvent*>(event);
-        auto cursorPos = wheelEvent->position().toPoint();
-        if (auto index = m_lv->indexAt(cursorPos); index.isValid()) {
-            if (m_lv->currentIndex() != index)
-                m_lv->setCurrentIndex(index);
-            auto windowGroup = m_model->groupAt(index.row());
-            if (windowGroup.windows.isEmpty()) return false;
-
-            if (lastWheelRow != index.row()) {
-                lastWheelRow = index.row();
-                lastWheelHwnd = nullptr;
-                m_cyc->clearGroupWindowOrder();
-            }
-            auto targetExe = windowGroup.exePath;
-            bool isRollUp = wheelEvent->angleDelta().x() > 0;
-            auto& order = m_cyc->groupWindowOrder();
-            if (order.isEmpty())
-                order = m_cyc->buildGroupWindowOrder(targetExe);
-
-            if (!lastWheelHwnd) {
-                lastWheelHwnd = order.first();
-            } else {
-                if (lastWheelIsRollUp == isRollUp)
-                    lastWheelHwnd = GroupWindowCycler::rotateWindowInGroup(order, lastWheelHwnd, isRollUp);
-            }
-            lastWheelIsRollUp = isRollUp;
-
-            HWND nextFocus = lastWheelHwnd;
-            if (isRollUp) {
-                Util::bringWindowToTop(lastWheelHwnd, nullptr);
-            } else {
-                auto& orderForNormal = m_cyc->groupWindowOrder();
-                if (auto normal = GroupWindowCycler::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false)) {
-                    ShowWindow(normal, SW_SHOWMINNOACTIVE);
-                    lastWheelHwnd = normal;
-                    nextFocus = lastWheelHwnd;
-                }
-                if (auto normal = GroupWindowCycler::rotateNormalWindowInGroup(orderForNormal, lastWheelHwnd, false))
-                    nextFocus = normal;
-            }
-            emit foregroundChanged(nextFocus);
-            emit labelTextChanged(Util::getWindowTitle(nextFocus));
-            return true;
-        }
+        return m_wheelProcessor->handleWheelEvent(wheelEvent, m_listView, m_model, m_windowManager, m_groupCycler);
     }
     return false;
 }
 
-void SelectionController::enterGroupWindowMode() {
-    auto index = m_lv->currentIndex();
+void SelectionController::expandGroup() {
+    auto index = m_listView->currentIndex();
     if (!index.isValid()) {
-        qDebug() << "[GroupMode] enterGroupWindowMode called but currentIndex invalid";
+        qDebug() << "[GroupMode] expandGroup called but currentIndex invalid";
         return;
     }
 
     auto group = m_model->groupAt(index.row());
     if (group.windows.size() <= 1) {
-        qDebug() << "[GroupMode] enterGroupWindowMode called but only 1 window";
+        qDebug() << "[GroupMode] expandGroup called but only 1 window";
         return;
     }
 
-    m_backupGroupList = m_model->groups();
-    m_backupGroupIndex = index.row();
-    qInfo() << "[GroupMode] Enter, backupIndex=" << m_backupGroupIndex
+    m_expandedGroupBackup = m_model->groups();
+    m_expandedGroupBackupIndex = index.row();
+    qInfo() << "[GroupMode] Enter, backupIndex=" << m_expandedGroupBackupIndex
             << "windows=" << group.windows.size();
 
     QList<WindowGroup> filtered;
@@ -256,63 +223,90 @@ void SelectionController::enterGroupWindowMode() {
     }
 
     m_model->setGroups(filtered);
-    m_isInGroupWindowMode = true;
+    m_isGroupExpanded = true;
 
     emit geometryNeedsRecalc();
-    m_lv->setCurrentIndex(m_model->index(0));
+    m_listView->setCurrentIndex(m_model->index(0));
     showLabelForItem(m_model->index(0));
     qInfo() << "(Alt+`)Window focus:" << group.exePath << filtered.size() << "windows";
 }
 
-void SelectionController::exitGroupWindowMode(bool activateSelected) {
-    if (!m_isInGroupWindowMode) {
-        qDebug() << "[GroupMode] exitGroupWindowMode called but NOT in group mode";
+void SelectionController::collapseGroup(bool activateSelected) {
+    if (!m_isGroupExpanded) {
+        qDebug() << "[GroupMode] collapseGroup called but NOT in group mode";
         return;
     }
-    qInfo() << "[GroupMode] exitGroupWindowMode activateSelected=" << activateSelected
-            << "backupIndex=" << m_backupGroupIndex
-            << "backupCount=" << m_backupGroupList.size();
-    m_isInGroupWindowMode = false;
+    qInfo() << "[GroupMode] collapseGroup activateSelected=" << activateSelected
+            << "backupIndex=" << m_expandedGroupBackupIndex
+            << "backupCount=" << m_expandedGroupBackup.size();
+    m_isGroupExpanded = false;
 
     if (activateSelected) {
-        if (auto index = m_lv->currentIndex(); index.isValid()) {
+        if (auto index = m_listView->currentIndex(); index.isValid()) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
                 qInfo() << "[GroupMode] activating window on exit";
                 emit switchToWindowRequested(group.windows.first().hwnd,
-                                             group.exePath,
-                                             group.windows.first().title);
+                                              group.exePath,
+                                              group.windows.first().title);
             }
         }
     }
 
-    m_model->setGroups(m_backupGroupList);
-    m_backupGroupList.clear();
+    m_model->setGroups(m_expandedGroupBackup);
+    m_expandedGroupBackup.clear();
 
     emit geometryNeedsRecalc();
-    int restoreIndex = qMin(m_backupGroupIndex, m_model->groupCount() - 1);
-    m_lv->setCurrentIndex(m_model->index(restoreIndex));
+    int restoreIndex = qMin(m_expandedGroupBackupIndex, m_model->groupCount() - 1);
+    m_listView->setCurrentIndex(m_model->index(restoreIndex));
     showLabelForItem(m_model->index(restoreIndex));
-    m_backupGroupIndex = 0;
+    m_expandedGroupBackupIndex = 0;
 
     qInfo() << "[GroupMode] Exit, restored to index" << restoreIndex;
+}
+
+bool SelectionController::tryEnterGroupForWindow(HWND hwnd) {
+    qInfo() << "[AutoGroup] tryEnterGroupForWindow hwnd=" << Qt::hex << hwnd
+             << "groupCount=" << m_model->groupCount()
+             << "inGroupMode=" << m_isGroupExpanded;
+    if (m_isGroupExpanded) return false;
+
+    for (int i = 0; i < m_model->groupCount(); ++i) {
+        auto& group = m_model->groupAt(i);
+        for (auto& w : group.windows) {
+            if (w.hwnd == hwnd) {
+                qInfo() << "[AutoGroup] found window in group" << i
+                         << "windows=" << group.windows.size();
+                if (group.windows.size() <= 1) {
+                    qInfo() << "[AutoGroup] single window group, skip";
+                    return false;
+                }
+                qInfo() << "[AutoGroup] entering group mode for" << group.windows.size()
+                         << "windows";
+                m_listView->setCurrentIndex(m_model->index(i));
+                expandGroup();
+                return true;
+            }
+        }
+    }
+    qInfo() << "[AutoGroup] window not found in any group";
+    return false;
 }
 
 void SelectionController::resetState() {
     m_jumpLastLetter = {};
     m_jumpLastIndex = -1;
-    lastWheelRow = -1;
-    lastWheelHwnd = nullptr;
+    m_wheelProcessor->reset();
 }
 
 void SelectionController::resetAll() {
     resetState();
-    m_isInGroupWindowMode = false;
-    m_backupGroupList.clear();
-    m_backupGroupIndex = 0;
+    m_isGroupExpanded = false;
+    m_expandedGroupBackup.clear();
+    m_expandedGroupBackupIndex = 0;
 }
 
 void SelectionController::handleListItemClicked(const QModelIndex& index, bool stayOpenMode) {
-    qInfo() << "[Click] item row=" << index.row() << "groupMode=" << m_isInGroupWindowMode
+    qInfo() << "[Click] item row=" << index.row() << "groupMode=" << m_isGroupExpanded
              << "stayOpen=" << stayOpenMode << "mouseClickActivate=" << cfg().getMouseClickActivateEnabled();
 
     if (!cfg().getMouseClickActivateEnabled() && !stayOpenMode) {
@@ -320,9 +314,9 @@ void SelectionController::handleListItemClicked(const QModelIndex& index, bool s
         return;
     }
 
-    if (m_isInGroupWindowMode) {
-        qInfo() << "[Click] in group mode -> exitGroupWindowMode(true)";
-        exitGroupWindowMode(true);
+    if (m_isGroupExpanded) {
+        qInfo() << "[Click] in group mode -> collapseGroup(true)";
+        collapseGroup(true);
         return;
     }
 
@@ -330,8 +324,8 @@ void SelectionController::handleListItemClicked(const QModelIndex& index, bool s
     qDebug() << "[Click] group windows=" << group.windows.size()
              << "clickShowGroup=" << cfg().getClickShowGroupForMultiWindow();
     if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
-        qInfo() << "[Click] enterGroupWindowMode";
-        enterGroupWindowMode();
+        qInfo() << "[Click] expandGroup";
+        expandGroup();
     } else {
         if (!group.windows.empty()) {
             qInfo() << "[Click] switchToWindow + hide";

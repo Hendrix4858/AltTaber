@@ -4,6 +4,7 @@
 #include <QObject>
 #include "WindowTypes.h"
 #include "ActivationHistory.h"
+#include "WindowFilter.h"
 
 class WindowManager : public QObject {
     Q_OBJECT
@@ -17,9 +18,13 @@ public:
     void recordWindowActivation(HWND hwnd);
     ActivationHistory& activationHistory() { return m_activationHistory; }
 
+    void reloadFilterRules();
+    QList<HWND> filteredHwndsForExe(const QString& exePath);
+
 private:
     HWND m_selfHwnd = nullptr;
     ActivationHistory m_activationHistory;
+    WindowFilter m_filter;
 };
 
 #endif //WIN_SWITCHER_WINDOWMANAGER_H

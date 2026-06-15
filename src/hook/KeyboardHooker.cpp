@@ -1,0 +1,271 @@
+#include "hook/KeyboardHooker.h"
+#include <QDebug>
+#include "utils/Util.h"
+
+KeyboardHooker* KeyboardHooker::s_instance = nullptr;
+
+Qt::KeyboardModifiers KeyboardHooker::toQtModifiers(const ModifierState& ms) {
+    Qt::KeyboardModifiers m;
+    if (ms.ctrl)  m |= Qt::ControlModifier;
+    if (ms.shift) m |= Qt::ShiftModifier;
+    if (ms.alt)   m |= Qt::AltModifier;
+    if (ms.meta)  m |= Qt::MetaModifier;
+    return m;
+}
+
+void KeyboardHooker::updateModifierState(ModifierState& ms, WPARAM wParam, DWORD vkCode) {
+    bool down = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+    switch (vkCode) {
+        case VK_CONTROL:
+        case VK_LCONTROL:
+        case VK_RCONTROL:  ms.ctrl  = down; break;
+        case VK_SHIFT:
+        case VK_LSHIFT:
+        case VK_RSHIFT:    ms.shift = down; break;
+        case VK_MENU:
+        case VK_LMENU:
+        case VK_RMENU:     ms.alt   = down; break;
+        case VK_LWIN:
+        case VK_RWIN:      ms.meta  = down; break;
+    }
+}
+
+void KeyboardHooker::snapshotModifiersFromOS(ModifierState& ms) {
+    ms.ctrl  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+    ms.shift = (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0;
+    ms.alt   = (GetAsyncKeyState(VK_MENU)    & 0x8000) != 0;
+    ms.meta  = ((GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN)) & 0x8000) != 0;
+}
+
+LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode == HC_ACTION) {
+        auto* inst = KeyboardHooker::s_instance;
+        if (!inst) return CallNextHookEx(nullptr, nCode, wParam, lParam);
+
+        auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+
+        KeyboardHooker::updateModifierState(inst->m_modState, wParam, keyEvent->vkCode);
+
+        if (inst->m_paused)
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+
+        if (keyEvent->flags & LLKHF_INJECTED) {
+            qDebug() << "[KeyHook] Injected event ignored, vkCode=" << keyEvent->vkCode;
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+        }
+
+        Qt::KeyboardModifiers mods = KeyboardHooker::toQtModifiers(inst->m_modState);
+
+        // Recording pipeline: route key to recorder via PostMessage
+        if (inst->m_recorderHwnd && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+            inst->m_keyRecord.vkCode = keyEvent->vkCode;
+            inst->m_keyRecord.scanCode = keyEvent->scanCode;
+            inst->m_keyRecord.flags = keyEvent->flags;
+            inst->m_keyRecord.modifiers = mods;
+            inst->m_keyRecord.ready.store(true, std::memory_order_release);
+            qDebug() << "[RecordRaw] post vk=" << keyEvent->vkCode
+                     << "sc=" << keyEvent->scanCode << "flags=" << keyEvent->flags
+                     << "mods=" << mods;
+            PostMessageW(inst->m_recorderHwnd, KeyboardHooker::RecordingMessageId, 0, 0);
+            return 1;
+        }
+
+        if (inst->m_recordingActive)
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
+
+        if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN) {
+            if (!inst) return CallNextHookEx(nullptr, nCode, wParam, lParam);
+
+            QString keyName = HotkeyStrings::vkCodeToString(keyEvent->vkCode);
+            qDebug() << "[KeyHook] KeyDown: vk=" << keyEvent->vkCode
+                     << "sc=" << keyEvent->scanCode << "ext=" << ((keyEvent->flags & LLKHF_EXTENDED) != 0)
+                     << "key=" << keyName << "mods=" << mods;
+
+            int checkedCount = 0;
+            bool overlayVisible = IsWindowVisible(inst->m_ownerHwnd);
+            for (auto it = inst->m_bindings.begin();
+                 it != inst->m_bindings.end(); ++it) {
+                if (hotkeyActionScope(it.key()) != HotkeyScope::Global) continue;
+
+                if (it.key() == HotkeyAction::CycleProcessWindows && overlayVisible) {
+                    qDebug() << "[KeyHook] skip CycleProcessWindows (overlay visible)";
+                    continue;
+                }
+
+                if (it.key() == HotkeyAction::SwitchProcessWindow && overlayVisible) {
+                    qDebug() << "[KeyHook] skip SwitchProcessWindow (overlay visible)";
+                    continue;
+                }
+
+                qDebug() << "[KeyHook] Checking" << hotkeyActionName(it.key())
+                         << "binds=" << it.value().size();
+
+                for (const auto& binding : it.value()) {
+                    ++checkedCount;
+                    qDebug() << "[KeyHook]   binding: mode="
+                             << (binding.mode == HotkeyBinding::KeyMode::Physical ? "Physical" : "Logical")
+                             << "vk=" << binding.vkCode
+                             << "sc=" << binding.scanCode
+                             << "ext=" << binding.extended
+                             << "mods=" << binding.modifiers;
+                    bool match = binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
+                                          (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
+                    qDebug() << "[KeyHook]   match=" << match;
+                    if (match) {
+                        qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
+                        emit inst->hotkeyTriggered(it.key(), mods);
+                        return 1;
+                    }
+                }
+            }
+            if (checkedCount == 0)
+                qDebug() << "[KeyHook] No global actions have bindings registered";
+            else
+                qDebug() << "[KeyHook] ⚠️ No global binding matched for" << keyName;
+
+            // Overlay key routing: when overlay is visible, intercept overlay-scoped
+            // keys and forward via dedicated signal to prevent Windows from processing
+            // them (e.g. Tab changing focus) before the widget receives them
+            {
+                bool overlayVisible = IsWindowVisible(inst->m_ownerHwnd);
+                if (overlayVisible) {
+                    for (auto it = inst->m_bindings.begin();
+                         it != inst->m_bindings.end(); ++it) {
+                        if (hotkeyActionScope(it.key()) != HotkeyScope::Overlay)
+                            continue;
+                        for (const auto& b : it.value()) {
+                            if (b.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
+                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, mods)) {
+                                qInfo() << "[KeyHook] overlay-key-routing ->"
+                                        << hotkeyActionName(it.key());
+                                emit inst->overlayKeyTriggered(it.key(), mods);
+                                return 1;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
+            if (keyEvent->vkCode == VK_LMENU || keyEvent->vkCode == VK_RMENU) {
+                qDebug() << "[KeyHook] Alt UP";
+                emit inst->altReleased();
+            }
+
+            if (inst->m_waitingForModifierRelease) {
+                Qt::KeyboardModifiers currentMods = KeyboardHooker::toQtModifiers(inst->m_modState);
+                bool allReleased = (inst->m_activationModifiers & currentMods) == 0;
+                qDebug() << "[KeyHook] Activation check: target="
+                         << inst->m_activationModifiers
+                         << "current=" << currentMods
+                         << "allReleased=" << allReleased;
+                if (allReleased) {
+                    qInfo() << "[KeyHook] All activation modifiers released";
+                    emit inst->activationModifiersReleased();
+                    inst->m_waitingForModifierRelease = false;
+                    inst->m_activationModifiers = Qt::NoModifier;
+                }
+            }
+        }
+    }
+    if (nCode == HC_ACTION) {
+        auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
+            qDebug() << "[KeyHook] ⚠️ Key NOT eaten, falling through to Windows: vk="
+                     << keyEvent->vkCode << "sc=" << keyEvent->scanCode;
+    }
+    return CallNextHookEx(nullptr, nCode, wParam, lParam);
+}
+
+KeyboardHooker::KeyboardHooker(HWND ownerHwnd, QObject* parent)
+    : QObject(parent), m_ownerHwnd(ownerHwnd) {
+    if (s_instance) {
+        qCritical() << "Only one KeyboardHooker can be installed!";
+        return;
+    }
+    m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC) keyboardProc, GetModuleHandle(nullptr), 0);
+    if (!m_keyboardHook) {
+        qCritical() << "Failed to install m_keyboardHook!";
+        return;
+    }
+    if (!ownerHwnd) {
+        qCritical() << "Owner HWND is null!";
+        return;
+    }
+    s_instance = this;
+    qInfo() << "KeyboardHooker installed";
+}
+
+KeyboardHooker::~KeyboardHooker() {
+    if (!m_keyboardHook) return;
+    UnhookWindowsHookEx(m_keyboardHook);
+    s_instance = nullptr;
+    qDebug() << "KeyboardHooker uninstalled";
+}
+
+void KeyboardHooker::setRecordingActive(bool active) {
+    if (s_instance) s_instance->m_recordingActive = active;
+}
+
+void KeyboardHooker::setRecordingTarget(HWND hwnd) {
+    if (!s_instance) return;
+    s_instance->m_recorderHwnd = hwnd;
+    s_instance->m_keyRecord.ready.store(false, std::memory_order_release);
+    snapshotModifiersFromOS(s_instance->m_modState);
+}
+
+void KeyboardHooker::clearRecordingTarget() {
+    if (!s_instance) return;
+    s_instance->m_recorderHwnd = nullptr;
+    s_instance->m_keyRecord.ready.store(false, std::memory_order_release);
+}
+
+UINT KeyboardHooker::recordingMessageId() {
+    return RecordingMessageId;
+}
+
+bool KeyboardHooker::tryTakeRecordedKey(quint32& vk, quint32& scanCode,
+                                         DWORD& flags, Qt::KeyboardModifiers& mods) {
+    if (!s_instance) return false;
+    auto& rec = s_instance->m_keyRecord;
+    if (!rec.ready.load(std::memory_order_acquire))
+        return false;
+    vk = rec.vkCode;
+    scanCode = rec.scanCode;
+    flags = rec.flags;
+    mods = rec.modifiers;
+    rec.ready.store(false, std::memory_order_release);
+    return true;
+}
+
+void KeyboardHooker::setPaused(bool paused) {
+    m_paused = paused;
+}
+
+void KeyboardHooker::resetActivationModifiers() {
+    m_waitingForModifierRelease = false;
+    m_activationModifiers = Qt::NoModifier;
+    qDebug() << "[KeyHook] Activation modifiers reset";
+}
+
+void KeyboardHooker::notifyOverlayShown() {
+    Qt::KeyboardModifiers currentMods = toQtModifiers(m_modState);
+    if (currentMods != Qt::NoModifier) {
+        m_activationModifiers = currentMods;
+        m_waitingForModifierRelease = true;
+        qInfo() << "[KeyHook] Overlay shown, tracking modifiers:" << currentMods;
+    } else {
+        qDebug() << "[KeyHook] Overlay shown but no modifiers held, nothing to track";
+    }
+}
+
+void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {
+    m_bindings = bindings;
+    qDebug() << "[KeyHook] Bindings updated,"
+             << m_bindings.size() << "actions registered";
+    for (auto it = m_bindings.begin(); it != m_bindings.end(); ++it) {
+        QStringList strs;
+        for (const auto& b : it.value())
+            strs << b.toString();
+        qDebug() << "[KeyHook]  " << hotkeyActionName(it.key()) << ":" << it.value().size() << "binding(s) -" << strs.join(", ");
+    }
+}

@@ -1,11 +1,11 @@
-﻿#ifndef WIN_SWITCHER_WIDGET_H
+#ifndef WIN_SWITCHER_WIDGET_H
 #define WIN_SWITCHER_WIDGET_H
 
 #include <QWidget>
 #include <Windows.h>
 #include <QListView>
-#include <QElapsedTimer>
-#include "utils/HotkeyAction.h"
+
+#include "core/HotkeyAction.h"
 #include "OverlayController.h"
 
 class WindowGroupModel;
@@ -30,11 +30,10 @@ protected:
     void hideEvent(QHideEvent* event) override;
 
 public:
-    using OverlayState = OverlayController::OverlayState;
-
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);
     void warmupCache();
-    Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher);
+    Q_INVOKABLE bool requestShow(OverlayIntent why = OverlayIntent::ShowSwitcher,
+                                  HotkeyAction triggeringAction = HotkeyAction::SwitchToNextWindow);
     void hideOverlay();
     void notifyForegroundChanged(HWND hwnd);
     OverlayController* overlayController() const { return m_overlayCtrl; }
@@ -42,17 +41,22 @@ public:
     HWND hWnd() { return (HWND) winId(); }
     bool isForeground() { return GetForegroundWindow() == hWnd(); }
 
-    OverlayState overlayState() const;
     ~Widget() override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void handleListItemClicked(const QModelIndex& index);
-    WindowManager* windowManager() const { return m_wm; }
+    WindowManager* windowManager() const { return m_windowManager; }
     TaskbarWindowCycler* taskbarCycler() const { return m_taskbarCycler; }
 
     Q_INVOKABLE void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    Q_INVOKABLE void handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
     Q_INVOKABLE void handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
+    void onActivationModifiersReleased();
 
     void updateOverlayBindings(const HotkeyBindings& bindings);
+
+signals:
+    void overlayDismissed();
+    void overlayShown();
 
 private:
     void setupLabelFont();
@@ -62,18 +66,17 @@ private:
                                                const QString& title);
 
     Ui::Widget* ui;
-    QListView* lv = nullptr;
+    QListView* m_listView = nullptr;
     WindowGroupModel* m_model = nullptr;
-    WindowManager* m_wm = nullptr;
-    const QMargins ListWidgetMargin{24, 24, 24, 24};
+    WindowManager* m_windowManager = nullptr;
+    const QMargins m_listWidgetMargin{24, 24, 24, 24};
 
     OverlayController* m_overlayCtrl;
     SelectionController* m_selectCtrl;
     TaskbarWindowCycler* m_taskbarCycler;
-    GroupWindowCycler* m_cyc;
+    GroupWindowCycler* m_groupCycler;
 
-    QElapsedTimer m_lastAltReleaseTime;
-    static constexpr int kAltReleaseDedupMs = 100;
+
 };
 
 #endif //WIN_SWITCHER_WIDGET_H

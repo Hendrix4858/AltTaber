@@ -4,23 +4,13 @@
 #include <Windows.h>
 #include <QList>
 #include <QString>
-
-struct WindowFilterRules {
-    QStringList blockedClassNames;
-    QStringList blockedExePaths;
-    QStringList blockedFileNames;
-    QList<std::pair<QString, QString>> blockedByUser; // title, class patterns
-
-    bool skipElevatedIfNotAdmin = true;
-};
+#include "WindowTypes.h"
 
 namespace WindowEnumerator {
-    QList<HWND> enumAllWindows();
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false,
-                            const WindowFilterRules* filterRules = nullptr);
-    QList<HWND> enumValidWindows(const WindowFilterRules* filterRules = nullptr);
-    QList<HWND> enumValidWindows(const QString& exePath,
-                                 const WindowFilterRules* filterRules = nullptr);
+    QList<WindowDescriptor> enumAllWindows();
+    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false);
+    QList<WindowDescriptor> enumValidWindows();
+    QList<WindowDescriptor> enumValidWindows(const QString& exePath);
 }
 
 #endif //WIN_SWITCHER_WINDOWENUMERATOR_H
