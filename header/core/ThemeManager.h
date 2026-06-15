@@ -8,8 +8,8 @@ enum Theme {
     Dark,
     Light,
     System,
-    ThemeEnumCount
 };
+constexpr int ThemeCount = 3;
 
 struct ThemeColors {
     QColor bgColor;

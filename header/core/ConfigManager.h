@@ -13,8 +13,8 @@
 enum DisplayMonitor {
     PrimaryMonitor,
     MouseMonitor,
-    EnumCount
 };
+constexpr int DisplayMonitorCount = 2;
 
 struct BlockedWindowEntry {
     bool enabled = true;
@@ -44,7 +44,7 @@ public:
 public:
     DisplayMonitor getDisplayMonitor() {
         auto monitor = get("DisplayMonitor", DisplayMonitor::MouseMonitor).toInt();
-        if (monitor < 0 || monitor >= DisplayMonitor::EnumCount) {
+        if (monitor < 0 || monitor >= DisplayMonitorCount) {
             qWarning() << "Invalid DisplayMonitor enum" << monitor;
             monitor = DisplayMonitor::MouseMonitor;
         }

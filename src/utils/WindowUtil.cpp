@@ -10,7 +10,7 @@
 
 namespace Util {
 
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
+    bool isWindowAllowed(HWND hwnd, bool skipVisibleCheck) {
         // Structural check (requires HWND)
         if (!WindowEnumerator::isWindowAcceptable(hwnd, skipVisibleCheck))
             return false;
@@ -20,12 +20,12 @@ namespace Util {
         auto blocked = cfg().getBlockedWindows();
         for (const auto& entry : blocked) {
             if (!entry.enabled) continue;
-            WindowFilterEntry fe;
-            fe.title = entry.title;
-            fe.className = entry.className;
-            fe.processName = entry.processName;
-            fe.processPath = entry.processPath;
-            rule.entries.append(fe);
+            WindowBlockRule blockRule;
+            blockRule.title = entry.title;
+            blockRule.className = entry.className;
+            blockRule.processName = entry.processName;
+            blockRule.processPath = entry.processPath;
+            rule.rules.append(blockRule);
         }
         filter.setRules(rule);
         WindowDescriptor desc = WindowDescriptorBuilder::fromHwnd(hwnd);
@@ -53,7 +53,7 @@ namespace Util {
         return list;
     }
 
-    void closeWindowedPopupClass() {
+    void closeXamlWindowedPopup() {
         HWND hwnd = GetForegroundWindow();
         QString className = getClassName(hwnd);
         if (className == "Xaml_WindowedPopupClass") {
@@ -71,7 +71,7 @@ namespace Util {
 
     void closeSystemWindows() {
         closeStartMenu();
-        closeWindowedPopupClass();
+        closeXamlWindowedPopup();
     }
 
     QList<HWND> listValidWindows() {

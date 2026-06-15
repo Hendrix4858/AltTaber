@@ -30,15 +30,15 @@ SystemTray::SystemTray(QWidget* parent)
 }
 
 void SystemTray::retranslateMenu() {
-    m_actUpdate->setText(tr("Check for Updates"));
-    m_actSettings->setText(tr("Settings"));
-    m_actPause->setText(tr("Pause"));
-    m_actRestartAdmin->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
-    m_menuMonitor->setTitle(tr("Display Monitor"));
+    m_updateAction->setText(tr("Check for Updates"));
+    m_settingsAction->setText(tr("Settings"));
+    m_pauseAction->setText(tr("Pause"));
+    m_restartAdminAction->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
+    m_monitorMenu->setTitle(tr("Display Monitor"));
     auto actions = m_monitorGroup->actions();
     actions[PrimaryMonitor]->setText(tr("Primary Monitor"));
     actions[MouseMonitor]->setText(tr("Mouse Monitor"));
-    m_actQuit->setText(tr("Quit >"));
+    m_quitAction->setText(tr("Quit >"));
 }
 
 void SystemTray::applyMenuTheme() {
@@ -57,15 +57,15 @@ void SystemTray::setMenu(QWidget* parent) {
     m_menu = new QMenu(parent);
     applyMenuTheme();
 
-    m_actUpdate = new QAction(m_menu);
-    m_actSettings = new QAction(m_menu);
-    m_actPause = new QAction(m_menu);
-    m_actPause->setCheckable(true);
-    m_actRestartAdmin = new QAction(m_menu);
-    m_menuMonitor = new QMenu(m_menu);
-    m_actQuit = new QAction(m_menu);
+    m_updateAction = new QAction(m_menu);
+    m_settingsAction = new QAction(m_menu);
+    m_pauseAction = new QAction(m_menu);
+    m_pauseAction->setCheckable(true);
+    m_restartAdminAction = new QAction(m_menu);
+    m_monitorMenu = new QMenu(m_menu);
+    m_quitAction = new QAction(m_menu);
 
-    connect(m_actUpdate, &QAction::triggered, this, [] {
+    connect(m_updateAction, &QAction::triggered, this, [] {
         static UpdateDialog* dlg = nullptr;
         if (!dlg) {
             dlg = new UpdateDialog;
@@ -77,7 +77,7 @@ void SystemTray::setMenu(QWidget* parent) {
         dlg->activateWindow();
     });
 
-    connect(m_actSettings, &QAction::triggered, this, [] {
+    connect(m_settingsAction, &QAction::triggered, this, [] {
         static SettingsDialog* dlg = nullptr;
         if (!dlg) {
             dlg = new SettingsDialog;
@@ -89,29 +89,29 @@ void SystemTray::setMenu(QWidget* parent) {
         dlg->activateWindow();
     });
 
-    connect(m_actRestartAdmin, &QAction::triggered, this, [] {
+    connect(m_restartAdminAction, &QAction::triggered, this, [] {
         QString appPath = QApplication::applicationFilePath();
         ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
         QuitReason::markIntentional();
         QApplication::quit();
     });
 
-    connect(m_actPause, &QAction::triggered, this, [this](bool checked) {
+    connect(m_pauseAction, &QAction::triggered, this, [this](bool checked) {
         cfg().setPaused(checked);
         this->showMessage(tr("Pause"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
     });
 
     connect(m_menu, &QMenu::aboutToShow, this, [this] {
         applyMenuTheme();
-        m_actPause->setChecked(cfg().getPaused());
+        m_pauseAction->setChecked(cfg().getPaused());
         bool isAdmin = IsUserAnAdmin();
-        m_actRestartAdmin->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
-        m_actRestartAdmin->setEnabled(!isAdmin);
+        m_restartAdminAction->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
+        m_restartAdminAction->setEnabled(!isAdmin);
     });
 
     // Display Monitor submenu
     {
-        m_monitorGroup = new QActionGroup(m_menuMonitor);
+        m_monitorGroup = new QActionGroup(m_monitorMenu);
         auto* actPrimary = m_monitorGroup->addAction(QString());
         actPrimary->setData(PrimaryMonitor);
         auto* actMouse = m_monitorGroup->addAction(QString());
@@ -121,10 +121,10 @@ void SystemTray::setMenu(QWidget* parent) {
         for (auto* act : actions)
             act->setCheckable(true);
 
-        Q_ASSERT(actions.size() == DisplayMonitor::EnumCount);
-        m_menuMonitor->addActions(actions);
+        Q_ASSERT(actions.size() == DisplayMonitorCount);
+        m_monitorMenu->addActions(actions);
 
-        connect(m_menuMonitor, &QMenu::aboutToShow, this, [this] {
+        connect(m_monitorMenu, &QMenu::aboutToShow, this, [this] {
             const auto actions = m_monitorGroup->actions();
             actions[cfg().getDisplayMonitor()]->setChecked(true);
         });
@@ -136,19 +136,19 @@ void SystemTray::setMenu(QWidget* parent) {
         });
     }
 
-    connect(m_actQuit, &QAction::triggered, this, [] {
+    connect(m_quitAction, &QAction::triggered, this, [] {
         QuitReason::markIntentional();
         QApplication::quit();
     });
 
-    m_menu->addAction(m_actUpdate);
-    m_menu->addAction(m_actSettings);
+    m_menu->addAction(m_updateAction);
+    m_menu->addAction(m_settingsAction);
     m_menu->addSeparator();
-    m_menu->addAction(m_actPause);
+    m_menu->addAction(m_pauseAction);
     m_menu->addSeparator();
-    m_menu->addAction(m_actRestartAdmin);
-    m_menu->addMenu(m_menuMonitor);
-    m_menu->addAction(m_actQuit);
+    m_menu->addAction(m_restartAdminAction);
+    m_menu->addMenu(m_monitorMenu);
+    m_menu->addAction(m_quitAction);
     this->setContextMenu(m_menu);
 
     retranslateMenu();

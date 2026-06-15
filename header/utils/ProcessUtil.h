@@ -14,7 +14,7 @@ namespace Util {
     QList<QString> getChildProcessPaths(DWORD parentPID);
     QList<QString> getChildProcessPaths(const QString& exePath);
     void switchToWindow(HWND hwnd, bool force = false);
-    void bringWindowToTop(HWND hwnd, HWND hWndInsertAfter = HWND_TOPMOST);
+    void focusWindow(HWND hwnd, HWND hWndInsertAfter = HWND_TOPMOST);
 }
 
 #endif //WIN_SWITCHER_PROCESSUTIL_H

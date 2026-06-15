@@ -16,8 +16,8 @@
 OverlayController::OverlayController(QWidget* widget, QWidget* listView, QWidget* labelWidget,
                                      WindowGroupModel* model, WindowManager* wm,
                                      QObject* parent)
-    : QObject(parent), m_widget(widget), m_lv(listView), m_label(labelWidget),
-      m_model(model), m_wm(wm) {}
+    : QObject(parent), m_widget(widget), m_listView(listView), m_label(labelWidget),
+      m_model(model), m_windowManager(wm) {}
 
 void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
     m_overlayBindings.clear();
@@ -52,13 +52,13 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
     }
     if (!screen) return;
 
-    auto* lv = qobject_cast<QListView*>(m_lv);
-    if (!lv) return;
+    auto* listView = qobject_cast<QListView*>(m_listView);
+    if (!listView) return;
 
     auto screenGeo = screen->geometry();
-    int maxWidth = screenGeo.width() - m_margin.left() - m_margin.right();
-    int iconSize = lv->iconSize().width();
-    int gridWidth = lv->gridSize().width();
+    int maxWidth = screenGeo.width() - m_overlayMargin.left() - m_overlayMargin.right();
+    int iconSize = listView->iconSize().width();
+    int gridWidth = listView->gridSize().width();
     int totalNeeded = gridWidth * m_model->groupCount();
     int minIcon = cfg().getMinIconSize();
 
@@ -68,33 +68,33 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
         int newIconSize = qMax(minIcon, newGridWidth - padding);
         int finalGridWidth = newIconSize + padding;
 
-        lv->setIconSize({newIconSize, newIconSize});
-        lv->setGridSize({finalGridWidth, lv->gridSize().height()});
+        listView->setIconSize({newIconSize, newIconSize});
+        listView->setGridSize({finalGridWidth, listView->gridSize().height()});
     } else {
-        lv->setIconSize({64, 64});
-        lv->setGridSize({80, 80});
+        listView->setIconSize({64, 64});
+        listView->setGridSize({80, 80});
     }
 
     auto firstIndex = m_model->index(0);
-    auto firstRect = lv->visualRect(firstIndex);
-    auto width = lv->gridSize().width() * m_model->groupCount() + (firstRect.x() - lv->frameWidth());
-    lv->setFixedWidth(width);
+    auto firstRect = listView->visualRect(firstIndex);
+    auto width = listView->gridSize().width() * m_model->groupCount() + (firstRect.x() - listView->frameWidth());
+    listView->setFixedWidth(width);
 
-    auto lvRect = lv->rect();
-    auto thisRect = lvRect.marginsAdded(m_margin);
-    thisRect.moveCenter(screenGeo.center());
+    auto listViewRect = listView->rect();
+    auto widgetGeometry = listViewRect.marginsAdded(m_overlayMargin);
+    widgetGeometry.moveCenter(screenGeo.center());
 
-    m_widget->setGeometry(thisRect);
+    m_widget->setGeometry(widgetGeometry);
 
-    lvRect.moveCenter(m_widget->rect().center());
-    lv->move(lvRect.topLeft());
+    listViewRect.moveCenter(m_widget->rect().center());
+    listView->move(listViewRect.topLeft());
 }
 
 bool OverlayController::prepareListWidget() {
-    auto* lv = qobject_cast<QListView*>(m_lv);
-    if (!lv) return false;
+    auto* listView = qobject_cast<QListView*>(m_listView);
+    if (!listView) return false;
 
-    auto winGroupList = m_wm->prepareWindowGroupList();
+    auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 
     if (m_model->groupCount() > 0) {
@@ -117,21 +117,21 @@ bool OverlayController::prepareListWidget() {
 
     auto count = m_model->groupCount();
 
-    if (m_selectBackward && count >= 2) {
-        lv->setCurrentIndex(m_model->index(count - 1));
-        m_selectBackward = false;
+    if (m_wasInvokedBackward && count >= 2) {
+        listView->setCurrentIndex(m_model->index(count - 1));
+        m_wasInvokedBackward = false;
     } else if (count >= 2) {
-        auto foreWin = GetForegroundWindow();
+        auto foregroundHwnd = GetForegroundWindow();
         bool isFirstItemForeground = false;
         for (auto& info : winGroupList.at(0).windows) {
-            if (info.hwnd == foreWin) {
+            if (info.hwnd == foregroundHwnd) {
                 isFirstItemForeground = true;
                 break;
             }
         }
-        lv->setCurrentIndex(m_model->index(isFirstItemForeground ? 1 : 0));
+        listView->setCurrentIndex(m_model->index(isFirstItemForeground ? 1 : 0));
     } else if (count == 1) {
-        lv->setCurrentIndex(m_model->index(0));
+        listView->setCurrentIndex(m_model->index(0));
     }
 
     return true;
@@ -178,9 +178,9 @@ void OverlayController::transition(OverlayIntent intent) {
     case OverlayState::Hidden:
         if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
             intent == OverlayIntent::ShowSwitcherBackward) {
-            m_selectBackward = (intent == OverlayIntent::ShowSwitcherBackward);
+            m_wasInvokedBackward = (intent == OverlayIntent::ShowSwitcherBackward);
             qInfo() << "[Transition] Hidden + Show = refreshing list + show (backward="
-                    << m_selectBackward << ")";
+                    << m_wasInvokedBackward << ")";
             m_listDirty = true;
             refreshWindowList();
             showWindow();
@@ -237,10 +237,10 @@ void OverlayController::showWindow() {
     qInfo() << "[OverlayCtrl] showWindow forceShow=" << ok;
     if (ok) {
         emit showRequested();
-        auto* lv = qobject_cast<QListView*>(m_lv);
-        if (lv) {
-            lv->setFocusPolicy(Qt::StrongFocus);
-            lv->setFocus(Qt::OtherFocusReason);
+        auto* listView = qobject_cast<QListView*>(m_listView);
+        if (listView) {
+            listView->setFocusPolicy(Qt::StrongFocus);
+            listView->setFocus(Qt::OtherFocusReason);
             qInfo() << "[OverlayCtrl] QListView focus set";
         }
     } else {
@@ -281,15 +281,15 @@ bool OverlayController::isForeground() const {
 
 void OverlayController::notifyForegroundChanged(HWND hwnd) {
     if (hwnd == reinterpret_cast<HWND>(m_widget->winId())) return;
-    if (!Util::isWindowAcceptable(hwnd, true)) return;
+    if (!Util::isWindowAllowed(hwnd, true)) return;
     auto path = Util::getWindowProcessPath(hwnd);
     qInfo() << "Foreground window changed:"
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path
             << Util::getFileDescription(path);
-    m_wm->recordWindowActivation(hwnd);
+    m_windowManager->recordWindowActivation(hwnd);
 }
 
 void OverlayController::warmupCache() {
-    auto winGroupList = m_wm->prepareWindowGroupList();
+    auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
 }

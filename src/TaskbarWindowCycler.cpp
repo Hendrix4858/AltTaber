@@ -6,24 +6,24 @@
 #include <QSet>
 
 TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* wm, QObject* parent)
-    : QObject(parent), m_cyc(cyc), m_wm(wm) {}
+    : QObject(parent), m_groupCycler(cyc), m_windowManager(wm) {}
 
-void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windows) {
-    qDebug() << "(Taskbar)Wheel on:" << exePath << forward << windows;
+void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windowCount) {
+    qDebug() << "(Taskbar)Wheel on:" << exePath << forward << windowCount;
     if (exePath.isEmpty()) return;
-    if (!windows) {
+    if (!windowCount) {
         qDebug() << "No window for this app";
         return;
     }
 
-    if (lastTaskbarPath != exePath) {
-        lastTaskbarPath = exePath;
-        m_cyc->clearGroupWindowOrder();
+    if (m_lastTaskbarExePath != exePath) {
+        m_lastTaskbarExePath = exePath;
+        m_groupCycler->clearGroupWindowOrder();
     }
-    auto& tbOrder = m_cyc->groupWindowOrder();
+    auto& tbOrder = m_groupCycler->groupWindowOrder();
     if (tbOrder.isEmpty()) {
-        tbOrder = m_wm->filteredHwndsForExe(exePath);
-        lastTaskbarHwnd = nullptr;
+        tbOrder = m_windowManager->filteredHwndsForExe(exePath);
+        m_lastTaskbarHwnd = nullptr;
     }
 
     if (tbOrder.isEmpty()) {
@@ -32,7 +32,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
         if (childPaths.isEmpty()) return;
         if (childPaths.size() == 1) {
             qDebug() << "Try to switch to child process:" << childPaths.first();
-            tbOrder = m_wm->filteredHwndsForExe(childPaths.first());
+            tbOrder = m_windowManager->filteredHwndsForExe(childPaths.first());
         } else {
             qWarning() << "Multiple child processes" << childPaths;
             QSet<QString> validPaths;
@@ -43,7 +43,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             for (auto& path : childPaths) {
                 if (validPaths.contains(path.toLower())) {
                     qDebug() << "Try to switch to valid child process:" << path;
-                    tbOrder = m_wm->filteredHwndsForExe(path);
+                    tbOrder = m_windowManager->filteredHwndsForExe(path);
                     break;
                 }
             }
@@ -53,23 +53,23 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     }
 
     HWND hwnd = nullptr;
-    if (!lastTaskbarHwnd) {
+    if (!m_lastTaskbarHwnd) {
         hwnd = tbOrder.first();
         if (forward && hwnd == GetForegroundWindow())
-            hwnd = GroupWindowCycler::rotateWindowInGroup(tbOrder, hwnd, true);
+            hwnd = GroupWindowCycler::rotateWindow(tbOrder, hwnd, true);
     } else {
-        if (lastTaskbarForward == forward)
-            hwnd = GroupWindowCycler::rotateWindowInGroup(tbOrder, lastTaskbarHwnd, forward);
+        if (m_lastTaskbarDirection == forward)
+            hwnd = GroupWindowCycler::rotateWindow(tbOrder, m_lastTaskbarHwnd, forward);
         else
-            hwnd = lastTaskbarHwnd;
+            hwnd = m_lastTaskbarHwnd;
     }
-    lastTaskbarForward = forward;
+    m_lastTaskbarDirection = forward;
 
     static auto mouseEvent = [](DWORD flag) {
         mouse_event(flag, 0, 0, 0, 0);
     };
     if (forward) {
-        if (windows == 1) {
+        if (windowCount == 1) {
             if ((hwnd != GetForegroundWindow() || IsIconic(hwnd))) {
                 mouseEvent(MOUSEEVENTF_LEFTDOWN);
                 mouseEvent(MOUSEEVENTF_LEFTUP);
@@ -85,11 +85,11 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             } else
                 Util::switchToWindow(hwnd, true);
 
-            if (!taskbarTimer) {
-                taskbarTimer = new QTimer(this);
-                taskbarTimer->setSingleShot(true);
-                taskbarTimer->setInterval(200);
-                connect(taskbarTimer, &QTimer::timeout, this, [this]() {
+            if (!m_releaseTimer) {
+                m_releaseTimer = new QTimer(this);
+                m_releaseTimer->setSingleShot(true);
+                m_releaseTimer->setInterval(200);
+                connect(m_releaseTimer, &QTimer::timeout, this, [this]() {
                     mouseEvent(MOUSEEVENTF_LEFTUP);
                     qDebug() << "(Taskbar)Release LButton";
                     QTimer::singleShot(100, this, []() {
@@ -100,12 +100,12 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
                     });
                 });
             }
-            taskbarTimer->stop();
-            taskbarTimer->start();
+            m_releaseTimer->stop();
+            m_releaseTimer->start();
         }
         qDebug() << "(Taskbar)Switch to" << hwnd << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd);
     } else {
-        if (auto normal = GroupWindowCycler::rotateNormalWindowInGroup(tbOrder, hwnd, false)) {
+        if (auto normal = GroupWindowCycler::rotateToNormalWindow(tbOrder, hwnd, false)) {
             if (normal != hwnd)
                 qDebug() << "(Taskbar)Skip minimized" << hwnd << "->" << normal;
             hwnd = normal;
@@ -114,9 +114,9 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
         }
     }
 
-    lastTaskbarHwnd = hwnd;
+    m_lastTaskbarHwnd = hwnd;
 }
 
 void TaskbarWindowCycler::clearOrder() {
-    m_cyc->clearGroupWindowOrder();
+    m_groupCycler->clearGroupWindowOrder();
 }

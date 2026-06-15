@@ -22,11 +22,11 @@ public:
     Startup() = delete;
     friend class SystemTray;
 
-    static void on() {
+    static void enable() {
 #ifdef HAS_SCHTASK
         // MS doc: 此函数是 CheckTokenMembership 的包装器, 建议直接调用该函数来确定管理员组状态; 而不是调用 IsUserAnAdmin
         if (IsUserAnAdmin()) {
-            off_reg();
+            disableRegistryEntry();
             if (!ScheduledTask::createTask(SCHTASK_NAME))
                 QMessageBox::warning(nullptr, "Failed to create ScheduledTask", "maybe check log?(if any)");
             // 这里使用`QMessageBox`而非`sysTray.showMessage`，是为了避免循环依赖 & 保持Startup独立性
@@ -36,15 +36,15 @@ public:
                 QMessageBox::warning(nullptr, "Conflict: schtask vs reg",
                                      "ScheduledTask exists, but no privilege to delete. Please run as Administrator & do it again.");
             } else
-                on_reg();
+                enableRegistryEntry();
         }
 #else
-        on_reg();
+        enableRegistryEntry();
 #endif
     }
 
-    static void off() {
-        off_reg();
+    static void disable() {
+        disableRegistryEntry();
 #ifdef HAS_SCHTASK
         if (ScheduledTask::queryTask(SCHTASK_NAME)) {
             if (!ScheduledTask::deleteTask(SCHTASK_NAME)) {
@@ -60,11 +60,11 @@ public:
     }
 
     static void toggle() {
-        isOn() ? off() : on();
+        isOn() ? disable() : enable();
     }
 
-    static void set(bool _on) {
-        _on ? on() : off();
+    static void setEnabled(bool enabled) {
+        enabled ? enable() : disable();
     }
 
     static bool isOn() {
@@ -80,12 +80,12 @@ private:
         return QDir::toNativeSeparators(QApplication::applicationFilePath());
     }
 
-    static void on_reg() {
+    static void enableRegistryEntry() {
         QSettings reg(REG_AUTORUN, QSettings::NativeFormat);
         reg.setValue(REG_APP_NAME, applicationPath());
     }
 
-    static void off_reg() {
+    static void disableRegistryEntry() {
         QSettings reg(REG_AUTORUN, QSettings::NativeFormat);
         reg.remove(REG_APP_NAME);
     }

@@ -77,17 +77,17 @@ private:
     bool forceShow();
 
     QWidget* m_widget;
-    QWidget* m_lv;
+    QWidget* m_listView;
     QWidget* m_label;
     WindowGroupModel* m_model;
-    WindowManager* m_wm;
+    WindowManager* m_windowManager;
 
-    const QMargins m_margin{24, 24, 24, 24};
+    const QMargins m_overlayMargin{24, 24, 24, 24};
 
     OverlayState m_overlayState = OverlayState::Hidden;
     bool m_stayOpenMode = false;
     bool m_listDirty = true;
-    bool m_selectBackward = false;
+    bool m_wasInvokedBackward = false;
     OverlaySessionInfo m_sessionInfo;
 
     HotkeyBindings m_overlayBindings;

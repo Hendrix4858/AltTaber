@@ -47,7 +47,7 @@ private:
         std::atomic<bool> ready{false};
     };
 
-    HHOOK h_keyboard = nullptr;
+    HHOOK m_keyboardHook = nullptr;
     bool m_paused = false;
     HWND m_ownerHwnd = nullptr;
     HotkeyBindings m_bindings;

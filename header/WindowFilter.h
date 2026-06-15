@@ -5,7 +5,7 @@
 #include <QList>
 #include "WindowTypes.h"
 
-struct WindowFilterEntry {
+struct WindowBlockRule {
     QString title;
     QString className;
     QString processName;
@@ -13,7 +13,7 @@ struct WindowFilterEntry {
 };
 
 struct WindowFilterRule {
-    QList<WindowFilterEntry> entries;
+    QList<WindowBlockRule> rules;
 };
 
 class WindowFilter {
@@ -26,8 +26,6 @@ public:
     bool isAllowed(const WindowDescriptor& desc) const;
 
 private:
-    bool shouldInclude(const WindowDescriptor& desc) const;
-
     WindowFilterRule m_rule;
 };
 

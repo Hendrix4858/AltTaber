@@ -32,10 +32,10 @@ private:
     void wireSignals(const HotkeyBindings& bindings);
 
     QApplication m_app;
-    WindowManager* m_wm = nullptr;
-    Widget* m_winSwitcher = nullptr;
-    KeyboardHooker* m_kbHooker = nullptr;
-    TaskbarWheelHooker* m_tbHooker = nullptr;
+    WindowManager* m_windowManager = nullptr;
+    Widget* m_widget = nullptr;
+    KeyboardHooker* m_keyboardHooker = nullptr;
+    TaskbarWheelHooker* m_taskbarHooker = nullptr;
     SessionMonitor m_sessionMon;
     SingleApp* m_singleApp = nullptr;
     ComInitializer* m_com = nullptr;

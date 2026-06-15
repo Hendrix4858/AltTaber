@@ -27,13 +27,13 @@ private:
     void setMenu(QWidget* parent);
 
     QMenu* m_menu = nullptr;
-    QAction* m_actUpdate = nullptr;
-    QAction* m_actSettings = nullptr;
-    QAction* m_actPause = nullptr;
-    QAction* m_actRestartAdmin = nullptr;
-    QMenu* m_menuMonitor = nullptr;
+    QAction* m_updateAction = nullptr;
+    QAction* m_settingsAction = nullptr;
+    QAction* m_pauseAction = nullptr;
+    QAction* m_restartAdminAction = nullptr;
+    QMenu* m_monitorMenu = nullptr;
     QActionGroup* m_monitorGroup = nullptr;
-    QAction* m_actQuit = nullptr;
+    QAction* m_quitAction = nullptr;
 };
 
 inline SystemTray& sysTray() { return SystemTray::instance(); }

@@ -17,7 +17,7 @@ signals:
     void leaveTaskbar();
 
 private:
-    HHOOK h_mouse = nullptr;
+    HHOOK m_mouseHook = nullptr;
     bool m_paused = false;
 
     friend LRESULT CALLBACK mouseProc(int nCode, WPARAM wParam, LPARAM lParam);

@@ -6,7 +6,7 @@
 
 struct ActivationHistory {
     void record(HWND hwnd);
-    qint64 latestActivation(HWND hwnd) const;
+    qint64 lastActivationTime(HWND hwnd) const;
     void clear();
 
     const QMap<HWND, qint64>& times() const { return m_times; }

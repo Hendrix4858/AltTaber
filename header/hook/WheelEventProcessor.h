@@ -16,7 +16,7 @@ class WheelEventProcessor : public QObject {
 public:
     explicit WheelEventProcessor(QObject* parent = nullptr);
 
-    bool handleWheelEvent(QWheelEvent* event, QListView* lv,
+    bool handleWheelEvent(QWheelEvent* event, QListView* listView,
                           WindowGroupModel* model, WindowManager* wm,
                           GroupWindowCycler* cyc);
 
@@ -29,7 +29,7 @@ signals:
 private:
     int m_lastRow = -1;
     HWND m_lastHwnd = nullptr;
-    bool m_lastIsRollUp = true;
+    bool m_lastScrollDirection = true;
 };
 
 #endif //WIN_SWITCHER_WHEELEVENTPROCESSOR_H

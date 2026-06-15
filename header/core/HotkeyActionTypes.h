@@ -8,7 +8,7 @@ enum class HotkeyAction {
     SwitchToNextWindow,
     CycleProcessWindows,
     SwitchProcessWindow,
-    EnterGroupMode,
+    ExpandGroup,
     CycleForward,
     CycleBackward,
     MoveSelectionUp,
@@ -24,7 +24,7 @@ constexpr inline HotkeyAction AllActions[] = {
     HotkeyAction::SwitchToNextWindow,
     HotkeyAction::CycleProcessWindows,
     HotkeyAction::SwitchProcessWindow,
-    HotkeyAction::EnterGroupMode,
+    HotkeyAction::ExpandGroup,
     HotkeyAction::CycleForward,
     HotkeyAction::CycleBackward,
     HotkeyAction::MoveSelectionUp,
@@ -90,7 +90,7 @@ inline QString hotkeyActionName(HotkeyAction action) {
         case HotkeyAction::SwitchToPreviousWindow:  return "SwitchToPreviousWindow";
         case HotkeyAction::CycleProcessWindows:     return "CycleProcessWindows";
         case HotkeyAction::SwitchProcessWindow:     return "SwitchProcessWindow";
-        case HotkeyAction::EnterGroupMode:          return "EnterGroupMode";
+        case HotkeyAction::ExpandGroup:          return "ExpandGroup";
         case HotkeyAction::CycleForward:            return "CycleForward";
         case HotkeyAction::CycleBackward:           return "CycleBackward";
         case HotkeyAction::MoveSelectionUp:         return "MoveSelectionUp";
@@ -110,7 +110,7 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
         m.insert("SwitchToPreviousWindow", HotkeyAction::SwitchToPreviousWindow);
         m.insert("CycleProcessWindows",    HotkeyAction::CycleProcessWindows);
         m.insert("SwitchProcessWindow",    HotkeyAction::SwitchProcessWindow);
-        m.insert("EnterGroupMode",         HotkeyAction::EnterGroupMode);
+        m.insert("ExpandGroup",         HotkeyAction::ExpandGroup);
         m.insert("CycleForward",           HotkeyAction::CycleForward);
         m.insert("CycleBackward",          HotkeyAction::CycleBackward);
         m.insert("MoveSelectionUp",        HotkeyAction::MoveSelectionUp);
@@ -130,7 +130,7 @@ inline QString hotkeyActionDisplayName(HotkeyAction action) {
         case HotkeyAction::SwitchToPreviousWindow: return QCoreApplication::translate("HotkeyAction", "Switch to Previous Window");
         case HotkeyAction::CycleProcessWindows:    return QCoreApplication::translate("HotkeyAction", "Show Process Window List");
         case HotkeyAction::SwitchProcessWindow:    return QCoreApplication::translate("HotkeyAction", "Switch Process Window");
-        case HotkeyAction::EnterGroupMode:         return QCoreApplication::translate("HotkeyAction", "Enter Process Window List");
+        case HotkeyAction::ExpandGroup:         return QCoreApplication::translate("HotkeyAction", "Expand Group");
         case HotkeyAction::CycleForward:           return QCoreApplication::translate("HotkeyAction", "Cycle Forward");
         case HotkeyAction::CycleBackward:          return QCoreApplication::translate("HotkeyAction", "Cycle Backward");
         case HotkeyAction::MoveSelectionUp:        return QCoreApplication::translate("HotkeyAction", "Move Selection Up");

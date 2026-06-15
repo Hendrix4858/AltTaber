@@ -5,8 +5,8 @@ HWND WindowCycleOrder::rotate(const QList<HWND>& windows, HWND current, bool for
     if (N == 1) return windows.first();
     for (int i = 0; i < N; i++) {
         if (windows.at(i) == current) {
-            auto next_i = forward ? (i + 1) : (i - 1);
-            return windows.at((next_i + N) % N);
+            auto nextIndex = forward ? (i + 1) : (i - 1);
+            return windows.at((nextIndex + N) % N);
         }
     }
     return nullptr;

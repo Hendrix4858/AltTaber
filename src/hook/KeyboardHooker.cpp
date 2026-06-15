@@ -42,15 +42,15 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         auto* inst = KeyboardHooker::s_instance;
         if (!inst) return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
-        auto* pKB = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
 
-        KeyboardHooker::updateModifierState(inst->m_modState, wParam, pKB->vkCode);
+        KeyboardHooker::updateModifierState(inst->m_modState, wParam, keyEvent->vkCode);
 
         if (inst->m_paused)
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
-        if (pKB->flags & LLKHF_INJECTED) {
-            qDebug() << "[KeyHook] Injected event ignored, vkCode=" << pKB->vkCode;
+        if (keyEvent->flags & LLKHF_INJECTED) {
+            qDebug() << "[KeyHook] Injected event ignored, vkCode=" << keyEvent->vkCode;
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
         }
 
@@ -58,13 +58,13 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         // Recording pipeline: route key to recorder via PostMessage
         if (inst->m_recorderHwnd && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
-            inst->m_keyRecord.vkCode = pKB->vkCode;
-            inst->m_keyRecord.scanCode = pKB->scanCode;
-            inst->m_keyRecord.flags = pKB->flags;
+            inst->m_keyRecord.vkCode = keyEvent->vkCode;
+            inst->m_keyRecord.scanCode = keyEvent->scanCode;
+            inst->m_keyRecord.flags = keyEvent->flags;
             inst->m_keyRecord.modifiers = mods;
             inst->m_keyRecord.ready.store(true, std::memory_order_release);
-            qDebug() << "[RecordRaw] post vk=" << pKB->vkCode
-                     << "sc=" << pKB->scanCode << "flags=" << pKB->flags
+            qDebug() << "[RecordRaw] post vk=" << keyEvent->vkCode
+                     << "sc=" << keyEvent->scanCode << "flags=" << keyEvent->flags
                      << "mods=" << mods;
             PostMessageW(inst->m_recorderHwnd, KeyboardHooker::RecordingMessageId, 0, 0);
             return 1;
@@ -76,9 +76,9 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN) {
             if (!inst) return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
-            QString keyName = HotkeyStrings::vkCodeToString(pKB->vkCode);
-            qDebug() << "[KeyHook] KeyDown: vk=" << pKB->vkCode
-                     << "sc=" << pKB->scanCode << "ext=" << ((pKB->flags & LLKHF_EXTENDED) != 0)
+            QString keyName = HotkeyStrings::vkCodeToString(keyEvent->vkCode);
+            qDebug() << "[KeyHook] KeyDown: vk=" << keyEvent->vkCode
+                     << "sc=" << keyEvent->scanCode << "ext=" << ((keyEvent->flags & LLKHF_EXTENDED) != 0)
                      << "key=" << keyName << "mods=" << mods;
 
             int checkedCount = 0;
@@ -108,8 +108,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                              << "sc=" << binding.scanCode
                              << "ext=" << binding.extended
                              << "mods=" << binding.modifiers;
-                    bool match = binding.matchesPhysical(pKB->vkCode, pKB->scanCode,
-                                          (pKB->flags & LLKHF_EXTENDED) != 0, mods);
+                    bool match = binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
+                                          (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
                     qDebug() << "[KeyHook]   match=" << match;
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
@@ -134,8 +134,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                         if (hotkeyActionScope(it.key()) != HotkeyScope::Overlay)
                             continue;
                         for (const auto& b : it.value()) {
-                            if (b.matchesPhysical(pKB->vkCode, pKB->scanCode,
-                                                  (pKB->flags & LLKHF_EXTENDED) != 0, mods)) {
+                            if (b.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
+                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, mods)) {
                                 qInfo() << "[KeyHook] overlay-key-routing ->"
                                         << hotkeyActionName(it.key());
                                 emit inst->overlayKeyTriggered(it.key(), mods);
@@ -146,7 +146,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 }
             }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
-            if (pKB->vkCode == VK_LMENU || pKB->vkCode == VK_RMENU) {
+            if (keyEvent->vkCode == VK_LMENU || keyEvent->vkCode == VK_RMENU) {
                 qDebug() << "[KeyHook] Alt UP";
                 emit inst->altReleased();
             }
@@ -168,10 +168,10 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         }
     }
     if (nCode == HC_ACTION) {
-        auto* pKB = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
         if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
             qDebug() << "[KeyHook] ⚠️ Key NOT eaten, falling through to Windows: vk="
-                     << pKB->vkCode << "sc=" << pKB->scanCode;
+                     << keyEvent->vkCode << "sc=" << keyEvent->scanCode;
     }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
@@ -182,9 +182,9 @@ KeyboardHooker::KeyboardHooker(HWND ownerHwnd, QObject* parent)
         qCritical() << "Only one KeyboardHooker can be installed!";
         return;
     }
-    h_keyboard = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC) keyboardProc, GetModuleHandle(nullptr), 0);
-    if (!h_keyboard) {
-        qCritical() << "Failed to install h_keyboard!";
+    m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC) keyboardProc, GetModuleHandle(nullptr), 0);
+    if (!m_keyboardHook) {
+        qCritical() << "Failed to install m_keyboardHook!";
         return;
     }
     if (!ownerHwnd) {
@@ -196,8 +196,8 @@ KeyboardHooker::KeyboardHooker(HWND ownerHwnd, QObject* parent)
 }
 
 KeyboardHooker::~KeyboardHooker() {
-    if (!h_keyboard) return;
-    UnhookWindowsHookEx(h_keyboard);
+    if (!m_keyboardHook) return;
+    UnhookWindowsHookEx(m_keyboardHook);
     s_instance = nullptr;
     qDebug() << "KeyboardHooker uninstalled";
 }

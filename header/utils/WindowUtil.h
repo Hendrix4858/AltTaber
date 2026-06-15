@@ -7,7 +7,7 @@
 #include "WindowEnumerator.h"
 
 namespace Util {
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false);
+    bool isWindowAllowed(HWND hwnd, bool skipVisibleCheck = false);
     QList<HWND> enumWindows();
     QList<HWND> enumChildWindows(HWND hwnd);
     QList<HWND> listValidWindows();

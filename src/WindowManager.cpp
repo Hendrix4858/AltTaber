@@ -26,16 +26,16 @@ void WindowManager::reloadFilterRules() {
     auto blocked = cfg().getBlockedWindows();
     for (const auto& entry : blocked) {
         if (!entry.enabled) continue;
-        WindowFilterEntry fe;
-        fe.title = entry.title;
-        fe.className = entry.className;
-        fe.processName = entry.processName;
-        fe.processPath = entry.processPath;
-        rule.entries.append(fe);
+        WindowBlockRule blockRule;
+        blockRule.title = entry.title;
+        blockRule.className = entry.className;
+        blockRule.processName = entry.processName;
+        blockRule.processPath = entry.processPath;
+        rule.rules.append(blockRule);
     }
     m_filter.setRules(rule);
-    qInfo() << "[Filter] reloaded" << rule.entries.size() << "rules"
-            << "(builtin:" << WindowFilter::builtinRules().entries.size() << ")";
+    qInfo() << "[Filter] reloaded" << rule.rules.size() << "rules"
+            << "(builtin:" << WindowFilter::builtinRules().rules.size() << ")";
 }
 
 QList<HWND> WindowManager::filteredHwndsForExe(const QString& exePath) {

@@ -34,9 +34,9 @@ namespace WindowGrouper {
                       [history](const WindowGroup& a, const WindowGroup& b) {
                 qint64 latestA = 0, latestB = 0;
                 for (const auto& win : a.windows)
-                    latestA = qMax(latestA, history->latestActivation(win.hwnd));
+                    latestA = qMax(latestA, history->lastActivationTime(win.hwnd));
                 for (const auto& win : b.windows)
-                    latestB = qMax(latestB, history->latestActivation(win.hwnd));
+                    latestB = qMax(latestB, history->lastActivationTime(win.hwnd));
                 return latestA > latestB;
             });
         }

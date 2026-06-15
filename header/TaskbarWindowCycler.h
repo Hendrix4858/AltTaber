@@ -16,17 +16,17 @@ public:
                                  QObject* parent = nullptr);
 
 public slots:
-    void rotate(const QString& exePath, bool forward, int windows);
+    void rotate(const QString& exePath, bool forward, int windowCount);
     void clearOrder();
 
 private:
-    GroupWindowCycler* m_cyc;
-    WindowManager* m_wm;
+    GroupWindowCycler* m_groupCycler;
+    WindowManager* m_windowManager;
 
-    QString lastTaskbarPath;
-    HWND lastTaskbarHwnd = nullptr;
-    bool lastTaskbarForward = true;
-    QTimer* taskbarTimer = nullptr;
+    QString m_lastTaskbarExePath;
+    HWND m_lastTaskbarHwnd = nullptr;
+    bool m_lastTaskbarDirection = true;
+    QTimer* m_releaseTimer = nullptr;
 };
 
 #endif //WIN_SWITCHER_TASKBARWINDOWCYCLER_H

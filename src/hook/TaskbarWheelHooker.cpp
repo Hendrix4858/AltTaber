@@ -20,23 +20,23 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
                      << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
                      << "class=" << Util::getClassName(topLevelHwnd)
                      << "pt=(" << data->pt.x << "," << data->pt.y << ")";
-            auto el = UIAutomation::getElementUnderMouse();
-            qDebug() << delta << el.getClassName() << el.getAutomationId() << el.getName();
-            if (el.getClassName() == "CEF-OSC-WIDGET") {
+            auto element = UIAutomation::getElementUnderMouse();
+            qDebug() << delta << element.getClassName() << element.getAutomationId() << element.getName();
+            if (element.getClassName() == "CEF-OSC-WIDGET") {
                 qDebug() << "detect CEF, walk up to find TaskListButton";
-                el = UIAutomation::findAncestorByClassName(el, "Taskbar.TaskListButtonAutomationPeer");
-                if (!el.isValid()) {
+                element = UIAutomation::findAncestorByClassName(element, "Taskbar.TaskListButtonAutomationPeer");
+                if (!element.isValid()) {
                     qDebug() << "no Taskbar button ancestor found, skip";
                     return CallNextHookEx(nullptr, nCode, wParam, lParam);
                 }
             }
-            if (el.getClassName() == "Taskbar.TaskListButtonAutomationPeer") {
-                auto appid = el.getAutomationId().mid(QStringLiteral("Appid: ").size());
-                auto name = el.getName();
+            if (element.getClassName() == "Taskbar.TaskListButtonAutomationPeer") {
+                auto appid = element.getAutomationId().mid(QStringLiteral("Appid: ").size());
+                auto name = element.getName();
                 int windows = 0;
-                const auto Dash = QStringLiteral(" - ");
-                if (auto dashIdx = name.lastIndexOf(Dash); dashIdx != -1) {
-                    std::stringstream ss(name.mid(dashIdx + Dash.size()).toStdString());
+                const auto kWindowCountDelimiter = QStringLiteral(" - ");
+                if (auto dashIdx = name.lastIndexOf(kWindowCountDelimiter); dashIdx != -1) {
+                    std::stringstream ss(name.mid(dashIdx + kWindowCountDelimiter.size()).toStdString());
                     ss >> windows;
                     name = name.left(dashIdx);
                 }
@@ -59,22 +59,22 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
 
     auto* timer = new QTimer(this);
     timer->callOnTimeout(this, [this]() {
-        static bool isLastTaskbar = false;
+        static bool wasCursorOnTaskbar = false;
         HWND topLevelHwnd = Util::topWindowFromPoint(Util::getCursorPos());
         bool isTaskbar = Util::isTaskbarWindow(topLevelHwnd);
-        if (isLastTaskbar != isTaskbar) {
-            isLastTaskbar = isTaskbar;
+        if (wasCursorOnTaskbar != isTaskbar) {
+            wasCursorOnTaskbar = isTaskbar;
             if (isTaskbar) {
-                h_mouse = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
-                if (h_mouse == nullptr)
-                    qCritical() << "Failed to install h_mouse";
+                m_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
+                if (m_mouseHook == nullptr)
+                    qCritical() << "Failed to install m_mouseHook";
                 else
                     qDebug() << "Enter Taskbar" << QTime::currentTime()
                              << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
                              << "class=" << Util::getClassName(topLevelHwnd);
             } else {
-                UnhookWindowsHookEx(h_mouse);
-                h_mouse = nullptr;
+                UnhookWindowsHookEx(m_mouseHook);
+                m_mouseHook = nullptr;
                 auto pt = Util::getCursorPos();
                 auto className = Util::getClassName(topLevelHwnd);
                 qDebug() << "Leave Taskbar" << QTime::currentTime()
@@ -89,8 +89,8 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
 }
 
 TaskbarWheelHooker::~TaskbarWheelHooker() {
-    if (h_mouse) {
-        UnhookWindowsHookEx(h_mouse);
+    if (m_mouseHook) {
+        UnhookWindowsHookEx(m_mouseHook);
         qDebug() << "MouseHooker uninstalled";
     }
     s_instance = nullptr;

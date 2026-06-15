@@ -13,8 +13,8 @@ public:
     QList<HWND>& groupWindowOrder();
     void clearGroupWindowOrder();
 
-    static HWND rotateWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
-    static HWND rotateNormalWindowInGroup(const QList<HWND>& windows, HWND current, bool forward = true);
+    static HWND rotateWindow(const QList<HWND>& windows, HWND current, bool forward = true);
+    static HWND rotateToNormalWindow(const QList<HWND>& windows, HWND current, bool forward = true);
 
 private:
     WindowCycleOrder m_cycleOrder;

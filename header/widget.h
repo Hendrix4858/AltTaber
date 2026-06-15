@@ -44,7 +44,7 @@ public:
     ~Widget() override;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void handleListItemClicked(const QModelIndex& index);
-    WindowManager* windowManager() const { return m_wm; }
+    WindowManager* windowManager() const { return m_windowManager; }
     TaskbarWindowCycler* taskbarCycler() const { return m_taskbarCycler; }
 
     Q_INVOKABLE void handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
@@ -66,15 +66,15 @@ private:
                                                const QString& title);
 
     Ui::Widget* ui;
-    QListView* lv = nullptr;
+    QListView* m_listView = nullptr;
     WindowGroupModel* m_model = nullptr;
-    WindowManager* m_wm = nullptr;
-    const QMargins ListWidgetMargin{24, 24, 24, 24};
+    WindowManager* m_windowManager = nullptr;
+    const QMargins m_listWidgetMargin{24, 24, 24, 24};
 
     OverlayController* m_overlayCtrl;
     SelectionController* m_selectCtrl;
     TaskbarWindowCycler* m_taskbarCycler;
-    GroupWindowCycler* m_cyc;
+    GroupWindowCycler* m_groupCycler;
 
 
 };

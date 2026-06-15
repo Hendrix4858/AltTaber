@@ -13,23 +13,23 @@ WindowFilterRule WindowFilter::builtinRules() {
         "Shell_TrayWnd"
     };
     for (const auto& c : blockedClassNames) {
-        WindowFilterEntry e;
+        WindowBlockRule e;
         e.className = c;
-        rule.entries.append(e);
+        rule.rules.append(e);
     }
 
     // imestatuspop pattern (prefix match)
     {
-        WindowFilterEntry e;
+        WindowBlockRule e;
         e.className = "imestatuspop_classname{";
-        rule.entries.append(e);
+        rule.rules.append(e);
     }
 
     // Blocked exe paths
     {
-        WindowFilterEntry e;
+        WindowBlockRule e;
         e.processPath = R"(C:\Windows\System32\wscript.exe)";
-        rule.entries.append(e);
+        rule.rules.append(e);
     }
 
     // Blocked file names
@@ -39,23 +39,19 @@ WindowFilterRule WindowFilter::builtinRules() {
         "QQ Follower.exe"
     };
     for (const auto& f : blockedFileNames) {
-        WindowFilterEntry e;
+        WindowBlockRule e;
         e.processName = f;
-        rule.entries.append(e);
+        rule.rules.append(e);
     }
 
     return rule;
-}
-
-bool WindowFilter::isAllowed(const WindowDescriptor& desc) const {
-    return shouldInclude(desc);
 }
 
 QList<WindowDescriptor> WindowFilter::filter(const QList<WindowDescriptor>& windows) const {
     QList<WindowDescriptor> result;
     result.reserve(windows.size());
     for (const auto& w : windows) {
-        if (shouldInclude(w))
+        if (isAllowed(w))
             result.append(w);
     }
     return result;
@@ -65,17 +61,17 @@ void WindowFilter::setRules(const WindowFilterRule& rules) {
     m_rule = rules;
 }
 
-bool WindowFilter::shouldInclude(const WindowDescriptor& desc) const {
-    for (const auto& entry : m_rule.entries) {
+bool WindowFilter::isAllowed(const WindowDescriptor& desc) const {
+    for (const auto& rule : m_rule.rules) {
         bool matches = true;
-        if (!entry.title.isEmpty())
-            matches = matches && desc.title.contains(entry.title, Qt::CaseInsensitive);
-        if (!entry.className.isEmpty())
-            matches = matches && desc.className.startsWith(entry.className, Qt::CaseInsensitive);
-        if (!entry.processName.isEmpty())
-            matches = matches && QFileInfo(desc.processPath).fileName().compare(entry.processName, Qt::CaseInsensitive) == 0;
-        if (!entry.processPath.isEmpty())
-            matches = matches && desc.processPath.startsWith(entry.processPath, Qt::CaseInsensitive);
+        if (!rule.title.isEmpty())
+            matches = matches && desc.title.contains(rule.title, Qt::CaseInsensitive);
+        if (!rule.className.isEmpty())
+            matches = matches && desc.className.startsWith(rule.className, Qt::CaseInsensitive);
+        if (!rule.processName.isEmpty())
+            matches = matches && QFileInfo(desc.processPath).fileName().compare(rule.processName, Qt::CaseInsensitive) == 0;
+        if (!rule.processPath.isEmpty())
+            matches = matches && desc.processPath.startsWith(rule.processPath, Qt::CaseInsensitive);
         if (matches)
             return false;
     }
