@@ -23,8 +23,8 @@ AppPublisherURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputBaseFilename={#MyAppName}-v{#MyAppVersion}-{#MyAppArch}-Setup
-OutputDir=..\build\output
-SetupIconFile=..\img\icon.ico
+OutputDir={#MyAppSourceDir}\build\output
+SetupIconFile={#MyAppSourceDir}\img\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=admin
 #if MyAppArch == "arm64"

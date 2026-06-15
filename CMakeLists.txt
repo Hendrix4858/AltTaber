@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.6.2
+    VERSION 0.6.3
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -249,7 +249,7 @@ if (ISCC)
     endif ()
     add_custom_target(installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
-        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
+        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "/DMyAppSourceDir=${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
         COMMENT "Compiling AltTaber installer (${ARCH_SUFFIX}) ..."
         DEPENDS ${installer_deps}
     )
