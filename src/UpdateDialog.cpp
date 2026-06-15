@@ -253,15 +253,15 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
 }
 
 void UpdateDialog::changeEvent(QEvent* event) {
-    if (event->type() == QEvent::LanguageChange) {
-        ui->retranslateUi(this);
+    if (event->type() == QEvent::LanguageChange)
         retranslateTexts();
-    }
     QDialog::changeEvent(event);
 }
 
 void UpdateDialog::retranslateTexts() {
     setWindowTitle(tr("AltTaber Updater"));
+    ui->btn_recheck->setText(tr(" Check again "));
+    ui->btn_update->setText(tr("Update"));
 
     switch (m_phase) {
     case Phase::Initial:

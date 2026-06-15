@@ -137,6 +137,8 @@
   },
   "UpdateDialog": {
     "AltTaber Updater": "AltTaber 更新",
+    " Check again ": "重新检查",
+    "Update": "更新",
     "## Fetching...": "## 正在获取...",
     "## Fetching update...": "## 正在获取更新...",
     "## Installing...": "## 正在安装...",
