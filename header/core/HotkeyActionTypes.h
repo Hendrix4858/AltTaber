@@ -87,6 +87,7 @@ inline ActionMetadata getActionMetadata(HotkeyAction action) {
 inline QString hotkeyActionName(HotkeyAction action) {
     switch (action) {
         case HotkeyAction::SwitchToNextWindow:     return "SwitchToNextWindow";
+        case HotkeyAction::SwitchToPreviousWindow:  return "SwitchToPreviousWindow";
         case HotkeyAction::CycleProcessWindows:     return "CycleProcessWindows";
         case HotkeyAction::SwitchProcessWindow:     return "SwitchProcessWindow";
         case HotkeyAction::EnterGroupMode:          return "EnterGroupMode";
@@ -97,7 +98,6 @@ inline QString hotkeyActionName(HotkeyAction action) {
         case HotkeyAction::ActivateSelected:        return "ActivateSelected";
         case HotkeyAction::DismissSwitcher:         return "DismissSwitcher";
         case HotkeyAction::TogglePause:             return "TogglePause";
-        case HotkeyAction::SwitchToPreviousWindow:  return "SwitchToPreviousWindow";
         case HotkeyAction::ShowSwitcherStayOpen:    return "ShowSwitcherStayOpen";
     }
     return {};
@@ -107,6 +107,7 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
     static const QMap<QString, HotkeyAction> map = []() {
         QMap<QString, HotkeyAction> m;
         m.insert("SwitchToNextWindow",     HotkeyAction::SwitchToNextWindow);
+        m.insert("SwitchToPreviousWindow", HotkeyAction::SwitchToPreviousWindow);
         m.insert("CycleProcessWindows",    HotkeyAction::CycleProcessWindows);
         m.insert("SwitchProcessWindow",    HotkeyAction::SwitchProcessWindow);
         m.insert("EnterGroupMode",         HotkeyAction::EnterGroupMode);
@@ -117,7 +118,6 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
         m.insert("ActivateSelected",       HotkeyAction::ActivateSelected);
         m.insert("DismissSwitcher",        HotkeyAction::DismissSwitcher);
         m.insert("TogglePause",            HotkeyAction::TogglePause);
-        m.insert("SwitchToPreviousWindow", HotkeyAction::SwitchToPreviousWindow);
         m.insert("ShowSwitcherStayOpen",   HotkeyAction::ShowSwitcherStayOpen);
         return m;
     }();
@@ -127,6 +127,7 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
 inline QString hotkeyActionDisplayName(HotkeyAction action) {
     switch (action) {
         case HotkeyAction::SwitchToNextWindow:     return QCoreApplication::translate("HotkeyAction", "Switch to Next Window");
+        case HotkeyAction::SwitchToPreviousWindow: return QCoreApplication::translate("HotkeyAction", "Switch to Previous Window");
         case HotkeyAction::CycleProcessWindows:    return QCoreApplication::translate("HotkeyAction", "Show Process Window List");
         case HotkeyAction::SwitchProcessWindow:    return QCoreApplication::translate("HotkeyAction", "Switch Process Window");
         case HotkeyAction::EnterGroupMode:         return QCoreApplication::translate("HotkeyAction", "Enter Process Window List");
@@ -137,7 +138,6 @@ inline QString hotkeyActionDisplayName(HotkeyAction action) {
         case HotkeyAction::ActivateSelected:       return QCoreApplication::translate("HotkeyAction", "Activate Selected");
         case HotkeyAction::DismissSwitcher:        return QCoreApplication::translate("HotkeyAction", "Dismiss Switcher");
         case HotkeyAction::TogglePause:            return QCoreApplication::translate("HotkeyAction", "Toggle Pause");
-        case HotkeyAction::SwitchToPreviousWindow: return QCoreApplication::translate("HotkeyAction", "Switch to Previous Window");
         case HotkeyAction::ShowSwitcherStayOpen:   return QCoreApplication::translate("HotkeyAction", "Keep Window Displayed");
     }
     return {};

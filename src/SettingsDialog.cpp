@@ -362,10 +362,10 @@ void SettingsDialog::buildHotkeyPage() {
     // Display order: Global first, then Overlay
     static const HotkeyAction displayOrder[] = {
         HotkeyAction::SwitchToNextWindow,
+        HotkeyAction::SwitchToPreviousWindow,
         HotkeyAction::CycleProcessWindows,
         HotkeyAction::SwitchProcessWindow,
         HotkeyAction::TogglePause,
-        HotkeyAction::SwitchToPreviousWindow,
         HotkeyAction::ShowSwitcherStayOpen,
         HotkeyAction::EnterGroupMode,
         HotkeyAction::CycleForward,

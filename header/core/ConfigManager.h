@@ -103,7 +103,7 @@ public:
     }
 
     bool getMouseClickActivateEnabled() {
-        return get("MouseClickActivateEnabled", true).toBool();
+        return get("MouseClickActivateEnabled", false).toBool();
     }
 
     void setMouseClickActivateEnabled(bool enabled) {
@@ -111,7 +111,7 @@ public:
     }
 
     bool getClickShowGroupForMultiWindow() {
-        return get("ClickShowGroupForMultiWindow", true).toBool();
+        return get("ClickShowGroupForMultiWindow", false).toBool();
     }
 
     void setClickShowGroupForMultiWindow(bool enabled) {
