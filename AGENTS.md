@@ -15,7 +15,7 @@ cmake --build build
 - **Requires**: CMake ≥3.29, MSVC 2022, Qt 6 (Core, Gui, Widgets, Xml, Network)
 - **MSVC flag**: `/utf-8` is forced on MSVC (`CMakeLists.txt:130`)
 - **Release**: `WIN32_EXECUTABLE=ON` → no console; Debug keeps console for qDebug output
-- **Installer**: `installer/build-installer.ps1` → Release build → `windeployqt` → Inno Setup → `Output/AltTaber-v0.5.0-Setup.exe`
+- **Installer**: `cmake --build build --target installer` (Release) → `windeployqt` → Inno Setup → `build/output/AltTaber-v0.5.0-Setup.exe`
 - **Links**: `Dwmapi.lib`
 
 ## Source Layout
@@ -30,7 +30,7 @@ cmake --build build
 | `src/` | Matching `.cpp` files mirroring the header structure |
 | `ui/` | Qt Designer `.ui` files |
 | `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
-| `installer/` | Inno Setup script (`setup.iss`) and build script (`build-installer.ps1`) |
+| `installer/` | Inno Setup script (`setup.iss`) and legacy build script (`build-installer.ps1`) |
 | `Output/` | Built installer `.exe` (gitignored) |
 
 **Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).

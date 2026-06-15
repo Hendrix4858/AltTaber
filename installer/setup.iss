@@ -2,7 +2,9 @@
 ; Requires Inno Setup 6+
 
 #define MyAppName "AltTaber"
-#define MyAppVersion "0.5.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.6.0"
+#endif
 #define MyAppPublisher "MrBeanCpp"
 #define MyAppURL "https://github.com/Hendrix4858/AltTaber"
 #define MyAppExeName "AltTaber.exe"

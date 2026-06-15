@@ -39,6 +39,7 @@ Application::Application(int argc, char* argv[])
     : m_app(argc, argv) {
     m_app.setOrganizationName("MrBeanCpp");
     m_app.setApplicationName("AltTaber");
+    m_app.setApplicationVersion(APP_VERSION);
     Util::Logger::init();
 
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");

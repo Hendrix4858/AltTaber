@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.29)
-project(Win_Switcher)
+project(
+    Win_Switcher
+    VERSION 0.6.0
+)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
@@ -7,11 +10,6 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH "$ENV{QT_DIR}/lib/cmake")
 list(APPEND CMAKE_AUTOUIC_SEARCH_PATHS ui) # 如果.ui文件不在.cpp同一目录下，需要添加搜索路径
-
-# 设置版本信息变量
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 5)
-set(VERSION_PATCH 0)
 
 set(COMPANY_NAME "MrBeanCpp")
 set(FILE_DESCRIPTION "AltTaber - Window Switcher")
@@ -156,8 +154,46 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         QT_DEPRECATED_WARNINGS
         UNICODE # for Windows API，使用W版本
         _UNICODE # for C/C++ 标准库
+        APP_VERSION="${PROJECT_VERSION}"
 )
 
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
+endif ()
+
+# --- Deploy & Installer targets ---
+
+find_program(WINDEPLOYQT windeployqt
+    PATHS "$ENV{QT_DIR}/bin"
+    DOC "Qt deployment tool (windeployqt)"
+)
+
+find_program(ISCC iscc
+    PATHS
+        "E:/CodePath/Pack/Inno"
+        "C:/Program Files (x86)/Inno Setup 6"
+        "C:/Program Files/Inno Setup 6"
+        "C:/Program Files (x86)/Inno Setup"
+        "C:/Program Files/Inno Setup"
+    DOC "Inno Setup Compiler (ISCC.exe)"
+)
+
+if (WINDEPLOYQT)
+    add_custom_target(deploy
+        COMMAND ${WINDEPLOYQT} --release --no-translations --no-opengl-sw "$<TARGET_FILE:Win_Switcher>"
+        COMMENT "Deploying Qt runtime DLLs ..."
+        DEPENDS Win_Switcher
+    )
+endif ()
+
+if (ISCC)
+    set(installer_deps Win_Switcher)
+    if (WINDEPLOYQT)
+        list(APPEND installer_deps deploy)
+    endif ()
+    add_custom_target(installer
+        COMMAND ${ISCC} "/DMyAppVersion=${PROJECT_VERSION}" "${CMAKE_SOURCE_DIR}/installer/setup.iss"
+        COMMENT "Compiling AltTaber installer ..."
+        DEPENDS ${installer_deps}
+    )
 endif ()
