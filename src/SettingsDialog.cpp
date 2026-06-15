@@ -75,15 +75,6 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->langCombo->addItem(QStringLiteral("English"), "en");
     ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
 
-    // log level combo
-    ui->logLevelCombo->addItem(tr("All"), static_cast<int>(Util::LogLevel::All));
-    ui->logLevelCombo->addItem(tr("Debug"), static_cast<int>(Util::LogLevel::Debug));
-    ui->logLevelCombo->addItem(tr("Info"), static_cast<int>(Util::LogLevel::Info));
-    ui->logLevelCombo->addItem(tr("Warning"), static_cast<int>(Util::LogLevel::Warning));
-    ui->logLevelCombo->addItem(tr("Error"), static_cast<int>(Util::LogLevel::Error));
-    ui->logLevelCombo->addItem(tr("Fatal"), static_cast<int>(Util::LogLevel::Fatal));
-    ui->logLevelCombo->addItem(tr("None"), static_cast<int>(Util::LogLevel::None));
-
     // browse log directory
     connect(ui->btnBrowseLogDir, &QPushButton::clicked, this, [this] {
         QString dir = QFileDialog::getExistingDirectory(this, tr("Select Log Directory"),
@@ -586,13 +577,10 @@ void SettingsDialog::applyStyleSheet() {
     ui->langCombo->setStyleSheet(comboStyle);
     ui->monitorCombo->setStyleSheet(comboStyle);
     ui->themeCombo->setStyleSheet(comboStyle);
-    ui->logLevelCombo->setStyleSheet(comboStyle);
-
     ui->langLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->monitorLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->themeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->minIconSizeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->logLevelLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->logDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
     ui->cacheDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
 
@@ -606,6 +594,11 @@ void SettingsDialog::applyStyleSheet() {
     ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
     ui->clickShowGroupCheck->setStyleSheet(checkStyle);
     ui->iconCacheCheck->setStyleSheet(checkStyle);
+    ui->chkLogDebug->setStyleSheet(checkStyle);
+    ui->chkLogInfo->setStyleSheet(checkStyle);
+    ui->chkLogWarn->setStyleSheet(checkStyle);
+    ui->chkLogError->setStyleSheet(checkStyle);
+    ui->chkLogFatal->setStyleSheet(checkStyle);
 
     ui->aboutDesc->setStyleSheet(QString("color: %1; font-size: 14px;").arg(c.textColor.name()));
 
@@ -711,19 +704,11 @@ void SettingsDialog::retranslateUi() {
     ui->minIconSizeLabel->setText(tr("Min Icon Size:"));
 
     ui->logGroup->setTitle(tr("Logging"));
-    ui->logLevelLabel->setText(tr("Log Level:"));
-
-    int savedLogLevel = ui->logLevelCombo->currentData().toInt();
-    ui->logLevelCombo->clear();
-    ui->logLevelCombo->addItem(tr("All"), static_cast<int>(Util::LogLevel::All));
-    ui->logLevelCombo->addItem(tr("Debug"), static_cast<int>(Util::LogLevel::Debug));
-    ui->logLevelCombo->addItem(tr("Info"), static_cast<int>(Util::LogLevel::Info));
-    ui->logLevelCombo->addItem(tr("Warning"), static_cast<int>(Util::LogLevel::Warning));
-    ui->logLevelCombo->addItem(tr("Error"), static_cast<int>(Util::LogLevel::Error));
-    ui->logLevelCombo->addItem(tr("Fatal"), static_cast<int>(Util::LogLevel::Fatal));
-    ui->logLevelCombo->addItem(tr("None"), static_cast<int>(Util::LogLevel::None));
-    int llIdx = ui->logLevelCombo->findData(savedLogLevel);
-    if (llIdx >= 0) ui->logLevelCombo->setCurrentIndex(llIdx);
+    ui->chkLogDebug->setText(tr("Debug"));
+    ui->chkLogInfo->setText(tr("Info"));
+    ui->chkLogWarn->setText(tr("Warning"));
+    ui->chkLogError->setText(tr("Error"));
+    ui->chkLogFatal->setText(tr("Fatal"));
 
     ui->logDirLabel->setText(tr("Log Directory:"));
     ui->logDirEdit->setPlaceholderText(tr("Leave empty for default"));
@@ -810,10 +795,16 @@ void SettingsDialog::loadSettings() {
     ui->letterJumpCheck->setChecked(cfg().getLetterJumpEnabled());
 
     ui->mouseClickActivateCheck->setChecked(cfg().getMouseClickActivateEnabled());
-    ui->clickShowGroupCheck->setChecked(cfg().getClickShowGroupForMultiWindow());
+    ui->clickShowGroupCheck->setChecked(ui->mouseClickActivateCheck->isChecked());
     ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
-    int logLevelIdx = ui->logLevelCombo->findData(static_cast<int>(cfg().getLogLevel()));
-    if (logLevelIdx >= 0) ui->logLevelCombo->setCurrentIndex(logLevelIdx);
+    {
+        auto flags = cfg().getLogFlags();
+        ui->chkLogDebug->setChecked(flags & Util::LogDebug);
+        ui->chkLogInfo->setChecked(flags & Util::LogInfo);
+        ui->chkLogWarn->setChecked(flags & Util::LogWarn);
+        ui->chkLogError->setChecked(flags & Util::LogError);
+        ui->chkLogFatal->setChecked(flags & Util::LogFatal);
+    }
     ui->logDirEdit->setText(cfg().getLogDirectory());
 
     ui->iconCacheCheck->setChecked(cfg().getIconCacheEnabled());
@@ -869,7 +860,15 @@ void SettingsDialog::applySettings() {
 
     cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
-    cfg().setLogLevel(static_cast<Util::LogLevel>(ui->logLevelCombo->currentData().toInt()));
+    {
+        Util::LogFlags flags = 0;
+        if (ui->chkLogDebug->isChecked()) flags |= Util::LogDebug;
+        if (ui->chkLogInfo->isChecked())  flags |= Util::LogInfo;
+        if (ui->chkLogWarn->isChecked())  flags |= Util::LogWarn;
+        if (ui->chkLogError->isChecked()) flags |= Util::LogError;
+        if (ui->chkLogFatal->isChecked()) flags |= Util::LogFatal;
+        cfg().setLogFlags(flags);
+    }
     cfg().setLogDirectory(ui->logDirEdit->text());
     Util::Logger::reconfigure();
 

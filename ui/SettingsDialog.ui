@@ -338,43 +338,72 @@
            <property name="title">
             <string>Logging</string>
            </property>
-           <layout class="QFormLayout" name="logFormLayout">
-            <item row="0" column="0">
-             <widget class="QLabel" name="logLevelLabel">
-              <property name="text">
-               <string>Log Level:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="logLevelCombo"/>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="logDirLabel">
-              <property name="text">
-               <string>Log Directory:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <layout class="QHBoxLayout" name="logDirLayout">
-              <item>
-               <widget class="QLineEdit" name="logDirEdit">
-                <property name="placeholderText">
-                 <string>Leave empty for default</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnBrowseLogDir">
-                <property name="text">
-                 <string>Browse...</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
+            <layout class="QFormLayout" name="logFormLayout">
+             <item row="0" column="0" colspan="2">
+              <layout class="QHBoxLayout" name="logCheckLayout">
+               <item>
+                <widget class="QCheckBox" name="chkLogDebug">
+                 <property name="text">
+                  <string>Debug</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="chkLogInfo">
+                 <property name="text">
+                  <string>Info</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="chkLogWarn">
+                 <property name="text">
+                  <string>Warning</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="chkLogError">
+                 <property name="text">
+                  <string>Error</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="chkLogFatal">
+                 <property name="text">
+                  <string>Fatal</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="logDirLabel">
+               <property name="text">
+                <string>Log Directory:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="logDirLayout">
+               <item>
+                <widget class="QLineEdit" name="logDirEdit">
+                 <property name="placeholderText">
+                  <string>Leave empty for default</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnBrowseLogDir">
+                 <property name="text">
+                  <string>Browse...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
           </widget>
          </item>
          <item>

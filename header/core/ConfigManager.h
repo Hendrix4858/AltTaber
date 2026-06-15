@@ -119,15 +119,30 @@ public:
         set("ClickShowGroupForMultiWindow", enabled);
     }
 
-    Util::LogLevel getLogLevel() {
-        auto val = get("LogLevel", static_cast<int>(Util::LogLevel::Info)).toInt();
-        if (val < 0 || val >= static_cast<int>(Util::LogLevel::None))
-            val = static_cast<int>(Util::LogLevel::Info);
-        return static_cast<Util::LogLevel>(val);
+    Util::LogFlags getLogFlags() {
+        if (!m_root.contains("LogFlags"))
+            return Util::DEFAULT_LOG_FLAGS;
+        auto arr = get("LogFlags").toJsonArray();
+        Util::LogFlags flags = 0;
+        for (const auto& v : arr) {
+            auto name = v.toString();
+            if (name == u"Debug")   flags |= Util::LogDebug;
+            else if (name == u"Info")    flags |= Util::LogInfo;
+            else if (name == u"Warning") flags |= Util::LogWarn;
+            else if (name == u"Error")   flags |= Util::LogError;
+            else if (name == u"Fatal")   flags |= Util::LogFatal;
+        }
+        return flags;
     }
 
-    void setLogLevel(Util::LogLevel level) {
-        set("LogLevel", static_cast<int>(level));
+    void setLogFlags(Util::LogFlags flags) {
+        QJsonArray arr;
+        if (flags & Util::LogDebug) arr.append("Debug");
+        if (flags & Util::LogInfo)  arr.append("Info");
+        if (flags & Util::LogWarn)  arr.append("Warning");
+        if (flags & Util::LogError) arr.append("Error");
+        if (flags & Util::LogFatal) arr.append("Fatal");
+        set("LogFlags", arr);
     }
 
     QString getLogDirectory() {

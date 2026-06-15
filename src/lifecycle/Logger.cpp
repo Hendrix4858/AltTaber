@@ -13,7 +13,7 @@ namespace Util {
 QFile* Logger::m_file = nullptr;
 QMutex* Logger::m_mutex = nullptr;
 bool Logger::m_initialized = false;
-LogLevel Logger::m_logLevel = LogLevel::Info;
+LogFlags Logger::m_activeFlags = DEFAULT_LOG_FLAGS;
 QString Logger::m_logDir;
 
 void Logger::init() {
@@ -21,7 +21,7 @@ void Logger::init() {
 
     m_mutex = new QMutex;
 
-    m_logLevel = cfg().getLogLevel();
+    m_activeFlags = cfg().getLogFlags();
     m_logDir = cfg().getLogDirectory();
 
     openLogFile();
@@ -29,20 +29,20 @@ void Logger::init() {
     m_initialized = true;
     qInstallMessageHandler(messageHandler);
 
-    qInfo() << "Logger initialized, level:" << static_cast<int>(m_logLevel)
+    qInfo() << "Logger initialized, flags:" << static_cast<int>(m_activeFlags)
             << "path:" << (m_file ? m_file->fileName() : "none");
 }
 
 void Logger::reconfigure() {
     if (!m_initialized) return;
 
-    auto newLevel = cfg().getLogLevel();
+    auto newFlags = cfg().getLogFlags();
     auto newDir = cfg().getLogDirectory();
 
     {
         QMutexLocker lock(m_mutex);
 
-        bool levelChanged = (newLevel != m_logLevel);
+        bool flagsChanged = (newFlags != m_activeFlags);
         bool dirChanged = (newDir != m_logDir);
 
         if (dirChanged) {
@@ -56,10 +56,10 @@ void Logger::reconfigure() {
             openLogFile();
         }
 
-        m_logLevel = newLevel;
+        m_activeFlags = newFlags;
     }
 
-    qInfo() << "Logger reconfigured, level:" << static_cast<int>(m_logLevel)
+    qInfo() << "Logger reconfigured, flags:" << static_cast<int>(m_activeFlags)
             << "path:" << (m_file ? m_file->fileName() : "none");
 }
 
@@ -82,12 +82,12 @@ void Logger::shutdown() {
     m_initialized = false;
 }
 
-void Logger::setLogLevel(LogLevel level) {
-    m_logLevel = level;
+void Logger::setActiveFlags(LogFlags flags) {
+    m_activeFlags = flags;
 }
 
-LogLevel Logger::logLevel() {
-    return m_logLevel;
+LogFlags Logger::activeFlags() {
+    return m_activeFlags;
 }
 
 void Logger::setLogDirectory(const QString& path) {
@@ -135,19 +135,16 @@ void Logger::checkDateRollover() {
 }
 
 bool Logger::shouldLog(QtMsgType type) {
-    if (m_logLevel == LogLevel::None) return false;
-    return logSeverity(type) >= static_cast<int>(m_logLevel);
-}
-
-int Logger::logSeverity(QtMsgType type) {
+    LogFlag flag;
     switch (type) {
-        case QtDebugMsg:    return 0;
-        case QtInfoMsg:     return 1;
-        case QtWarningMsg:  return 2;
-        case QtCriticalMsg: return 3;
-        case QtFatalMsg:    return 4;
+        case QtDebugMsg:    flag = LogDebug; break;
+        case QtInfoMsg:     flag = LogInfo; break;
+        case QtWarningMsg:  flag = LogWarn; break;
+        case QtCriticalMsg: flag = LogError; break;
+        case QtFatalMsg:    flag = LogFatal; break;
+        default:            return false;
     }
-    return 0;
+    return (m_activeFlags & flag) != 0;
 }
 
 void Logger::messageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {

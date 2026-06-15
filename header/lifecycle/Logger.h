@@ -4,18 +4,21 @@
 #include <QString>
 #include <QFile>
 #include <QMutex>
+#include <cstdint>
 
 namespace Util {
 
-enum class LogLevel {
-    All = 0,
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Fatal,
-    None
+enum LogFlag : uint32_t {
+    LogDebug = 1 << 0,
+    LogInfo  = 1 << 1,
+    LogWarn  = 1 << 2,
+    LogError = 1 << 3,
+    LogFatal = 1 << 4,
 };
+
+using LogFlags = uint32_t;
+
+constexpr LogFlags DEFAULT_LOG_FLAGS = LogWarn | LogError | LogFatal;
 
 class Logger {
 public:
@@ -23,8 +26,8 @@ public:
     static void reconfigure();
     static void shutdown();
 
-    static void setLogLevel(LogLevel level);
-    static LogLevel logLevel();
+    static void setActiveFlags(LogFlags flags);
+    static LogFlags activeFlags();
     static void setLogDirectory(const QString& path);
     static QString logDirectory();
 
@@ -34,13 +37,12 @@ private:
     static void openLogFile();
     static void checkDateRollover();
     static bool shouldLog(QtMsgType type);
-    static int logSeverity(QtMsgType type);
     static QString levelString(QtMsgType type);
 
     static QFile* m_file;
     static QMutex* m_mutex;
     static bool m_initialized;
-    static LogLevel m_logLevel;
+    static LogFlags m_activeFlags;
     static QString m_logDir;
 };
 
