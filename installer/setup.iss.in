@@ -2,7 +2,13 @@
 ; Requires Inno Setup 6+
 
 #define MyAppName "AltTaber"
-#define MyAppVersion "0.5.0"
+#define MyAppVersion "@PROJECT_VERSION@"
+#ifndef MyAppArch
+  #define MyAppArch "win64"
+#endif
+#ifndef MyAppBuildDir
+  #define MyAppBuildDir "..\build"
+#endif
 #define MyAppPublisher "MrBeanCpp"
 #define MyAppURL "https://github.com/Hendrix4858/AltTaber"
 #define MyAppExeName "AltTaber.exe"
@@ -16,13 +22,18 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-OutputBaseFilename={#MyAppName}-v{#MyAppVersion}-Setup
-OutputDir=..\build\output
-SetupIconFile=..\img\icon.ico
+OutputBaseFilename={#MyAppName}-v{#MyAppVersion}-{#MyAppArch}-Setup
+OutputDir={#MyAppSourceDir}\build\output
+SetupIconFile={#MyAppSourceDir}\img\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=admin
-ArchitecturesInstallIn64BitMode=x64os
-Compression=lzma2/ultra64
+#if MyAppArch == "arm64"
+  ArchitecturesInstallIn64BitMode=arm64
+  ArchitecturesAllowed=arm64
+#else
+  ArchitecturesInstallIn64BitMode=x64os
+  ArchitecturesAllowed=x64compatible
+#endif
 SolidCompression=yes
 MinVersion=10.0.10240
 
@@ -42,7 +53,7 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\build\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -50,7 +61,7 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall unchecked
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\*"
@@ -71,6 +82,50 @@ begin
       Exit;
     end;
   end;
+end;
+
+procedure BackupAndWriteMarker;
+var
+  MarkerPath, BackupDir: String;
+  FindRec: TFindRec;
+begin
+  if DirExists(ExpandConstant('{app}')) then begin
+    BackupDir := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\backup\{#MyAppVersion}');
+    if not DirExists(BackupDir) then
+      ForceDirectories(BackupDir);
+
+    if FindFirst(ExpandConstant('{app}\*.exe'), FindRec) then begin
+      try
+        repeat
+          FileCopy(ExpandConstant('{app}\') + FindRec.Name,
+                   BackupDir + '\' + FindRec.Name, False);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+
+    if FindFirst(ExpandConstant('{app}\*.dll'), FindRec) then begin
+      try
+        repeat
+          FileCopy(ExpandConstant('{app}\') + FindRec.Name,
+                   BackupDir + '\' + FindRec.Name, False);
+        until not FindNext(FindRec);
+      finally
+        FindClose(FindRec);
+      end;
+    end;
+  end;
+
+  MarkerPath := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\update_marker.txt');
+  ForceDirectories(ExpandConstant('{userappdata}\MrBeanCpp\AltTaber'));
+  SaveStringToFile(MarkerPath, 'pending', False);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+    BackupAndWriteMarker;
 end;
 
 function InitializeUninstall: Boolean;

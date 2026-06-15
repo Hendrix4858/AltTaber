@@ -15,6 +15,9 @@
 #include "core/ThemeManager.h"
 #include "core/QuitReason.h"
 #include <QProcess>
+#include <QFileInfo>
+#include <QEvent>
+#include <QTimer>
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     QElapsedTimer t;
@@ -25,7 +28,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         auto ex = GetWindowLongW(h, GWL_EXSTYLE);
         SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
     }
-    setWindowTitle("AltTaber Updater[GitHub]");
+    retranslateTexts();
     qDebug() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::supportsSsl();
 
     applyThemeStyle();
@@ -35,6 +38,21 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     manager.setTransferTimeout(10000); // 10s -> Operation canceled
     ui->progressBar->hide();
     connect(ui->btn_recheck, &QPushButton::clicked, this, &UpdateDialog::fetchGithubReleaseInfo);
+    connect(ui->ckPreRelease, &QCheckBox::toggled, this, [this](bool checked) {
+        m_includePreRelease = checked;
+        if (!m_cachedReleases.isEmpty()) {
+            for (const auto& val : m_cachedReleases) {
+                auto obj = val.toObject();
+                if (!m_includePreRelease && obj["prerelease"].toBool())
+                    continue;
+                applyRelease(obj);
+                return;
+            }
+            m_phase = Phase::FetchError;
+            m_errorCache = tr("No matching release found");
+            retranslateTexts();
+        }
+    });
     connect(ui->btn_update, &QPushButton::clicked, this, [this] {
         ui->btn_update->setEnabled(false);
         auto url = relInfo.downloadUrl;
@@ -44,10 +62,23 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
         qInfo() << "Download succeed" << filePath;
+        if (!filePath.endsWith(".exe", Qt::CaseInsensitive)) {
+            qWarning() << "Downloaded file is not an executable, skip launch:" << filePath;
+            m_phase = Phase::DownloadFailed;
+            m_errorCache = tr("Asset type mismatch: expected installer, got `%1`.").arg(QFileInfo(filePath).suffix());
+            retranslateTexts();
+            sysTray().showMessage(tr("Download failed"), tr("Asset type mismatch: not an installer executable"));
+            return;
+        }
         QProcess::startDetached(filePath, {"/VERYSILENT", "/SUPPRESSMSGBOXES",
-                                           "/NORESTART", "/CLOSEAPPLICATIONS"});
+                                           "/CLOSEAPPLICATIONS"});
         QuitReason::markIntentional();
-        qApp->quit();
+        m_phase = Phase::Installing;
+        ui->progressBar->show();
+        ui->progressBar->setMaximum(0);
+        ui->progressBar->setValue(0);
+        retranslateTexts();
+        QTimer::singleShot(800, qApp, &QApplication::quit);
     });
 }
 
@@ -81,38 +112,83 @@ void UpdateDialog::applyThemeStyle() {
 }
 
 void UpdateDialog::fetchGithubReleaseInfo() {
-    ui->textBrowser->setMarkdown("## Fetching...");
-    const QString ApiUrl = QString("https://api.github.com/repos/%1/%2/releases/latest").arg(Owner, Repo);
+    m_phase = Phase::Fetching;
+    ui->progressBar->show();
+    ui->progressBar->setMaximum(0);
+    ui->progressBar->setValue(0);
+    retranslateTexts();
+    const QString ApiUrl = QString("https://api.github.com/repos/%1/%2/releases").arg(Owner, Repo);
     QNetworkRequest request(ApiUrl);
     auto* reply = manager.get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
             qWarning() << "Failed to fetch update info" << reply->errorString();
-            ui->textBrowser->setMarkdown("## Failed to fetch update info❎\n" + reply->errorString());
-            sysTray().showMessage("Failed to fetch update info", reply->errorString());
+            qWarning() << "GitHub API status:"
+                       << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
+                       << reply->readAll();
+            ui->progressBar->hide();
+            m_phase = Phase::FetchError;
+            m_errorCache = reply->errorString();
+            retranslateTexts();
+            sysTray().showMessage(tr("Failed to fetch update info"), reply->errorString());
             return;
         }
         const auto data = reply->readAll();
         const QJsonDocument doc = QJsonDocument::fromJson(data);
-        const auto obj = doc.object();
+        m_cachedReleases = doc.array();
 
-        relInfo.ver = normalizeVersion(obj["tag_name"].toString());
-        relInfo.description = obj["body"].toString();
-        relInfo.publishTime = toLocalTime(obj["published_at"].toString());
+        for (const auto& val : m_cachedReleases) {
+            auto obj = val.toObject();
+            if (!m_includePreRelease && obj["prerelease"].toBool())
+                continue;
+            applyRelease(obj);
+            return;
+        }
 
-        if (const auto assets = obj["assets"].toArray(); !assets.isEmpty())
-            relInfo.downloadUrl = assets.first()["browser_download_url"].toString();
-
-        qInfo() << "Update info fetched" << relInfo.ver << relInfo.downloadUrl;
-        ui->label_newVer->setText(QString("New Version: v%1 (%2)").arg(relInfo.ver.toString(), relInfo.publishTime));
-        ui->label_ver->setText(QString("Current Version: v%1").arg(version.toString()));
-
-        bool needUpdate = relInfo.ver > version;
-        // 如果要支持网络图片，必须重写`QTextBrowser::loadResource`，默认是作为本地文件处理
-        ui->textBrowser->setMarkdown(needUpdate ? relInfo.description : "# ✅Everything is up-to-date");
-        ui->btn_update->setEnabled(needUpdate);
+        ui->progressBar->hide();
+        m_phase = Phase::FetchError;
+        m_errorCache = tr("No matching release found");
+        retranslateTexts();
     });
+}
+
+void UpdateDialog::applyRelease(const QJsonObject& obj) {
+    relInfo.ver = normalizeVersion(obj["tag_name"].toString());
+    relInfo.description = obj["body"].toString();
+    relInfo.publishTime = toLocalTime(obj["published_at"].toString());
+
+    const auto assets = obj["assets"].toArray();
+    bool foundInstaller = false;
+    QJsonObject selectedAsset;
+    for (const auto& a : assets) {
+        const auto o = a.toObject();
+        if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive)) {
+            selectedAsset = o;
+            foundInstaller = true;
+            break;
+        }
+    }
+    if (!foundInstaller) {
+        for (const auto& a : assets) {
+            const auto o = a.toObject();
+            if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive)) {
+                selectedAsset = o;
+                break;
+            }
+        }
+    }
+    if (selectedAsset.isEmpty() && !assets.isEmpty())
+        selectedAsset = assets.first().toObject();
+    relInfo.downloadUrl = selectedAsset["browser_download_url"].toString();
+
+    qInfo() << "Update info applied" << relInfo.ver << relInfo.downloadUrl;
+    ui->progressBar->hide();
+
+    bool needUpdate = relInfo.ver > version;
+    m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;
+    retranslateTexts();
+    ui->btn_update->setEnabled(needUpdate);
 }
 
 void UpdateDialog::download(const QString& url, const QString& savePath) {
@@ -149,11 +225,14 @@ void UpdateDialog::download(const QString& url, const QString& savePath) {
         ui->btn_update->setEnabled(true);
         if (!downloadStatus.success || reply->error() != QNetworkReply::NoError) {
             qWarning() << "Download failed" << reply->errorString();
-            ui->textBrowser->setMarkdown("## Download failed❎ [" + reply->url().host() + "]\n" + reply->errorString());
-            sysTray().showMessage("Download failed", reply->errorString());
+            m_phase = Phase::DownloadFailed;
+            m_errorCache = reply->errorString();
+            retranslateTexts();
+            sysTray().showMessage(tr("Download failed"), reply->errorString());
         } else {
-            ui->textBrowser->setMarkdown("## Download success✅");
-            sysTray().showMessage("Download Status", "Success!");
+            m_phase = Phase::DownloadSucceed;
+            retranslateTexts();
+            sysTray().showMessage(tr("Download Status"), tr("Success!"));
             emit downloadSucceed(downloadStatus.file.fileName());
         }
     });
@@ -190,16 +269,60 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
             auto vCur = QVersionNumber::fromString(QCoreApplication::applicationVersion());
             if (vCur.normalized() == vTo.normalized()) {
                 qInfo() << "Update success";
-                sysTray().showMessage("Verify Update", "Update Success to v" + vTo.toString());
+                sysTray().showMessage(tr("Verify Update"), tr("Update Success to v%1").arg(vTo.toString()));
             } else if (vCur.normalized() == vFrom.normalized()) {
                 qWarning() << "Update failed, version not change" << vFrom << vTo << vCur;
-                sysTray().showMessage("Verify Update", "Update failed, version not change", QSystemTrayIcon::Critical);
+                sysTray().showMessage(tr("Verify Update"), tr("Update failed, version not change"), QSystemTrayIcon::Critical);
             } else {
                 qWarning() << "Update may failed, version changed but not to target" << vFrom << vTo << vCur;
-                sysTray().showMessage("Verify Update", "Update may failed, version changed but not to target", QSystemTrayIcon::Warning);
+                sysTray().showMessage(tr("Verify Update"), tr("Update may failed, version changed but not to target"), QSystemTrayIcon::Warning);
             }
         } else
             qWarning() << "Invalid version change" << parser.value(versionUpdate);
+    }
+}
+
+void UpdateDialog::changeEvent(QEvent* event) {
+    if (event->type() == QEvent::LanguageChange)
+        retranslateTexts();
+    QDialog::changeEvent(event);
+}
+
+void UpdateDialog::retranslateTexts() {
+    setWindowTitle(tr("AltTaber Updater"));
+    ui->btn_recheck->setText(tr(" Check again "));
+    ui->btn_update->setText(tr("Update"));
+    ui->ckPreRelease->setText(tr("Include pre-releases"));
+
+    switch (m_phase) {
+    case Phase::Initial:
+        ui->textBrowser->setMarkdown(tr("## Fetching..."));
+        break;
+    case Phase::Fetching:
+        ui->textBrowser->setMarkdown(tr("## Fetching update..."));
+        break;
+    case Phase::FetchError:
+        ui->textBrowser->setMarkdown(tr("## Failed to fetch update info❎\n%1").arg(m_errorCache));
+        break;
+    case Phase::UpToDate:
+        ui->label_newVer->setText(tr("New Version: v%1 (%2)").arg(relInfo.ver.toString(), relInfo.publishTime));
+        ui->label_ver->setText(tr("Current Version: v%1").arg(version.toString()));
+        ui->textBrowser->setMarkdown(tr("# ✅Everything is up-to-date"));
+        break;
+    case Phase::HasUpdate:
+        ui->label_newVer->setText(tr("New Version: v%1 (%2)").arg(relInfo.ver.toString(), relInfo.publishTime));
+        ui->label_ver->setText(tr("Current Version: v%1").arg(version.toString()));
+        ui->textBrowser->setMarkdown(relInfo.description);
+        break;
+    case Phase::DownloadFailed:
+        ui->textBrowser->setMarkdown(tr("## Download failed❎\n%1").arg(m_errorCache));
+        break;
+    case Phase::DownloadSucceed:
+        ui->textBrowser->setMarkdown(tr("## Download success✅"));
+        break;
+    case Phase::Installing:
+        ui->textBrowser->setMarkdown(tr("## Installing..."));
+        break;
     }
 }
 

@@ -30,6 +30,7 @@ private:
     void initUI();
     void initHooks(const HotkeyBindings& bindings);
     void wireSignals(const HotkeyBindings& bindings);
+    static bool tryRollback();
 
     QApplication m_app;
     WindowManager* m_windowManager = nullptr;

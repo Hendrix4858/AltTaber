@@ -1,0 +1,45 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "release-x64",
+            "displayName": "Release x64",
+            "description": "Release build for x64 (AMD64/Intel 64-bit)",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/x64",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "environment": {
+                "QT_DIR": "$env{QT_DIR_X64}"
+            }
+        },
+        {
+            "name": "release-arm64",
+            "displayName": "Release ARM64",
+            "description": "Release build for ARM64",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "arm64",
+            "binaryDir": "${sourceDir}/build/arm64",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "environment": {
+                "QT_DIR": "$env{QT_DIR_ARM64}"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release-x64",
+            "configurePreset": "release-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "release-arm64",
+            "configurePreset": "release-arm64",
+            "configuration": "Release"
+        }
+    ]
+}
