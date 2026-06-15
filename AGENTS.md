@@ -5,18 +5,47 @@ Qt 6 C++20 Windows Alt+Tab switcher. Single executable, no tests, no CI.
 ## Build & Run
 
 ```bash
-# Set QT_DIR to your Qt 6 installation (e.g. C:/Qt/6.8.2/msvc2022_64)
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
+# Debug (single arch, host toolchain)
+cmake --preset "release-x64" # or omit --preset, use -B build
 cmake --build build
 ./build/Debug/AltTaber.exe
 ```
 
-- **Preset hint** (from IDE): `Desktop_Qt_6_8_2_MSVC2022_64bit-Debug`, build dir `build/Desktop_...`
 - **Requires**: CMake ≥3.29, MSVC 2022, Qt 6 (Core, Gui, Widgets, Xml, Network)
 - **MSVC flag**: `/utf-8` is forced on MSVC (`CMakeLists.txt:130`)
-- **Release**: `WIN32_EXECUTABLE=ON` → no console; Debug keeps console for qDebug output
-- **Installer**: `cmake --build build --target installer` (Release) → `windeployqt` → Inno Setup → `build/output/AltTaber-v0.5.0-Setup.exe`
+- **Debug**: keep console for qDebug output; **Release**: `WIN32_EXECUTABLE=ON` → no console
 - **Links**: `Dwmapi.lib`
+
+### Release (multi-arch portable zip + installer)
+
+```bash
+# Prerequisites: set QT_DIR_X64 and QT_DIR_ARM64 env vars
+build-all.cmd                           # build both x64 + arm64
+build-all.cmd x64                       # single arch
+```
+
+Or manually per arch:
+
+```bash
+cmake --preset "release-x64"                    # configure
+cmake --build "build/x64" --target zip          # build → windeployqt → portable zip
+cmake --build "build/x64" --target installer    # build → windeployqt → Inno Setup
+```
+
+| Target | Output |
+|--------|--------|
+| `zip` | `build/output/AltTaber-{version}-{arch}.zip` (portable) |
+| `installer` | `build/output/AltTaber-{version}-{arch}-Setup.exe` |
+| `deploy` | Runs `windeployqt` (invoked automatically by zip/installer) |
+
+### Presets
+
+| Preset | Arch | Env var |
+|--------|------|---------|
+| `release-x64` | x86-64 | `QT_DIR_X64` |
+| `release-arm64` | ARM64 | `QT_DIR_ARM64` |
+
+- **IDE hint**: `Desktop_Qt_6_8_2_MSVC2022_64bit-Debug`, build dir `build/Desktop_...`
 
 ## Source Layout
 
@@ -31,7 +60,6 @@ cmake --build build
 | `ui/` | Qt Designer `.ui` files |
 | `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
 | `installer/` | Inno Setup script (`setup.iss`) and legacy build script (`build-installer.ps1`) |
-| `Output/` | Built installer `.exe` (gitignored) |
 
 **Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).
 
@@ -98,7 +126,7 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 
 - **README is wrong about config file**: it says `config.ini` but the code uses `config.json` via `ConfigManagerBase`. Trust the code.
 - **Config path**: `%APPDATA%\MrBeanCpp\AltTaber\config.json`. Uninstall preserves config unless user explicitly deletes it.
-- **Installer**: Inno Setup `setup.iss` builds `AltTaber-vX.Y.Z-Setup.exe`. Update flow: download setup.exe → `/VERYSILENT` → replaces zip+bat chain.
+- **Installer**: Inno Setup `setup.iss` builds `AltTaber-vX.Y.Z-{arch}-Setup.exe`. Update flow: download setup.exe → `/VERYSILENT` → replaces zip+bat chain.
 - **AppId** must remain `AltTaber.MrBeanCpp` forever for Inno upgrade detection.
 - **Project target** is `Win_Switcher`; **output binary** is `AltTaber.exe`
 - **Icon cache** (`IconCacheDirectory` config) needs deletion if `icon.ico` changes on disk (Windows caches aggressively); referenced in comment at `CMakeLists.txt:21`

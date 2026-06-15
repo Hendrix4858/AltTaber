@@ -5,6 +5,12 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.6.0"
 #endif
+#ifndef MyAppArch
+  #define MyAppArch "win64"
+#endif
+#ifndef MyAppBuildDir
+  #define MyAppBuildDir "..\build"
+#endif
 #define MyAppPublisher "MrBeanCpp"
 #define MyAppURL "https://github.com/Hendrix4858/AltTaber"
 #define MyAppExeName "AltTaber.exe"
@@ -18,13 +24,18 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-OutputBaseFilename={#MyAppName}-v{#MyAppVersion}-Setup
+OutputBaseFilename={#MyAppName}-v{#MyAppVersion}-{#MyAppArch}-Setup
 OutputDir=..\build\output
 SetupIconFile=..\img\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=admin
-ArchitecturesInstallIn64BitMode=x64os
-Compression=lzma2/ultra64
+#if MyAppArch == "arm64"
+  ArchitecturesInstallIn64BitMode=arm64
+  ArchitecturesAllowed=arm64
+#else
+  ArchitecturesInstallIn64BitMode=x64os
+  ArchitecturesAllowed=x64compatible
+#endif
 SolidCompression=yes
 MinVersion=10.0.10240
 
@@ -44,7 +55,7 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\build\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

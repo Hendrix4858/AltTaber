@@ -8,7 +8,31 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-set(CMAKE_PREFIX_PATH "$ENV{QT_DIR}/lib/cmake")
+# --- Auto-detect Qt path based on target architecture ---
+# ARM64: use QT_DIR_ARM64 env var, or derive from QT_DIR by replacing msvc2022_64 → msvc2022_arm64
+# x64:   use QT_DIR env var (or fall back to default CMake search)
+if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+    if(DEFINED ENV{QT_DIR_ARM64} AND NOT "$ENV{QT_DIR_ARM64}" STREQUAL "")
+        set(QT_BASE_DIR "$ENV{QT_DIR_ARM64}")
+    elseif(DEFINED ENV{QT_DIR} AND NOT "$ENV{QT_DIR}" STREQUAL "")
+        string(REPLACE "msvc2022_64" "msvc2022_arm64" QT_BASE_DIR "$ENV{QT_DIR}")
+    else()
+        # Fallback: hardcoded path derived from known x64 install location
+        set(QT_BASE_DIR "E:/CodePath/Compiler/QT/6.8.2/msvc2022_arm64")
+    endif()
+    set(CMAKE_PREFIX_PATH "${QT_BASE_DIR}/lib/cmake")
+    set(Qt6_DIR "${QT_BASE_DIR}/lib/cmake/Qt6")
+    set(Qt6Core_DIR "${QT_BASE_DIR}/lib/cmake/Qt6Core")
+    set(Qt6Gui_DIR "${QT_BASE_DIR}/lib/cmake/Qt6Gui")
+    set(Qt6Widgets_DIR "${QT_BASE_DIR}/lib/cmake/Qt6Widgets")
+    set(Qt6Xml_DIR "${QT_BASE_DIR}/lib/cmake/Qt6Xml")
+    set(Qt6Network_DIR "${QT_BASE_DIR}/lib/cmake/Qt6Network")
+else()
+    if(DEFINED ENV{QT_DIR} AND NOT "$ENV{QT_DIR}" STREQUAL "")
+        set(QT_BASE_DIR "$ENV{QT_DIR}")
+        set(CMAKE_PREFIX_PATH "${QT_BASE_DIR}/lib/cmake")
+    endif()
+endif()
 list(APPEND CMAKE_AUTOUIC_SEARCH_PATHS ui) # 如果.ui文件不在.cpp同一目录下，需要添加搜索路径
 
 set(COMPANY_NAME "MrBeanCpp")
@@ -150,6 +174,14 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
     set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE true) # 设置为窗口应用程序, 无控制台，同时会导致Clion无法捕获输出
 endif ()
 
+# --- Architecture suffix for package naming ---
+
+if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+    set(ARCH_SUFFIX "arm64")
+else()
+    set(ARCH_SUFFIX "win64")
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
         QT_DEPRECATED_WARNINGS
         UNICODE # for Windows API，使用W版本
@@ -164,7 +196,7 @@ endif ()
 # --- Deploy & Installer targets ---
 
 find_program(WINDEPLOYQT windeployqt
-    PATHS "$ENV{QT_DIR}/bin"
+    PATHS "${QT_BASE_DIR}/bin"
     DOC "Qt deployment tool (windeployqt)"
 )
 
@@ -186,14 +218,33 @@ if (WINDEPLOYQT)
     )
 endif ()
 
+# --- Portable zip ---
+
+set(ZIP_DEPENDS Win_Switcher)
+if (WINDEPLOYQT)
+    list(APPEND ZIP_DEPENDS deploy)
+endif ()
+
+add_custom_target(zip
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
+    COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_SOURCE_DIR}/build/output/AltTaber-${PROJECT_VERSION}-${ARCH_SUFFIX}.zip"
+    COMMAND ${CMAKE_COMMAND} -E tar cf "${CMAKE_SOURCE_DIR}/build/output/AltTaber-${PROJECT_VERSION}-${ARCH_SUFFIX}.zip" --format=zip .
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:Win_Switcher>"
+    COMMENT "Packaging portable zip (${ARCH_SUFFIX}) ..."
+    DEPENDS ${ZIP_DEPENDS}
+)
+
+# --- Inno Setup installer ---
+
 if (ISCC)
     set(installer_deps Win_Switcher)
     if (WINDEPLOYQT)
         list(APPEND installer_deps deploy)
     endif ()
     add_custom_target(installer
-        COMMAND ${ISCC} "/DMyAppVersion=${PROJECT_VERSION}" "${CMAKE_SOURCE_DIR}/installer/setup.iss"
-        COMMENT "Compiling AltTaber installer ..."
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
+        COMMAND ${ISCC} "/DMyAppVersion=${PROJECT_VERSION}" "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}/installer/setup.iss"
+        COMMENT "Compiling AltTaber installer (${ARCH_SUFFIX}) ..."
         DEPENDS ${installer_deps}
     )
 endif ()
