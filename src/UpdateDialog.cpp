@@ -71,7 +71,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
             return;
         }
         QProcess::startDetached(filePath, {"/VERYSILENT", "/SUPPRESSMSGBOXES",
-                                           "/CLOSEAPPLICATIONS"});
+                                           "/CLOSEAPPLICATIONS", "/AUTOUPDATE"});
         QuitReason::markIntentional();
         m_phase = Phase::Installing;
         ui->progressBar->show();
@@ -312,7 +312,10 @@ void UpdateDialog::retranslateTexts() {
     case Phase::HasUpdate:
         ui->label_newVer->setText(tr("New Version: v%1 (%2)").arg(relInfo.ver.toString(), relInfo.publishTime));
         ui->label_ver->setText(tr("Current Version: v%1").arg(version.toString()));
-        ui->textBrowser->setMarkdown(relInfo.description);
+        ui->textBrowser->setMarkdown(
+            relInfo.description.isEmpty()
+                ? tr("No release notes available.")
+                : relInfo.description);
         break;
     case Phase::DownloadFailed:
         ui->textBrowser->setMarkdown(tr("## Download failed❎\n%1").arg(m_errorCache));

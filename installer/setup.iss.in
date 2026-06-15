@@ -61,12 +61,26 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall unchecked
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall unchecked skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\*"
 
 [Code]
+function CmdLineParamExists(const Param: string): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 1 to ParamCount do
+    if CompareText(ParamStr(i), Param) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
 function IsAppRunning: Boolean;
 begin
   Result := FindWindowByWindowName('AltTaber') <> 0;
@@ -123,9 +137,15 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
 begin
   if CurStep = ssInstall then
     BackupAndWriteMarker;
+  if CurStep = ssDone then
+    if CmdLineParamExists('/AUTOUPDATE') then
+      Exec('cmd.exe', '/c (timeout /t 3 /nobreak > nul) & del /f /q "' + ExpandConstant('{srcexe}') + '"',
+        '', SW_HIDE, ewNoWait, ResultCode);
 end;
 
 function InitializeUninstall: Boolean;
