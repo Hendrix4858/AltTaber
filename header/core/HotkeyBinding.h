@@ -69,8 +69,8 @@ inline HotkeyBinding makePhysicalBinding(Qt::KeyboardModifiers mods, quint32 vk,
 inline HotkeyBindings defaultHotkeyBindings() {
     HotkeyBindings defaults;
     defaults[HotkeyAction::SwitchToNextWindow]     = {makePhysicalBinding(Qt::AltModifier, VK_TAB, 0x0F)};
-    defaults[HotkeyAction::CycleProcessWindows]     = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
-    defaults[HotkeyAction::SwitchProcessWindow]     = {};
+    defaults[HotkeyAction::CycleProcessWindows]     = {};
+    defaults[HotkeyAction::SwitchProcessWindow]     = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
     defaults[HotkeyAction::ExpandGroup]          = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
     defaults[HotkeyAction::CycleForward]            = {makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F)};
     defaults[HotkeyAction::CycleBackward]           = {makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F)};

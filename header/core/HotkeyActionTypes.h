@@ -111,6 +111,7 @@ inline HotkeyAction hotkeyActionFromName(const QString& name) {
         m.insert("CycleProcessWindows",    HotkeyAction::CycleProcessWindows);
         m.insert("SwitchProcessWindow",    HotkeyAction::SwitchProcessWindow);
         m.insert("ExpandGroup",         HotkeyAction::ExpandGroup);
+        m.insert("EnterGroupMode",       HotkeyAction::ExpandGroup); // backward compat
         m.insert("CycleForward",           HotkeyAction::CycleForward);
         m.insert("CycleBackward",          HotkeyAction::CycleBackward);
         m.insert("MoveSelectionUp",        HotkeyAction::MoveSelectionUp);
