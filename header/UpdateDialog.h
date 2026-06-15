@@ -29,12 +29,14 @@ private:
     void download(const QString& url, const QString& savePath);
     static QVersionNumber normalizeVersion(const QString& ver);
     static QString toLocalTime(const QString& isoTime);
+    void retranslateTexts();
 
 signals:
     void downloadSucceed(const QString& filePath);
 
 protected:
     void showEvent(QShowEvent*) override;
+    void changeEvent(QEvent*) override;
 
 private:
     Ui::UpdateDialog* ui;
@@ -55,6 +57,10 @@ private:
         QNetworkReply* reply = nullptr;
         QFile file;
     } downloadStatus;
+
+    enum class Phase { Initial, FetchError, UpToDate, HasUpdate, DownloadFailed, DownloadSucceed };
+    Phase m_phase = Phase::Initial;
+    QString m_errorCache;
 };
 
 

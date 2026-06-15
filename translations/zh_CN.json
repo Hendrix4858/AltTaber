@@ -134,5 +134,26 @@
   },
   "HotkeyRecorder": {
     "+ Add": "+ 添加"
+  },
+  "UpdateDialog": {
+    "AltTaber Updater": "AltTaber 更新",
+    "## Fetching...": "## 正在获取...",
+    "## Failed to fetch update info❎\n%1": "## 获取更新信息失败❎\n%1",
+    "New Version: v%1 (%2)": "新版本: v%1 (%2)",
+    "Current Version: v%1": "当前版本: v%1",
+    "# ✅Everything is up-to-date": "# ✅已是最新版本",
+    "## Download failed❎\n%1": "## 下载失败❎\n%1",
+    "## Download success✅": "## 下载成功✅",
+    "Failed to fetch update info": "获取更新信息失败",
+    "Download Status": "下载状态",
+    "Success!": "成功！",
+    "Download failed": "下载失败",
+    "Asset type mismatch: expected installer, got `%1`.": "资源类型不匹配：期望安装程序，实际为「%1」。",
+    "Asset type mismatch: not an installer executable": "资源类型不匹配：不是可执行安装程序",
+    "Verify Update": "验证更新",
+    "Update Success to v%1": "更新成功至 v%1",
+    "Update failed, version not change": "更新失败，版本未变更",
+    "Update may failed, version changed but not to target": "更新可能失败，版本已变更但未达到目标版本",
+    "Invalid version change": "无效的版本变更"
   }
 }
