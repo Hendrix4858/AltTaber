@@ -8,7 +8,7 @@ ThemeManager& ThemeManager::instance() {
 }
 
 Theme ThemeManager::resolveTheme() {
-    int saved = cfg().get("Theme", Dark).toInt();
+    int saved = cfg().get("Theme", System).toInt();
     if (saved == System)
         return detectSystemTheme();
     return static_cast<Theme>(saved);

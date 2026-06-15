@@ -71,6 +71,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->themeCombo->addItem(tr("Follow System"), System);
 
     // language combo
+    ui->langCombo->addItem(tr("Follow System"), "system");
     ui->langCombo->addItem(QStringLiteral("English"), "en");
     ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
 
@@ -679,6 +680,7 @@ void SettingsDialog::retranslateUi() {
 
     QString savedLang = ui->langCombo->currentData().toString();
     ui->langCombo->clear();
+    ui->langCombo->addItem(tr("Follow System"), "system");
     ui->langCombo->addItem(QStringLiteral("English"), "en");
     ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
     int idx = ui->langCombo->findData(savedLang);

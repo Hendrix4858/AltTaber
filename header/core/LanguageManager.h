@@ -3,6 +3,7 @@
 
 #include <QString>
 
+QString detectSystemLanguage();
 void switchLanguage(const QString& langCode);
 void initLanguage();
 

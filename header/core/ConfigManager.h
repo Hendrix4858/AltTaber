@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include "ConfigManagerBase.h"
+#include "core/ThemeManager.h"
 #include "lifecycle/Logger.h"
 #include "core/HotkeyAction.h"
 
@@ -55,7 +56,7 @@ public:
     }
 
     QString getLanguage() {
-        return get("Language", "en").toString();
+        return get("Language", "system").toString();
     }
 
     void setLanguage(const QString& lang) {
@@ -79,7 +80,7 @@ public:
     }
 
     int getTheme() {
-        return get("Theme", 0).toInt();
+        return get("Theme", System).toInt();
     }
 
     void setTheme(int theme) {
