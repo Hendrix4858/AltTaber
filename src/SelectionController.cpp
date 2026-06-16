@@ -3,6 +3,7 @@
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"
 #include "utils/Util.h"
+#include "utils/PwaDetector.h"
 #include "core/ConfigManager.h"
 #include "core/ThemeManager.h"
 #include "hook/WheelEventProcessor.h"
@@ -213,11 +214,16 @@ void SelectionController::expandGroup() {
     qInfo() << "[GroupMode] Enter, backupIndex=" << m_expandedGroupBackupIndex
             << "windows=" << group.windows.size();
 
+    bool pwaTagMode = cfg().getPwaEnabled() && cfg().getPwaMode() == PwaMode::TagWithinGroup;
+
     QList<WindowGroup> filtered;
     for (const auto& win : group.windows) {
         WindowGroup g;
         g.exePath = group.exePath;
-        g.icon = group.icon;
+        if (pwaTagMode && win.windowKind == WindowKind::Pwa)
+            g.icon = PwaDetector::getPwaIcon(win.hwnd, win.appUserModelId, group.exePath);
+        else
+            g.icon = group.icon;
         g.addWindow(win);
         filtered.append(g);
     }

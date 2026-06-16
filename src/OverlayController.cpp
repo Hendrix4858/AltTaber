@@ -62,15 +62,24 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
     int totalNeeded = gridWidth * m_model->groupCount();
     int minIcon = cfg().getMinIconSize();
 
+    qDebug().noquote() << "[Layout] groups =" << m_model->groupCount()
+             << "maxWidth =" << maxWidth
+             << "totalNeeded =" << totalNeeded
+             << "screenW =" << screenGeo.width();
+
     if (totalNeeded > maxWidth) {
         int newGridWidth = maxWidth / m_model->groupCount();
-        int padding = gridWidth - iconSize;
-        int newIconSize = qMax(minIcon, newGridWidth - padding);
-        int finalGridWidth = newIconSize + padding;
+        int newIconSize = qMax(minIcon, newGridWidth * iconSize / gridWidth);
+        if (newIconSize > newGridWidth)
+            newIconSize = newGridWidth;
+
+        qDebug().noquote() << "[Layout] SHRINK: newGridWidth =" << newGridWidth
+                 << "newIconSize =" << newIconSize;
 
         listView->setIconSize({newIconSize, newIconSize});
-        listView->setGridSize({finalGridWidth, listView->gridSize().height()});
+        listView->setGridSize({newGridWidth, listView->gridSize().height()});
     } else {
+        qDebug().noquote() << "[Layout] FULL: iconSize = 64 gridWidth = 80";
         listView->setIconSize({64, 64});
         listView->setGridSize({80, 80});
     }

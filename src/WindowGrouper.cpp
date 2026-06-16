@@ -1,6 +1,8 @@
 #include "WindowGrouper.h"
 #include "ActivationHistory.h"
 #include "utils/Util.h"
+#include "utils/PwaDetector.h"
+#include "core/ConfigManager.h"
 #include <algorithm>
 
 namespace WindowGrouper {
@@ -9,22 +11,33 @@ namespace WindowGrouper {
                                     const ActivationHistory* history,
                                     HWND selfHwnd) {
         QList<WindowGroup> result;
-        QMap<QString, int> pathIndex;
+        QMap<QString, int> indexMap;
+
+        bool pwaEnabled = cfg().getPwaEnabled();
+        bool separateGroups = pwaEnabled && cfg().getPwaMode() == PwaMode::SeparateGroups;
 
         for (const auto& desc : windows) {
             if (desc.hwnd == selfHwnd) continue;
             if (desc.processPath.isEmpty()) continue;
 
-            if (auto it = pathIndex.find(desc.processPath); it != pathIndex.end()) {
+            QString groupKey = desc.processPath;
+            if (separateGroups && desc.windowKind == WindowKind::Pwa)
+                groupKey = desc.appUserModelId;
+
+            if (auto it = indexMap.find(groupKey); it != indexMap.end()) {
                 result[it.value()].addWindow(
-                    {desc.title, desc.className, desc.hwnd});
+                    {desc.title, desc.className, desc.appUserModelId, desc.hwnd, desc.windowKind});
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
-                group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
+                if (desc.windowKind == WindowKind::Pwa) {
+                    group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
+                } else {
+                    group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
+                }
                 group.addWindow(
-                    {desc.title, desc.className, desc.hwnd});
-                pathIndex[desc.processPath] = result.size();
+                    {desc.title, desc.className, desc.appUserModelId, desc.hwnd, desc.windowKind});
+                indexMap[groupKey] = result.size();
                 result.append(group);
             }
         }

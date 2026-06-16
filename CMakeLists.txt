@@ -162,9 +162,10 @@ target_sources(Win_Switcher PRIVATE
 # ── Utils ──
 target_sources(Win_Switcher PRIVATE
     src/utils/WindowUtil.cpp       header/utils/WindowUtil.h
-    src/utils/ProcessUtil.cpp      header/utils/ProcessUtil.h
+    src/utils/ProcessUtil.cpp       header/utils/ProcessUtil.h
     src/utils/MiscUtil.cpp         header/utils/MiscUtil.h
-                                   header/utils/Util.h
+    src/utils/PwaDetector.cpp      header/utils/PwaDetector.h
+    header/utils/Util.h
     src/utils/setWindowBlur.cpp    header/utils/setWindowBlur.h
     src/utils/UwpHelper.cpp        header/utils/UwpHelper.h
     src/utils/StartMenuHelper.cpp  header/utils/StartMenuHelper.h
@@ -181,6 +182,7 @@ target_link_libraries(Win_Switcher
 
 target_link_libraries(${PROJECT_NAME}
         Dwmapi
+        Propsys
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "AltTaber") # 设置输出文件名

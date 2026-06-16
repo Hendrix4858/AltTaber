@@ -126,6 +126,11 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             ui->clickShowGroupCheck->setEnabled(checked);
     });
 
+    connect(ui->pwaEnabledCheck, &QCheckBox::toggled, this, [this](bool checked) {
+        ui->pwaSeparateRadio->setEnabled(checked);
+        ui->pwaTagRadio->setEnabled(checked);
+    });
+
     connect(m_hotkeyMgr, &HotkeyPageManager::bindingsChanged, this, [this](bool hasSingleLetter) {
         if (hasSingleLetter) {
             ui->letterJumpCheck->setChecked(false);
@@ -201,6 +206,16 @@ void SettingsDialog::loadSettings() {
     ui->iconCacheCheck->setChecked(m_config->getIconCacheEnabled());
     ui->cacheDirEdit->setText(m_config->get("IconCacheDirectory", "").toString());
 
+    {
+        bool pwaEnabled = m_config->getPwaEnabled();
+        ui->pwaEnabledCheck->setChecked(pwaEnabled);
+        auto pwaMode = m_config->getPwaMode();
+        ui->pwaSeparateRadio->setChecked(pwaMode == PwaMode::SeparateGroups);
+        ui->pwaTagRadio->setChecked(pwaMode == PwaMode::TagWithinGroup);
+        ui->pwaSeparateRadio->setEnabled(pwaEnabled);
+        ui->pwaTagRadio->setEnabled(pwaEnabled);
+    }
+
     m_blockedMgr->loadFromConfig();
 
     m_loadingSettings = false;
@@ -249,6 +264,11 @@ void SettingsDialog::applySettings() {
 
     m_config->setIconCacheEnabled(ui->iconCacheCheck->isChecked());
     m_config->setIconCacheDirectory(ui->cacheDirEdit->text());
+
+    m_config->setPwaEnabled(ui->pwaEnabledCheck->isChecked());
+    m_config->setPwaMode(ui->pwaSeparateRadio->isChecked()
+                             ? PwaMode::SeparateGroups
+                             : PwaMode::TagWithinGroup);
 
     m_config->setBlockedWindows(m_blockedMgr->collectEntries());
     m_hotkeyMgr->applyBindings();

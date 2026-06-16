@@ -17,6 +17,12 @@ enum DisplayMonitor {
 };
 constexpr int DisplayMonitorCount = 2;
 
+enum class PwaMode {
+    SeparateGroups,
+    TagWithinGroup,
+};
+constexpr int PwaModeCount = 2;
+
 struct BlockedWindowEntry {
     bool enabled = true;
     QString comment;
@@ -94,6 +100,25 @@ public:
 
     void setPaused(bool paused) {
         set("Paused", paused);
+    }
+
+    bool getPwaEnabled() {
+        return get("PwaEnabled", true).toBool();
+    }
+
+    void setPwaEnabled(bool enabled) {
+        set("PwaEnabled", enabled);
+    }
+
+    PwaMode getPwaMode() {
+        auto mode = get("PwaMode", static_cast<int>(PwaMode::SeparateGroups)).toInt();
+        if (mode < 0 || mode >= PwaModeCount)
+            mode = static_cast<int>(PwaMode::SeparateGroups);
+        return static_cast<PwaMode>(mode);
+    }
+
+    void setPwaMode(PwaMode mode) {
+        set("PwaMode", static_cast<int>(mode));
     }
 
     int getMinIconSize() {

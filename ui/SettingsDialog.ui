@@ -264,9 +264,39 @@
             </item>
            </layout>
           </widget>
-         </item>
-         <item>
-          <spacer name="displaySpacer">
+          </item>
+          <item>
+           <widget class="QGroupBox" name="pwaGroup">
+            <property name="title">
+             <string>PWA (Progressive Web Apps)</string>
+            </property>
+            <layout class="QVBoxLayout" name="pwaLayout">
+             <item>
+              <widget class="QCheckBox" name="pwaEnabledCheck">
+               <property name="text">
+                <string>Enable PWA detection</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="pwaSeparateRadio">
+               <property name="text">
+                <string>Show as separate groups</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="pwaTagRadio">
+               <property name="text">
+                <string>Mark within browser group</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="displaySpacer">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
            </property>

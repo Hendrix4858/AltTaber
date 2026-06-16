@@ -9,10 +9,17 @@
 #include <QDateTime>
 #include <QMetaType>
 
+enum class WindowKind {
+    Normal,
+    Pwa,
+};
+
 struct WindowInfo {
     QString title;
     QString className;
+    QString appUserModelId;
     HWND hwnd = nullptr;
+    WindowKind windowKind = WindowKind::Normal;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowInfo& info) {
@@ -27,7 +34,9 @@ struct WindowDescriptor {
     QString className;
     QString processPath;
     QString processName;
+    QString appUserModelId;
     HWND hwnd = nullptr;
+    WindowKind windowKind = WindowKind::Normal;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowDescriptor& desc) {
