@@ -159,6 +159,7 @@ target_sources(Win_Switcher PRIVATE
     src/utils/UwpHelper.cpp        header/utils/UwpHelper.h
     src/utils/StartMenuHelper.cpp  header/utils/StartMenuHelper.h
     src/utils/AppExeResolver.cpp   header/utils/AppUtil.h
+    src/utils/PathUtils.cpp        header/utils/PathUtils.h
 )
 target_link_libraries(Win_Switcher
         Qt::Core

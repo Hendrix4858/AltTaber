@@ -1,5 +1,6 @@
 #include "lifecycle/Logger.h"
 #include "core/ConfigManager.h"
+#include "utils/PathUtils.h"
 #include <QApplication>
 #include <QDir>
 #include <QFileInfo>
@@ -99,17 +100,13 @@ QString Logger::logDirectory() {
 }
 
 QString Logger::logFilePath() {
-    auto dir = m_logDir.isEmpty()
-        ? QApplication::applicationDirPath() + "/log"
-        : m_logDir;
+    auto dir = PathUtils::resolveAppRelativePath(m_logDir, "log");
     auto now = QDateTime::currentDateTime().toString("yyyy-MM-dd");
     return dir + "/" + now + ".log";
 }
 
 void Logger::openLogFile() {
-    auto dir = m_logDir.isEmpty()
-        ? QApplication::applicationDirPath() + "/log"
-        : m_logDir;
+    auto dir = PathUtils::resolveAppRelativePath(m_logDir, "log");
     QDir().mkpath(dir);
 
     auto filePath = logFilePath();

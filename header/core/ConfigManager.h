@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include "ConfigManagerBase.h"
+#include "utils/PathUtils.h"
 #include "core/ThemeManager.h"
 #include "lifecycle/Logger.h"
 #include "core/HotkeyAction.h"
@@ -162,10 +163,8 @@ public:
     }
 
     QString getIconCacheDirectory() {
-        auto dir = get("IconCacheDirectory", "").toString();
-        if (dir.isEmpty())
-            return QApplication::applicationDirPath() + "/icon_cache";
-        return dir;
+        return PathUtils::resolveAppRelativePath(
+            get("IconCacheDirectory", "").toString(), "icon_cache");
     }
 
     void setIconCacheDirectory(const QString& path) {

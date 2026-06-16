@@ -6,6 +6,7 @@
 #include "core/ThemeManager.h"
 #include "hook/HotkeyRecorder.h"
 #include "hook/KeyboardHooker.h"
+#include "utils/PathUtils.h"
 #include "AddBlockedDialog.h"
 
 #include <QApplication>
@@ -77,20 +78,22 @@ SettingsDialog::SettingsDialog(QWidget* parent)
 
     // browse log directory
     connect(ui->btnBrowseLogDir, &QPushButton::clicked, this, [this] {
-        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Log Directory"),
-                                                        ui->logDirEdit->text().isEmpty()
-                                                            ? QApplication::applicationDirPath() + "/log"
-                                                            : ui->logDirEdit->text());
+        auto text = ui->logDirEdit->text();
+        QString startDir = text.isEmpty()
+            ? QApplication::applicationDirPath() + "/log"
+            : PathUtils::resolveAppRelativePath(text, "log");
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Log Directory"), startDir);
         if (!dir.isEmpty())
             ui->logDirEdit->setText(dir);
     });
 
     // browse cache directory
     connect(ui->btnBrowseCacheDir, &QPushButton::clicked, this, [this] {
-        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Cache Directory"),
-                                                        ui->cacheDirEdit->text().isEmpty()
-                                                            ? QApplication::applicationDirPath() + "/icon_cache"
-                                                            : ui->cacheDirEdit->text());
+        auto text = ui->cacheDirEdit->text();
+        QString startDir = text.isEmpty()
+            ? QApplication::applicationDirPath() + "/icon_cache"
+            : PathUtils::resolveAppRelativePath(text, "icon_cache");
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Cache Directory"), startDir);
         if (!dir.isEmpty())
             ui->cacheDirEdit->setText(dir);
     });
@@ -327,16 +330,32 @@ bool SettingsDialog::nativeEvent(const QByteArray&, void* message, qintptr*) {
 }
 
 void SettingsDialog::buildHotkeyPage() {
-    // Clear existing content from hotkeyPage
     auto* hotkeyPage = ui->stackedWidget->widget(2);
-    auto* oldLayout = hotkeyPage->layout();
-    if (oldLayout) {
+
+    // #4: Properly clean up old recorders before rebuilding
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
+        if (auto* r = it.value()) {
+            r->disconnect();
+            r->setParent(nullptr);
+            r->deleteLater();
+        }
+    }
+    m_recorders.clear();
+
+    // #1: Clear existing layout items, recycle the layout instead of delete+recreate
+    auto* hotkeyLayout = hotkeyPage->layout();
+    if (hotkeyLayout) {
         QLayoutItem* item;
-        while ((item = oldLayout->takeAt(0)) != nullptr) {
-            if (item->widget()) item->widget()->deleteLater();
+        while ((item = hotkeyLayout->takeAt(0)) != nullptr) {
+            if (auto* w = item->widget()) {
+                // hotkeyPlaceholder 是 Ui::SettingsDialog 成员，不可 deleteLater
+                if (w == ui->hotkeyPlaceholder)
+                    w->hide();
+                else
+                    w->deleteLater();
+            }
             delete item;
         }
-        delete oldLayout;
     }
 
     auto* scrollArea = new QScrollArea(hotkeyPage);
@@ -374,19 +393,20 @@ void SettingsDialog::buildHotkeyPage() {
         return header;
     };
 
-    // Create a recorder for each action, grouped by scope
-    HotkeyScope lastScope = HotkeyScope::Global;
-    bool firstGlobal = true;
+    // #2: Clean scope header state machine - independent booleans
+    bool globalHeaderAdded = false;
+    bool overlayHeaderAdded = false;
     for (auto action : displayOrder) {
         auto scope = hotkeyActionScope(action);
-        if (scope != lastScope) {
-            contentLayout->addWidget(makeScopeHeader(tr("Overlay Hotkeys (only when overlay is visible)")));
-            lastScope = scope;
-        }
-        if (firstGlobal) {
+        if (scope == HotkeyScope::Global && !globalHeaderAdded) {
             contentLayout->addWidget(makeScopeHeader(tr("Global Hotkeys (always active)")));
-            firstGlobal = false;
+            globalHeaderAdded = true;
         }
+        if (scope == HotkeyScope::Overlay && !overlayHeaderAdded) {
+            contentLayout->addWidget(makeScopeHeader(tr("Overlay Hotkeys (only when overlay is visible)")));
+            overlayHeaderAdded = true;
+        }
+
         auto* recorder = new HotkeyRecorder(action, scrollContent);
         m_recorders[action] = recorder;
         contentLayout->addWidget(recorder);
@@ -454,9 +474,12 @@ void SettingsDialog::buildHotkeyPage() {
 
     scrollArea->setWidget(scrollContent);
 
-    auto* pageLayout = new QVBoxLayout(hotkeyPage);
-    pageLayout->setContentsMargins(0, 0, 0, 0);
-    pageLayout->addWidget(scrollArea);
+    // Reuse existing layout (safe: items cleared, no delete needed)
+    if (!hotkeyLayout) {
+        hotkeyLayout = new QVBoxLayout(hotkeyPage);
+    }
+    hotkeyLayout->setContentsMargins(0, 0, 0, 0);
+    hotkeyLayout->addWidget(scrollArea);
 }
 
 void SettingsDialog::loadHotkeyBindings() {
@@ -656,6 +679,7 @@ void SettingsDialog::applyStyleSheet() {
 }
 
 void SettingsDialog::retranslateUi() {
+    ui->retranslateUi(this);
     ui->searchEdit->setPlaceholderText(tr("Search..."));
 
     if (ui->navList->count() >= 7) {
@@ -711,13 +735,11 @@ void SettingsDialog::retranslateUi() {
     ui->chkLogFatal->setText(tr("Fatal"));
 
     ui->logDirLabel->setText(tr("Log Directory:"));
-    ui->logDirEdit->setPlaceholderText(tr("Leave empty for default"));
     ui->btnBrowseLogDir->setText(tr("Browse..."));
 
     ui->cacheGroup->setTitle(tr("Icon Cache"));
     ui->iconCacheCheck->setText(tr("Enable icon cache"));
     ui->cacheDirLabel->setText(tr("Cache Directory:"));
-    ui->cacheDirEdit->setPlaceholderText(tr("Leave empty for default"));
     ui->btnBrowseCacheDir->setText(tr("Browse..."));
     ui->btnClearCache->setText(tr("Clear Cache"));
 
@@ -808,7 +830,7 @@ void SettingsDialog::loadSettings() {
     ui->logDirEdit->setText(cfg().getLogDirectory());
 
     ui->iconCacheCheck->setChecked(cfg().getIconCacheEnabled());
-    ui->cacheDirEdit->setText(cfg().getIconCacheDirectory());
+    ui->cacheDirEdit->setText(cfg().get("IconCacheDirectory", "").toString());
 
     // blocked windows
     ui->blockedTable->setRowCount(0);
@@ -898,8 +920,10 @@ void SettingsDialog::applySettings() {
 void SettingsDialog::changeEvent(QEvent* event) {
     if (event->type() == QEvent::LanguageChange) {
         retranslateUi();
-        buildHotkeyPage();
-        loadHotkeyBindings();
+        QMetaObject::invokeMethod(this, [this] {
+            buildHotkeyPage();
+            loadHotkeyBindings();
+        }, Qt::QueuedConnection);
     }
     QDialog::changeEvent(event);
 }
