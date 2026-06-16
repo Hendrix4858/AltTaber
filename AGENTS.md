@@ -58,7 +58,7 @@ cmake --build "build/x64" --target installer    # build → windeployqt → Inno
 | `header/lifecycle/` | Application bootstrap and platform bindings (Application, SystemTray, SingleApp, Logger, IconUtil) |
 | `src/` | Matching `.cpp` files mirroring the header structure |
 | `ui/` | Qt Designer `.ui` files |
-| `translations/` | JSON translation files (`zh_CN.json` bundled via `res.qrc`) |
+| `translations/` | Qt Linguist `.ts`/`.qm` translation files (`zh_CN.ts` → `zh_CN.qm` embedded via `qt_add_resources`) |
 | `installer/` | Inno Setup template (`setup.iss.in` — version injected from CMake via `configure_file`) and legacy build script (`build-installer.ps1`) |
 
 **Includes**: `#include "core/ConfigManager.h"` not `#include "utils/ConfigManager.h"` (use the subdirectory prefix).
@@ -110,9 +110,13 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 
 ## Translations
 
-- Custom `JsonTranslator` (subclass of `QTranslator`) reads JSON translation maps
-- `resources.qrc` embeds `translations/zh_CN.json` under `:/translations/`
-- `LanguageManager` handles `initLanguage()` and `switchLanguage(langCode)`
+- Standard Qt Linguist toolchain: `.cpp`/`.ui` → `lupdate` → `.ts` → `lrelease` → `.qm`
+- `zh_CN.ts` in `translations/` is the source translation file; `.qm` is compiled at build time and embedded via `qt_add_resources` under `:/translations/`
+- `LanguageManager` handles `initLanguage()` and `switchLanguage(langCode)` using standard `QTranslator`
+- English is the default (source strings in code); Chinese (`zh_CN`) is the only translation pack
+- Add a new language: create a new `.ts` file, add it to `qt_add_lupdate`/`qt_add_lrelease` in `CMakeLists.txt`, translate, rebuild
+- Run `lupdate` manually: `cmake --build build --target Win_Switcher_lupdate`
+- `lrelease` runs automatically on every build via CMake pre-build command
 
 ## Style & Conventions
 

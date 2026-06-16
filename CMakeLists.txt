@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.6.5
+    VERSION 0.6.6
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -64,6 +64,7 @@ find_package(Qt6 COMPONENTS
         Widgets
         Xml
         Network
+        LinguistTools
         REQUIRED)
 
 add_executable(Win_Switcher)
@@ -126,8 +127,13 @@ target_sources(Win_Switcher PRIVATE
 # ── i18n ──
 target_sources(Win_Switcher PRIVATE
     src/core/LanguageManager.cpp   header/core/LanguageManager.h
-    src/core/JsonTranslator.cpp    header/core/JsonTranslator.h
 )
+
+# Translation toolchain: .ts → .qm (embedded via qt_add_resources)
+qt_add_lupdate(Win_Switcher TS_FILES translations/zh_CN.ts)
+qt_add_lrelease(Win_Switcher TS_FILES translations/zh_CN.ts QM_FILES_OUTPUT_VARIABLE qm_files)
+set_source_files_properties(${qm_files} PROPERTIES QT_RESOURCE_ALIAS "zh_CN.qm")
+qt_add_resources(Win_Switcher "translations" PREFIX "/translations" FILES ${qm_files})
 
 # ── Lifecycle ──
 target_sources(Win_Switcher PRIVATE

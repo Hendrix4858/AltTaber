@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>img/icon.ico</file>
-        <file>translations/zh_CN.json</file>
     </qresource>
 </RCC>
