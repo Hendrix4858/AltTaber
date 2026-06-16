@@ -69,6 +69,8 @@ find_package(Qt6 COMPONENTS
 
 add_executable(Win_Switcher)
 
+add_subdirectory(tests)
+
 # ── Infrastructure ──
 target_sources(Win_Switcher PRIVATE
     src/main.cpp
