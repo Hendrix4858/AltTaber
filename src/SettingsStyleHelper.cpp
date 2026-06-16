@@ -2,10 +2,12 @@
 #include "ui_SettingsDialog.h"
 #include "core/ThemeManager.h"
 #include <QDialog>
+#include <QAbstractButton>
 
 namespace SettingsStyleHelper {
 
-void applyTheme(QDialog* dialog, Ui::SettingsDialog* ui) {
+void applyTheme(QDialog* dialog, Ui::SettingsDialog* ui,
+                const QList<QAbstractButton*>& extraButtons) {
     const auto& c = ThemeManager::current();
 
     dialog->setStyleSheet(QString("QDialog { background-color: %1; }").arg(c.bgColor.name()));
@@ -136,6 +138,11 @@ void applyTheme(QDialog* dialog, Ui::SettingsDialog* ui) {
         "QSpinBox::up-button, QSpinBox::down-button {"
         "  border: none; width: 20px; }"
     ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
+
+    for (auto* btn : extraButtons) {
+        if (btn)
+            btn->setStyleSheet(btnStyle);
+    }
 }
 
 } // namespace SettingsStyleHelper

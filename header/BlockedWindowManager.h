@@ -27,6 +27,10 @@ public:
     void setupExportButton(QPushButton* btn);
     void setupImportButton(QPushButton* btn);
 
+private slots:
+    void addFromDialog();
+    void removeSelected();
+
 private:
     void addEntry(const BlockedWindowEntry& entry);
     void editEntry(int row);

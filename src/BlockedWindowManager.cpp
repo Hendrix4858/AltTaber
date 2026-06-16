@@ -1,5 +1,6 @@
 #include "BlockedWindowManager.h"
 #include "AddBlockedDialog.h"
+#include "utils/Util.h"
 #include <QTableWidget>
 #include <QPushButton>
 #include <QFileDialog>
@@ -14,7 +15,10 @@
 BlockedWindowManager::BlockedWindowManager(ConfigManager* config, QTableWidget* table,
                                            QPushButton* btnAdd, QPushButton* btnRemove,
                                            QObject* parent)
-    : QObject(parent), m_config(config), m_table(table), m_btnAdd(btnAdd), m_btnRemove(btnRemove) {}
+    : QObject(parent), m_config(config), m_table(table), m_btnAdd(btnAdd), m_btnRemove(btnRemove) {
+    connect(m_btnAdd, &QPushButton::clicked, this, &BlockedWindowManager::addFromDialog);
+    connect(m_btnRemove, &QPushButton::clicked, this, &BlockedWindowManager::removeSelected);
+}
 
 void BlockedWindowManager::loadFromConfig() {
     m_table->setRowCount(0);
@@ -42,11 +46,34 @@ void BlockedWindowManager::editEntry(int row) {
     if (row < 0) return;
     auto entry = entryFromRow(row);
 
-    AddBlockedDialog dlg;
+    AddBlockedDialog dlg(qobject_cast<QWidget*>(parent()));
     dlg.setFields(entry);
     if (dlg.exec() == QDialog::Accepted) {
         fillRow(row, dlg.result());
     }
+}
+
+void BlockedWindowManager::addFromDialog() {
+    AddBlockedDialog dlg(qobject_cast<QWidget*>(parent()));
+    connect(&dlg, &AddBlockedDialog::fromCurrentRequested, &dlg, [&dlg]() {
+        HWND fore = GetForegroundWindow();
+        BlockedWindowEntry entry;
+        entry.title = Util::getWindowTitle(fore);
+        entry.className = Util::getClassName(fore);
+        auto path = Util::getWindowProcessPath(fore);
+        entry.processName = QFileInfo(path).fileName();
+        entry.processPath = path;
+        entry.enabled = true;
+        dlg.setFields(entry);
+    });
+    if (dlg.exec() == QDialog::Accepted)
+        addEntry(dlg.result());
+}
+
+void BlockedWindowManager::removeSelected() {
+    int row = m_table->currentRow();
+    if (row >= 0)
+        m_table->removeRow(row);
 }
 
 BlockedWindowEntry BlockedWindowManager::entryFromRow(int row) const {
