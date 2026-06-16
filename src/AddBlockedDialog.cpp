@@ -40,11 +40,7 @@ AddBlockedDialog::AddBlockedDialog(QWidget* parent)
     m_enabledCheck->setChecked(true);
     mainLayout->addWidget(m_enabledCheck);
 
-    auto* btnLayout = new QHBoxLayout;
-    m_fromCurrentBtn = new QPushButton(tr("From Current Window"));
-    btnLayout->addWidget(m_fromCurrentBtn);
-    btnLayout->addStretch();
-    mainLayout->addLayout(btnLayout);
+    mainLayout->addStretch();
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     mainLayout->addWidget(buttons);
@@ -54,14 +50,11 @@ AddBlockedDialog::AddBlockedDialog(QWidget* parent)
             m_classNameEdit->text().trimmed().isEmpty() &&
             m_processNameEdit->text().trimmed().isEmpty() &&
             m_processPathEdit->text().trimmed().isEmpty()) {
-            // Allow saving with empty fields? The rule just won't match anything.
-            // We should warn the user.
             return;
         }
         accept();
     });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    connect(m_fromCurrentBtn, &QPushButton::clicked, this, &AddBlockedDialog::fromCurrentRequested);
 }
 
 void AddBlockedDialog::setFields(const BlockedWindowEntry& entry) {

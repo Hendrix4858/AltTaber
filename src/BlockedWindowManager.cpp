@@ -24,7 +24,9 @@ void BlockedWindowManager::loadFromConfig() {
     m_table->setRowCount(0);
     auto blocked = m_config->getBlockedWindows();
     for (const auto& entry : blocked) {
-        fillRow(m_table->rowCount(), entry);
+        int row = m_table->rowCount();
+        m_table->insertRow(row);
+        fillRow(row, entry);
     }
 }
 
@@ -55,17 +57,6 @@ void BlockedWindowManager::editEntry(int row) {
 
 void BlockedWindowManager::addFromDialog() {
     AddBlockedDialog dlg(qobject_cast<QWidget*>(parent()));
-    connect(&dlg, &AddBlockedDialog::fromCurrentRequested, &dlg, [&dlg]() {
-        HWND fore = GetForegroundWindow();
-        BlockedWindowEntry entry;
-        entry.title = Util::getWindowTitle(fore);
-        entry.className = Util::getClassName(fore);
-        auto path = Util::getWindowProcessPath(fore);
-        entry.processName = QFileInfo(path).fileName();
-        entry.processPath = path;
-        entry.enabled = true;
-        dlg.setFields(entry);
-    });
     if (dlg.exec() == QDialog::Accepted)
         addEntry(dlg.result());
 }
@@ -127,6 +118,7 @@ void BlockedWindowManager::setupEditButton(QPushButton* btn) {
 
 void BlockedWindowManager::setupExportButton(QPushButton* btn) {
     connect(btn, &QPushButton::clicked, this, [this] {
+        if (m_table->rowCount() == 0) return;
         QString filePath = QFileDialog::getSaveFileName(
             nullptr, tr("Export Blocked Rules"), QString(), tr("JSON Files (*.json)"));
         if (filePath.isEmpty()) return;

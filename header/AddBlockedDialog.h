@@ -4,7 +4,6 @@
 #include <QDialog>
 #include <QLineEdit>
 #include <QCheckBox>
-#include <QPushButton>
 #include "core/ConfigManager.h"
 
 class AddBlockedDialog : public QDialog {
@@ -16,9 +15,6 @@ public:
     void setFields(const BlockedWindowEntry& entry);
     BlockedWindowEntry result() const;
 
-signals:
-    void fromCurrentRequested();
-
 private:
     QLineEdit* m_titleEdit;
     QLineEdit* m_classNameEdit;
@@ -26,7 +22,6 @@ private:
     QLineEdit* m_processPathEdit;
     QLineEdit* m_commentEdit;
     QCheckBox* m_enabledCheck;
-    QPushButton* m_fromCurrentBtn;
 };
 
 #endif //WIN_SWITCHER_ADDBLOCKEDDIALOG_H
