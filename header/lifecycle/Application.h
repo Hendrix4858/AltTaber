@@ -4,15 +4,14 @@
 #include <QAbstractNativeEventFilter>
 #include <QApplication>
 #include <QTimer>
-#include "core/HotkeyAction.h"
 
 class WindowManager;
 class Widget;
-class KeyboardHooker;
-class TaskbarWheelHooker;
 class SingleApp;
 class ComInitializer;
 class ConfigManager;
+class UpdateService;
+class HotkeyService;
 
 class SessionMonitor final : public QAbstractNativeEventFilter {
     bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) override;
@@ -26,19 +25,17 @@ public:
     int run();
 
 private:
-    void initConfig(const HotkeyBindings& bindings);
     void initControllers();
     void initUI();
-    void initHooks(const HotkeyBindings& bindings);
-    void wireSignals(const HotkeyBindings& bindings);
-    static bool tryRollback();
+    void initHotkeys();
 
     ConfigManager* m_config = nullptr;
+    UpdateService* m_updateService = nullptr;
+    HotkeyService* m_hotkeyService = nullptr;
+
     QApplication m_app;
     WindowManager* m_windowManager = nullptr;
     Widget* m_widget = nullptr;
-    KeyboardHooker* m_keyboardHooker = nullptr;
-    TaskbarWheelHooker* m_taskbarHooker = nullptr;
     SessionMonitor m_sessionMon;
     SingleApp* m_singleApp = nullptr;
     ComInitializer* m_com = nullptr;

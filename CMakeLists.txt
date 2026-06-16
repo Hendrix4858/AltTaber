@@ -142,6 +142,8 @@ qt_add_resources(Win_Switcher "translations" PREFIX "/translations" FILES ${qm_f
 # ── Lifecycle ──
 target_sources(Win_Switcher PRIVATE
     src/lifecycle/Application.cpp  header/lifecycle/Application.h
+    src/lifecycle/UpdateService.cpp header/lifecycle/UpdateService.h
+    src/lifecycle/HotkeyService.cpp header/lifecycle/HotkeyService.h
     src/lifecycle/IconUtil.cpp     header/lifecycle/IconUtil.h
     src/lifecycle/IconOnlyDelegate.cpp header/lifecycle/IconOnlyDelegate.h
     src/lifecycle/QtWin.cpp        header/lifecycle/QtWin.h

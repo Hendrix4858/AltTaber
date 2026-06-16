@@ -11,21 +11,19 @@
 #include "lifecycle/Application.h"
 #include "widget.h"
 #include "WindowManager.h"
-#include "TaskbarWindowCycler.h"
 #include "hook/winEventHook.h"
 #include "utils/Util.h"
-#include "hook/TaskbarWheelHooker.h"
-#include "hook/KeyboardHooker.h"
 #include "lifecycle/ComInitializer.h"
 #include "lifecycle/SingleApp.h"
 #include "lifecycle/SystemTray.h"
+#include "lifecycle/UpdateService.h"
+#include "lifecycle/HotkeyService.h"
 #include "core/LanguageManager.h"
 #include "lifecycle/Logger.h"
 #include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
-#include "core/UpdateMarker.h"
 
 bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) {
     if (eventType == "windows_generic_MSG") {
@@ -46,27 +44,9 @@ Application::Application(int argc, char* argv[])
     m_app.setApplicationVersion(APP_VERSION);
     Util::Logger::init();
 
-    // --- Update rollback and cleanup ---
-    {
-        auto marker = UpdateMarker::read();
-
-        if (marker == "ok" && UpdateMarker::hasBackup()) {
-            qInfo() << "[Update] Cleaning up stale backup (previous update ok)";
-            UpdateMarker::cleanupBackup();
-        }
-
-        if (marker == "pending" && UpdateMarker::hasBackup()) {
-            int attempts = UpdateMarker::readRollbackCount();
-            UpdateMarker::writeRollbackCount(attempts + 1);
-            if (attempts >= 1) {
-                qWarning() << "[Update] Prior init attempt detected, initiating rollback";
-                if (tryRollback())
-                    return;
-            } else {
-                qInfo() << "[Update] First attempt after update, proceeding normally";
-            }
-        }
-    }
+    m_updateService = new UpdateService;
+    if (m_updateService->handleUpdateRollback())
+        return;
 
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");
     if (m_singleApp->isRunning()) {
@@ -94,23 +74,20 @@ Application::Application(int argc, char* argv[])
     auto bindings = m_config->effectiveHotkeyBindings();
     qInfo() << "[Main] Loaded" << bindings.size() << "hotkey actions";
 
-    initConfig(bindings);
     initControllers();
     initUI();
-    initHooks(bindings);
-    wireSignals(bindings);
+    initHotkeys();
+
+    QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
+        m_hotkeyService->reloadFromConfig();
+    });
 
     if (m_widget) {
         qInfo() << "[Main] Scheduling warmupCache via singleShot(0)";
         QTimer::singleShot(0, m_widget, &Widget::warmupCache);
     }
 
-    UpdateMarker::removeMarker();
-    UpdateMarker::resetRollbackCount();
-    if (UpdateMarker::hasBackup())
-        UpdateMarker::cleanupBackup();
-    qInfo() << "[Main] Update marker cleaned up, init complete";
-
+    m_updateService->cleanupUpdateMarkers();
     qInfo() << "[Main] Entering event loop";
 }
 
@@ -119,10 +96,7 @@ Application::~Application() {
     Util::Logger::shutdown();
     delete m_singleApp;
     delete m_com;
-}
-
-void Application::initConfig(const HotkeyBindings& bindings) {
-    Q_UNUSED(bindings);
+    delete m_updateService;
 }
 
 void Application::initControllers() {
@@ -154,120 +128,12 @@ void Application::initUI() {
     });
 }
 
-void Application::initHooks(const HotkeyBindings& bindings) {
-    m_keyboardHooker = new KeyboardHooker((HWND) m_widget->winId());
-    m_keyboardHooker->updateBindings(bindings);
-    m_keyboardHooker->setPaused(m_config->getPaused());
-    m_widget->updateOverlayBindings(bindings);
+void Application::initHotkeys() {
+    auto bindings = m_config->effectiveHotkeyBindings();
 
-    m_taskbarHooker = new TaskbarWheelHooker;
-    m_taskbarHooker->setPaused(m_config->getPaused());
-
-    qInfo() << "[Main] Installing WinEvent hook for EVENT_SYSTEM_FOREGROUND";
-    setWinEventHook([this](DWORD event, HWND hwnd) {
-        if (event == EVENT_SYSTEM_FOREGROUND) {
-            m_widget->notifyForegroundChanged(hwnd);
-
-            auto oState = m_widget->overlayController()->overlayState();
-            if (oState != OverlayController::OverlayState::Hidden
-                && hwnd != (HWND)m_widget->winId()
-                && !Util::isKeyPressed(VK_MENU)
-                && oState != OverlayController::OverlayState::Visible) {
-                qInfo() << "[WinEvent] hiding overlay (fg changed while not Visible)";
-                m_widget->hideOverlay();
-            }
-
-            auto className = Util::getClassName(hwnd);
-            if (hwnd == GetForegroundWindow() && Util::isKeyPressed(VK_MENU) &&
-                (className == "ForegroundStaging") &&
-                m_widget->overlayController()->overlayState()
-                    != OverlayController::OverlayState::Visible) {
-                qInfo() << "[WinEvent] Task switcher detected (fallback)" << className;
-                m_widget->requestShow(OverlayIntent::FallbackShow);
-            }
-        }
-    });
-}
-
-void Application::wireSignals(const HotkeyBindings& bindings) {
-    Q_UNUSED(bindings);
-
-    QObject::connect(m_keyboardHooker, &KeyboardHooker::hotkeyTriggered,
-                     m_widget, &Widget::handleGlobalAction, Qt::QueuedConnection);
-
-    QObject::connect(m_keyboardHooker, &KeyboardHooker::overlayKeyTriggered,
-                     m_widget, &Widget::handleHookOverlayAction, Qt::QueuedConnection);
-
-    QObject::connect(m_keyboardHooker, &KeyboardHooker::activationModifiersReleased,
-                     m_widget, &Widget::onActivationModifiersReleased, Qt::QueuedConnection);
-
-    QObject::connect(m_widget, &Widget::overlayDismissed,
-                     m_keyboardHooker, &KeyboardHooker::resetActivationModifiers);
-
-    QObject::connect(m_widget, &Widget::overlayShown,
-                     m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
-
-    // Re-inject bindings when config is saved
-    QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
-        qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
-        auto b = m_config->effectiveHotkeyBindings();
-        qInfo() << "[Config] binding count:" << b.size() << "paused:" << m_config->getPaused();
-        m_keyboardHooker->updateBindings(b);
-        m_keyboardHooker->setPaused(m_config->getPaused());
-        m_taskbarHooker->setPaused(m_config->getPaused());
-        m_widget->updateOverlayBindings(b);
-        m_keyboardHooker->resetActivationModifiers();
-    });
-
-    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
-                     m_widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
-
-    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::leaveTaskbar,
-                     m_widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
-
-    qInfo() << "[Main] Hotkey system initialized";
-}
-
-bool Application::tryRollback() {
-    auto backupDir = UpdateMarker::latestBackupDir();
-    if (backupDir.isEmpty()) {
-        qWarning() << "[Rollback] No backup directory found";
-        return false;
-    }
-
-    auto appDir = QCoreApplication::applicationDirPath();
-    auto markerPath = UpdateMarker::markerPath();
-    auto batPath = QDir::temp().absoluteFilePath("AltTaber_rollback.bat");
-
-    QFile bat(batPath);
-    if (!bat.open(QIODevice::WriteOnly | QIODevice::Text))
-        return false;
-
-    QString content = QString(
-        "@echo off\r\n"
-        "timeout /t 3 /nobreak >nul\r\n"
-        "xcopy \"%1\\*.*\" \"%2\\\" /E /Y /I >nul 2>&1\r\n"
-        "if exist \"%3\" del \"%3\" >nul 2>&1\r\n"
-        "rmdir /S /Q \"%1\" >nul 2>&1\r\n"
-        "start \"\" \"%2\\AltTaber.exe\"\r\n"
-        "del \"%~f0\"\r\n"
-    ).arg(QDir::toNativeSeparators(backupDir),
-          QDir::toNativeSeparators(appDir),
-          QDir::toNativeSeparators(markerPath));
-
-    bat.write(content.toUtf8());
-    bat.close();
-
-    qWarning() << "[Rollback] Starting rollback from"
-               << backupDir << "to" << appDir;
-
-    if (!QProcess::startDetached(batPath)) {
-        qWarning() << "[Rollback] Failed to start rollback script";
-        return false;
-    }
-
-    QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
-    return true;
+    m_hotkeyService = new HotkeyService(m_config, &m_app);
+    m_hotkeyService->init(m_widget, bindings);
+    m_hotkeyService->wireSignals(m_widget);
 }
 
 int Application::run() {
