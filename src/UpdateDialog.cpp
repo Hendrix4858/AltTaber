@@ -153,35 +153,50 @@ void UpdateDialog::fetchGithubReleaseInfo() {
     });
 }
 
+QJsonObject UpdateDialog::selectInstallerAsset(const QJsonArray& assets) const {
+#ifndef APP_ARCH
+#  error "APP_ARCH not defined — update CMakeLists.txt"
+#endif
+    QString archSuffix = QStringLiteral(APP_ARCH);
+    QString archTag = QStringLiteral("-%1-Setup.exe").arg(archSuffix);
+
+    // 1) 精确匹配: 文件名以 -{arch}-Setup.exe 结尾
+    for (const auto& a : assets) {
+        auto o = a.toObject();
+        if (o["name"].toString().endsWith(archTag, Qt::CaseInsensitive))
+            return o;
+    }
+
+    // 2) 容错: 任意 Setup.exe
+    for (const auto& a : assets) {
+        auto o = a.toObject();
+        if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive))
+            return o;
+    }
+
+    // 3) 容错: 任意 .exe
+    for (const auto& a : assets) {
+        auto o = a.toObject();
+        if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive))
+            return o;
+    }
+
+    // 4) 最后手段: 第一个资产
+    if (!assets.isEmpty())
+        return assets.first().toObject();
+
+    return {};
+}
+
 void UpdateDialog::applyRelease(const QJsonObject& obj) {
     relInfo.ver = normalizeVersion(obj["tag_name"].toString());
     relInfo.description = obj["body"].toString();
     relInfo.publishTime = toLocalTime(obj["published_at"].toString());
 
-    const auto assets = obj["assets"].toArray();
-    bool foundInstaller = false;
-    QJsonObject selectedAsset;
-    for (const auto& a : assets) {
-        const auto o = a.toObject();
-        if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive)) {
-            selectedAsset = o;
-            foundInstaller = true;
-            break;
-        }
-    }
-    if (!foundInstaller) {
-        for (const auto& a : assets) {
-            const auto o = a.toObject();
-            if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive)) {
-                selectedAsset = o;
-                break;
-            }
-        }
-    }
-    if (selectedAsset.isEmpty() && !assets.isEmpty())
-        selectedAsset = assets.first().toObject();
-    relInfo.downloadUrl = selectedAsset["browser_download_url"].toString();
+    auto asset = selectInstallerAsset(obj["assets"].toArray());
+    relInfo.downloadUrl = asset["browser_download_url"].toString();
 
+    qInfo() << "[Update] Selected asset:" << asset["name"].toString();
     qInfo() << "Update info applied" << relInfo.ver << relInfo.downloadUrl;
     ui->progressBar->hide();
 

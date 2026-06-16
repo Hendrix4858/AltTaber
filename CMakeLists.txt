@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.6.6
+    VERSION 0.6.7
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -201,6 +201,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         UNICODE # for Windows API，使用W版本
         _UNICODE # for C/C++ 标准库
         APP_VERSION="${PROJECT_VERSION}"
+        APP_ARCH="${ARCH_SUFFIX}"   # "arm64" or "win64"
 )
 
 if (MSVC)
