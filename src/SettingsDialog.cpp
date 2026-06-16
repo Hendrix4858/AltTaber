@@ -183,9 +183,10 @@ void SettingsDialog::loadSettings() {
 
     ui->minIconSizeSpin->setValue(m_config->getMinIconSize());
     ui->letterJumpCheck->setChecked(m_config->getLetterJumpEnabled());
-    ui->mouseClickActivateCheck->setChecked(m_config->getMouseClickActivateEnabled());
-    ui->clickShowGroupCheck->setChecked(ui->mouseClickActivateCheck->isChecked());
-    ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
+    bool mouseClickEnabled = m_config->getMouseClickActivateEnabled();
+    ui->mouseClickActivateCheck->setChecked(mouseClickEnabled);
+    ui->clickShowGroupCheck->setChecked(mouseClickEnabled && m_config->getClickShowGroupForMultiWindow());
+    ui->clickShowGroupCheck->setEnabled(mouseClickEnabled);
 
     {
         auto flags = m_config->getLogFlags();
