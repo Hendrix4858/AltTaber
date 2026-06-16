@@ -6,9 +6,9 @@ Qt 6 C++20 Windows Alt+Tab switcher. Single executable, no tests, no CI.
 
 ```bash
 # Debug (single arch, host toolchain)
-cmake --preset "release-x64" # or omit --preset, use -B build
-cmake --build build
-./build/Debug/AltTaber.exe
+cmake --preset "release-x64" # or omit --preset, use -B build/ai
+cmake --build build/ai
+./build/ai/Debug/AltTaber.exe
 ```
 
 - **Requires**: CMake ≥3.29, MSVC 2022, Qt 6 (Core, Gui, Widgets, Xml, Network)
@@ -28,14 +28,14 @@ Or manually per arch:
 
 ```bash
 cmake --preset "release-x64"                    # configure
-cmake --build "build/x64" --target zip          # build → windeployqt → portable zip
-cmake --build "build/x64" --target installer    # build → windeployqt → Inno Setup
+cmake --build "build/ai/x64" --target zip          # build → windeployqt → portable zip
+cmake --build "build/ai/x64" --target installer    # build → windeployqt → Inno Setup
 ```
 
 | Target | Output |
 |--------|--------|
-| `zip` | `build/output/AltTaber-{version}-{arch}.zip` (portable) |
-| `installer` | `build/output/AltTaber-{version}-{arch}-Setup.exe` |
+| `zip` | `build/ai/output/AltTaber-{version}-{arch}.zip` (portable) |
+| `installer` | `build/ai/output/AltTaber-{version}-{arch}-Setup.exe` |
 | `deploy` | Runs `windeployqt` (invoked automatically by zip/installer) |
 
 ### Presets
@@ -45,7 +45,7 @@ cmake --build "build/x64" --target installer    # build → windeployqt → Inno
 | `release-x64` | x86-64 | `QT_DIR_X64` |
 | `release-arm64` | ARM64 | `QT_DIR_ARM64` |
 
-- **IDE hint**: `Desktop_Qt_6_8_2_MSVC2022_64bit-Debug`, build dir `build/Desktop_...`
+- **IDE hint**: `Desktop_Qt_6_8_2_MSVC2022_64bit-Debug`, build dir `build/ai/Desktop_...`
 
 ## Source Layout
 
@@ -115,7 +115,7 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 - `LanguageManager` handles `initLanguage()` and `switchLanguage(langCode)` using standard `QTranslator`
 - English is the default (source strings in code); Chinese (`zh_CN`) is the only translation pack
 - Add a new language: create a new `.ts` file, add it to `qt_add_lupdate`/`qt_add_lrelease` in `CMakeLists.txt`, translate, rebuild
-- Run `lupdate` manually: `cmake --build build --target Win_Switcher_lupdate`
+- Run `lupdate` manually: `cmake --build build/ai --target Win_Switcher_lupdate`
 - `lrelease` runs automatically on every build via CMake pre-build command
 
 ## Style & Conventions
