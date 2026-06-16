@@ -6,17 +6,16 @@
 #include <QMap>
 #include <QLabel>
 #include <QPushButton>
-#include "core/HotkeyAction.h"
 
 class ConfigManager;
+class HotkeyPageManager;
+class BlockedWindowManager;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class SettingsDialog;
 }
 QT_END_NAMESPACE
-
-class HotkeyRecorder;
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
@@ -34,27 +33,16 @@ private:
     void filterPages(const QString& text);
     void loadSettings();
     void applySettings();
-    void applyStyleSheet();
-
-    void buildHotkeyPage();
-    void loadHotkeyBindings();
-    void applyHotkeyBindings();
-    bool checkConflict(HotkeyAction action, const HotkeyBinding& binding,
-                       HotkeyAction& conflictAction, int& conflictIndex) const;
-    void checkLetterJumpConflict();
 
     ConfigManager* m_config;
     Ui::SettingsDialog* ui;
+    HotkeyPageManager* m_hotkeyMgr;
+    BlockedWindowManager* m_blockedMgr;
     bool m_loadingSettings = false;
-    bool m_resolvingConflict = false;
 
-    QMap<HotkeyAction, HotkeyRecorder*> m_recorders;
-
-    // Programmatically created buttons for Blocked Windows page
     QPushButton* m_btnEditBlocked = nullptr;
     QPushButton* m_btnExportBlocked = nullptr;
     QPushButton* m_btnImportBlocked = nullptr;
-    QLabel* m_showSwitcherWarning = nullptr; // checks SwitchToNextWindow bindings
 };
 
 #endif

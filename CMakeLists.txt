@@ -106,6 +106,7 @@ target_sources(Win_Switcher PRIVATE
 
 # ── Config / Hotkey ──
 target_sources(Win_Switcher PRIVATE
+                                   header/core/IConfigStore.h
     src/core/ConfigManagerBase.cpp header/core/ConfigManagerBase.h
                                    header/core/ConfigManager.h
     src/core/HotkeyAction.cpp      header/core/HotkeyAction.h
@@ -118,6 +119,9 @@ target_sources(Win_Switcher PRIVATE
 # ── Dialogs ──
 target_sources(Win_Switcher PRIVATE
     src/SettingsDialog.cpp         header/SettingsDialog.h
+    src/SettingsStyleHelper.cpp    header/SettingsStyleHelper.h
+    src/HotkeyPageManager.cpp      header/HotkeyPageManager.h
+    src/BlockedWindowManager.cpp   header/BlockedWindowManager.h
     src/AddBlockedDialog.cpp       header/AddBlockedDialog.h
                                    ui/SettingsDialog.ui
     src/UpdateDialog.cpp           header/UpdateDialog.h

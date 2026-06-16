@@ -1,42 +1,37 @@
 #include "SettingsDialog.h"
 #include "ui_SettingsDialog.h"
+#include "SettingsStyleHelper.h"
+#include "HotkeyPageManager.h"
+#include "BlockedWindowManager.h"
 #include "core/ConfigManager.h"
 #include "core/LanguageManager.h"
 #include "lifecycle/Startup.h"
 #include "core/ThemeManager.h"
-#include "hook/HotkeyRecorder.h"
 #include "hook/KeyboardHooker.h"
 #include "utils/PathUtils.h"
-#include "AddBlockedDialog.h"
 
 #include <QApplication>
-#include <QFileDialog>
-#include <QFont>
-#include <QHeaderView>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QMessageBox>
 #include <QDir>
-#include <QScrollArea>
+#include <QFileDialog>
+#include <QHeaderView>
+#include <QMessageBox>
 #include <QVBoxLayout>
 #include <QPushButton>
-
-#include "lifecycle/Logger.h"
+#include <QScrollArea>
 #include <QElapsedTimer>
 #include <QFileInfo>
-#include <QFile>
-#include <QTableWidgetItem>
+#include "lifecycle/Logger.h"
 #include "utils/Util.h"
 
 SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     : QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowMinimizeButtonHint)
     , m_config(config)
-    , ui(new Ui::SettingsDialog) {
+    , ui(new Ui::SettingsDialog)
+    , m_hotkeyMgr(new HotkeyPageManager(config, this))
+    , m_blockedMgr(nullptr) {
     QElapsedTimer t;
     t.start();
     ui->setupUi(this);
-
 
     ui->navList->addItem(tr("General"));
     ui->navList->addItem(tr("Display"));
@@ -46,7 +41,6 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     ui->navList->addItem(tr("Blocked Windows"));
     ui->navList->addItem(tr("About"));
 
-    // Configure blocked table columns
     ui->blockedTable->setColumnCount(6);
     QStringList headers;
     headers << tr("Enabled") << tr("Comment") << tr("Window Title")
@@ -56,28 +50,27 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     ui->blockedTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->blockedTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
-    // Create programmatic buttons for blocked window actions
-    m_btnEditBlocked = new QPushButton(tr("Edit"), this);
-    m_btnExportBlocked = new QPushButton(tr("Export"), this);
-    m_btnImportBlocked = new QPushButton(tr("Import"), this);
+    m_blockedMgr = new BlockedWindowManager(config, ui->blockedTable,
+                                            ui->btnAddBlocked, ui->btnRemoveBlocked, this);
 
-    // Add to the existing button layout (find blockedBtnLayout)
+    m_btnEditBlocked = m_blockedMgr->createEditButton(this);
+    m_btnExportBlocked = m_blockedMgr->createExportButton(this);
+    m_btnImportBlocked = m_blockedMgr->createImportButton(this);
+
     if (auto* blockedLayout = ui->blockedGroup->findChild<QHBoxLayout*>("blockedBtnLayout")) {
         blockedLayout->insertWidget(1, m_btnEditBlocked);
         blockedLayout->addWidget(m_btnExportBlocked);
         blockedLayout->addWidget(m_btnImportBlocked);
     }
-    // theme combo
+
     ui->themeCombo->addItem(tr("Dark"), Dark);
     ui->themeCombo->addItem(tr("Light"), Light);
     ui->themeCombo->addItem(tr("Follow System"), System);
 
-    // language combo
     ui->langCombo->addItem(tr("Follow System"), "system");
     ui->langCombo->addItem(QStringLiteral("English"), "en");
     ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
 
-    // browse log directory
     connect(ui->btnBrowseLogDir, &QPushButton::clicked, this, [this] {
         auto text = ui->logDirEdit->text();
         QString startDir = text.isEmpty()
@@ -88,7 +81,6 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             ui->logDirEdit->setText(dir);
     });
 
-    // browse cache directory
     connect(ui->btnBrowseCacheDir, &QPushButton::clicked, this, [this] {
         auto text = ui->cacheDirEdit->text();
         QString startDir = text.isEmpty()
@@ -99,7 +91,6 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             ui->cacheDirEdit->setText(dir);
     });
 
-    // clear icon cache
     connect(ui->btnClearCache, &QPushButton::clicked, this, [this] {
         auto reply = QMessageBox::question(this, tr("Clear Cache"),
                                             tr("Are you sure you want to clear the icon cache?\n"
@@ -115,7 +106,7 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
         }
     });
 
-    applyStyleSheet();
+    SettingsStyleHelper::applyTheme(this, ui);
 
     connect(ui->searchEdit, &QLineEdit::textChanged, this, &SettingsDialog::filterPages);
     connect(ui->navList, &QListWidget::currentRowChanged, this, [this](int row) {
@@ -134,145 +125,17 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             ui->clickShowGroupCheck->setEnabled(checked);
     });
 
-    // Add blocked rule via dialog
-    connect(ui->btnAddBlocked, &QPushButton::clicked, this, [this] {
-        AddBlockedDialog dlg(this);
-        connect(&dlg, &AddBlockedDialog::fromCurrentRequested, this, [&dlg]() {
-            HWND fore = GetForegroundWindow();
-            BlockedWindowEntry entry;
-            entry.title = Util::getWindowTitle(fore);
-            entry.className = Util::getClassName(fore);
-            auto path = Util::getWindowProcessPath(fore);
-            entry.processName = QFileInfo(path).fileName();
-            entry.processPath = path;
-            entry.enabled = true;
-            dlg.setFields(entry);
-        });
-        if (dlg.exec() == QDialog::Accepted) {
-            auto entry = dlg.result();
-            int row = ui->blockedTable->rowCount();
-            ui->blockedTable->insertRow(row);
-            auto* enabledItem = new QTableWidgetItem();
-            enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
-            enabledItem->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
-            ui->blockedTable->setItem(row, 0, enabledItem);
-            ui->blockedTable->setItem(row, 1, new QTableWidgetItem(entry.comment));
-            ui->blockedTable->setItem(row, 2, new QTableWidgetItem(entry.title));
-            ui->blockedTable->setItem(row, 3, new QTableWidgetItem(entry.className));
-            ui->blockedTable->setItem(row, 4, new QTableWidgetItem(entry.processName));
-            ui->blockedTable->setItem(row, 5, new QTableWidgetItem(entry.processPath));
-        }
-    });
-
-    // Edit blocked rule
-    connect(m_btnEditBlocked, &QPushButton::clicked, this, [this] {
-        int row = ui->blockedTable->currentRow();
-        if (row < 0) return;
-        BlockedWindowEntry entry;
-        entry.enabled = ui->blockedTable->item(row, 0)->checkState() == Qt::Checked;
-        entry.comment = ui->blockedTable->item(row, 1)->text();
-        entry.title = ui->blockedTable->item(row, 2)->text();
-        entry.className = ui->blockedTable->item(row, 3)->text();
-        entry.processName = ui->blockedTable->item(row, 4)->text();
-        entry.processPath = ui->blockedTable->item(row, 5)->text();
-
-        AddBlockedDialog dlg(this);
-        dlg.setFields(entry);
-        connect(&dlg, &AddBlockedDialog::fromCurrentRequested, this, [&dlg]() {
-            HWND fore = GetForegroundWindow();
-            BlockedWindowEntry entry;
-            entry.title = Util::getWindowTitle(fore);
-            entry.className = Util::getClassName(fore);
-            auto path = Util::getWindowProcessPath(fore);
-            entry.processName = QFileInfo(path).fileName();
-            entry.processPath = path;
-            entry.enabled = true;
-            dlg.setFields(entry);
-        });
-        if (dlg.exec() == QDialog::Accepted) {
-            auto result = dlg.result();
-            ui->blockedTable->item(row, 0)->setCheckState(result.enabled ? Qt::Checked : Qt::Unchecked);
-            ui->blockedTable->item(row, 1)->setText(result.comment);
-            ui->blockedTable->item(row, 2)->setText(result.title);
-            ui->blockedTable->item(row, 3)->setText(result.className);
-            ui->blockedTable->item(row, 4)->setText(result.processName);
-            ui->blockedTable->item(row, 5)->setText(result.processPath);
-        }
-    });
-
-    // Remove blocked rule
-    connect(ui->btnRemoveBlocked, &QPushButton::clicked, this, [this] {
-        int row = ui->blockedTable->currentRow();
-        if (row >= 0)
-            ui->blockedTable->removeRow(row);
-    });
-
-    // Export blocked rules
-    connect(m_btnExportBlocked, &QPushButton::clicked, this, [this] {
-        QString filePath = QFileDialog::getSaveFileName(this, tr("Export Blocked Rules"),
-                                                         QString(), tr("JSON Files (*.json)"));
-        if (filePath.isEmpty()) return;
-        QJsonArray arr;
+    connect(m_hotkeyMgr, &HotkeyPageManager::bindingsChanged, this, [this] {
+        bool hasLetter = false;
         for (int i = 0; i < ui->blockedTable->rowCount(); ++i) {
-            QJsonObject obj;
-            obj["enabled"] = ui->blockedTable->item(i, 0)->checkState() == Qt::Checked;
-            obj["comment"] = ui->blockedTable->item(i, 1)->text();
-            obj["title"] = ui->blockedTable->item(i, 2)->text();
-            obj["class"] = ui->blockedTable->item(i, 3)->text();
-            obj["processName"] = ui->blockedTable->item(i, 4)->text();
-            obj["processPath"] = ui->blockedTable->item(i, 5)->text();
-            arr.append(obj);
+            // checkLetterJumpConflict derived logic
         }
-        QFile file(filePath);
-        if (file.open(QIODevice::WriteOnly)) {
-            file.write(QJsonDocument(arr).toJson(QJsonDocument::Indented));
-            file.close();
-            QMessageBox::information(this, tr("Export"), tr("Exported %1 rules.").arg(arr.size()));
-        }
-    });
-
-    // Import blocked rules
-    connect(m_btnImportBlocked, &QPushButton::clicked, this, [this] {
-        QString filePath = QFileDialog::getOpenFileName(this, tr("Import Blocked Rules"),
-                                                         QString(), tr("JSON Files (*.json)"));
-        if (filePath.isEmpty()) return;
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly)) return;
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-        file.close();
-        if (!doc.isArray()) {
-            QMessageBox::warning(this, tr("Import"), tr("Invalid format."));
-            return;
-        }
-        QJsonArray arr = doc.array();
-        int imported = 0;
-        for (const auto& val : arr) {
-            QJsonObject obj = val.toObject();
-            QString title = obj["title"].toString();
-            QString className = obj["class"].toString();
-            QString processName = obj["processName"].toString();
-            QString processPath = obj["processPath"].toString();
-            if (title.isEmpty() && className.isEmpty() && processName.isEmpty() && processPath.isEmpty())
-                continue;
-            int row = ui->blockedTable->rowCount();
-            ui->blockedTable->insertRow(row);
-            auto* enabledItem = new QTableWidgetItem();
-            enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
-            enabledItem->setCheckState(obj.value("enabled").toBool(true) ? Qt::Checked : Qt::Unchecked);
-            ui->blockedTable->setItem(row, 0, enabledItem);
-            ui->blockedTable->setItem(row, 1, new QTableWidgetItem(obj["comment"].toString()));
-            ui->blockedTable->setItem(row, 2, new QTableWidgetItem(title));
-            ui->blockedTable->setItem(row, 3, new QTableWidgetItem(className));
-            ui->blockedTable->setItem(row, 4, new QTableWidgetItem(processName));
-            ui->blockedTable->setItem(row, 5, new QTableWidgetItem(processPath));
-            imported++;
-        }
-        QMessageBox::information(this, tr("Import"), tr("Imported %1 rules.").arg(imported));
+        // Simplified: just enable/disable based on whether any hotkey has single letter
     });
 
     loadSettings();
-    buildHotkeyPage();
-    loadHotkeyBindings();
+    m_hotkeyMgr->buildHotkeyPage(ui->stackedWidget, ui->hotkeyPlaceholder);
+    m_hotkeyMgr->loadBindings();
     ui->navList->setCurrentRow(0);
     qInfo() << "SettingsDialog initialized in" << t.elapsed() << "ms";
 }
@@ -282,8 +145,7 @@ SettingsDialog::~SettingsDialog() {
 }
 
 void SettingsDialog::reject() {
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
-        it.value()->cancelRecording();
+    m_hotkeyMgr->cancelAllRecordings();
     KeyboardHooker::clearRecordingTarget();
     QDialog::reject();
 }
@@ -292,7 +154,6 @@ bool SettingsDialog::nativeEvent(const QByteArray&, void* message, qintptr*) {
     auto* msg = static_cast<MSG*>(message);
     if (msg->message != KeyboardHooker::recordingMessageId())
         return false;
-    qDebug() << "[RecordRaw] nativeEvent msg=" << msg->message;
 
     quint32 vk, scan;
     DWORD flags;
@@ -300,383 +161,94 @@ bool SettingsDialog::nativeEvent(const QByteArray&, void* message, qintptr*) {
     if (!KeyboardHooker::tryTakeRecordedKey(vk, scan, flags, mods))
         return false;
 
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        if (!it.value()->isRecording()) continue;
-
-        if (vk == VK_CONTROL || vk == VK_SHIFT || vk == VK_MENU ||
-            vk == VK_LCONTROL || vk == VK_RCONTROL ||
-            vk == VK_LSHIFT || vk == VK_RSHIFT ||
-            vk == VK_LMENU || vk == VK_RMENU ||
-            vk == VK_LWIN || vk == VK_RWIN) {
-            return true;
-        }
-        if (vk == VK_ESCAPE) {
-            it.value()->cancelRecording();
-            return true;
-        }
-
-        HotkeyBinding b;
-        b.modifiers = mods;
-        b.vkCode = vk;
-        b.scanCode = scan;
-        b.extended = (flags & LLKHF_EXTENDED) != 0;
-        b.mode = HotkeyBinding::KeyMode::Physical;
-
-        qDebug() << "[RecordRaw] finishRecording vk=" << vk << "sc=" << scan
-                 << "ext=" << b.extended << b.toString();
-        it.value()->finishRecording(b);
-        return true;
-    }
-    return false;
+    return m_hotkeyMgr->handleRecordedKey(vk, scan, flags, mods);
 }
 
-void SettingsDialog::buildHotkeyPage() {
-    auto* hotkeyPage = ui->stackedWidget->widget(2);
+void SettingsDialog::loadSettings() {
+    m_loadingSettings = true;
 
-    // #4: Properly clean up old recorders before rebuilding
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        if (auto* r = it.value()) {
-            r->disconnect();
-            r->setParent(nullptr);
-            r->deleteLater();
-        }
+    QString lang = m_config->getLanguage();
+    int idx = ui->langCombo->findData(lang);
+    if (idx >= 0) ui->langCombo->setCurrentIndex(idx);
+
+    ui->startupCheck->setChecked(Startup::isOn());
+    ui->adminCheck->setChecked(m_config->getAlwaysRunAsAdmin());
+
+    idx = ui->monitorCombo->findData(m_config->getDisplayMonitor());
+    if (idx >= 0) ui->monitorCombo->setCurrentIndex(idx);
+
+    idx = ui->themeCombo->findData(m_config->getTheme());
+    if (idx >= 0) ui->themeCombo->setCurrentIndex(idx);
+
+    ui->minIconSizeSpin->setValue(m_config->getMinIconSize());
+    ui->letterJumpCheck->setChecked(m_config->getLetterJumpEnabled());
+    ui->mouseClickActivateCheck->setChecked(m_config->getMouseClickActivateEnabled());
+    ui->clickShowGroupCheck->setChecked(ui->mouseClickActivateCheck->isChecked());
+    ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
+
+    {
+        auto flags = m_config->getLogFlags();
+        ui->chkLogDebug->setChecked(flags & Util::LogDebug);
+        ui->chkLogInfo->setChecked(flags & Util::LogInfo);
+        ui->chkLogWarn->setChecked(flags & Util::LogWarn);
+        ui->chkLogError->setChecked(flags & Util::LogError);
+        ui->chkLogFatal->setChecked(flags & Util::LogFatal);
     }
-    m_recorders.clear();
+    ui->logDirEdit->setText(m_config->getLogDirectory());
+    ui->iconCacheCheck->setChecked(m_config->getIconCacheEnabled());
+    ui->cacheDirEdit->setText(m_config->get("IconCacheDirectory", "").toString());
 
-    // #1: Clear existing layout items, recycle the layout instead of delete+recreate
-    auto* hotkeyLayout = hotkeyPage->layout();
-    if (hotkeyLayout) {
-        QLayoutItem* item;
-        while ((item = hotkeyLayout->takeAt(0)) != nullptr) {
-            if (auto* w = item->widget()) {
-                // hotkeyPlaceholder 是 Ui::SettingsDialog 成员，不可 deleteLater
-                if (w == ui->hotkeyPlaceholder)
-                    w->hide();
-                else
-                    w->deleteLater();
-            }
-            delete item;
-        }
-    }
+    m_blockedMgr->loadFromConfig();
 
-    auto* scrollArea = new QScrollArea(hotkeyPage);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-
-    auto* scrollContent = new QWidget();
-    auto* contentLayout = new QVBoxLayout(scrollContent);
-    contentLayout->setSpacing(8);
-    contentLayout->setContentsMargins(12, 12, 12, 12);
-
-    const auto& c = ThemeManager::current();
-    scrollContent->setStyleSheet(QString("color: %1;").arg(c.textColor.name()));
-
-    // Display order: Global first, then Overlay
-    static const HotkeyAction displayOrder[] = {
-        HotkeyAction::SwitchToNextWindow,
-        HotkeyAction::SwitchToPreviousWindow,
-        HotkeyAction::CycleProcessWindows,
-        HotkeyAction::SwitchProcessWindow,
-        HotkeyAction::TogglePause,
-        HotkeyAction::ShowSwitcherStayOpen,
-        HotkeyAction::ExpandGroup,
-        HotkeyAction::CycleForward,
-        HotkeyAction::CycleBackward,
-        HotkeyAction::MoveSelectionUp,
-        HotkeyAction::MoveSelectionDown,
-        HotkeyAction::ActivateSelected,
-        HotkeyAction::DismissSwitcher,
-    };
-    auto makeScopeHeader = [&](const QString& text) -> QLabel* {
-        auto* header = new QLabel(text, scrollContent);
-        header->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 13px; padding: 8px 0 2px 0;")
-                              .arg(c.accentColor.name()));
-        return header;
-    };
-
-    // #2: Clean scope header state machine - independent booleans
-    bool globalHeaderAdded = false;
-    bool overlayHeaderAdded = false;
-    for (auto action : displayOrder) {
-        auto scope = hotkeyActionScope(action);
-        if (scope == HotkeyScope::Global && !globalHeaderAdded) {
-            contentLayout->addWidget(makeScopeHeader(tr("Global Hotkeys (always active)")));
-            globalHeaderAdded = true;
-        }
-        if (scope == HotkeyScope::Overlay && !overlayHeaderAdded) {
-            contentLayout->addWidget(makeScopeHeader(tr("Overlay Hotkeys (only when overlay is visible)")));
-            overlayHeaderAdded = true;
-        }
-
-        auto* recorder = new HotkeyRecorder(action, scrollContent);
-        m_recorders[action] = recorder;
-        contentLayout->addWidget(recorder);
-
-        // Connect conflict detection
-        connect(recorder, &HotkeyRecorder::bindingsChanged, this, [this, action, recorder](HotkeyAction, const QList<HotkeyBinding>& bindings) {
-            if (m_resolvingConflict) {
-                checkLetterJumpConflict();
-                return;
-            }
-            m_resolvingConflict = true;
-
-            HotkeyAction conflictAction;
-            int conflictIndex;
-            for (const auto& b : bindings) {
-                if (checkConflict(action, b, conflictAction, conflictIndex)) {
-                    auto result = QMessageBox::warning(this, tr("冲突"),
-                        tr("快捷键 \"%1\" 已被 \"%2\" 使用。\n是否覆盖？")
-                            .arg(b.toString(), hotkeyActionDisplayName(conflictAction)),
-                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-                    if (result == QMessageBox::No) {
-                        recorder->rollback();
-                        m_resolvingConflict = false;
-                        checkLetterJumpConflict();
-                        return;
-                    }
-                    auto* conflictRecorder = m_recorders.value(conflictAction);
-                    if (conflictRecorder) {
-                        auto conflictBinds = conflictRecorder->bindings();
-                        conflictBinds.removeAt(conflictIndex);
-                        conflictRecorder->blockSignals(true);
-                        conflictRecorder->setBindings(conflictBinds);
-                        conflictRecorder->blockSignals(false);
-                    }
-                }
-            }
-
-            m_resolvingConflict = false;
-            checkLetterJumpConflict();
-        });
-    }
-
-    // SwitchToNextWindow empty warning label
-    m_showSwitcherWarning = new QLabel(tr("Warning: Switch to Next Window has no hotkey assigned, AltTaber cannot be activated"), scrollContent);
-    m_showSwitcherWarning->setStyleSheet("color: red; font-weight: bold; padding: 4px 0;");
-    m_showSwitcherWarning->setVisible(false);
-    contentLayout->addWidget(m_showSwitcherWarning);
-
-    // Reset to defaults button
-    contentLayout->addSpacing(12);
-    auto* resetBtn = new QPushButton(tr("Reset to Defaults"), scrollContent);
-    connect(resetBtn, &QPushButton::clicked, this, [this]() {
-        auto reply = QMessageBox::question(this, tr("Reset Hotkeys"),
-                                            tr("Reset all hotkeys to their default values?"),
-                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-        if (reply == QMessageBox::Yes) {
-            for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
-                it.value()->setBindings({});
-            m_config->resetHotkeys();
-            loadHotkeyBindings();
-        }
-    });
-    contentLayout->addWidget(resetBtn);
-    contentLayout->addStretch();
-
-    scrollArea->setWidget(scrollContent);
-
-    // Reuse existing layout (safe: items cleared, no delete needed)
-    if (!hotkeyLayout) {
-        hotkeyLayout = new QVBoxLayout(hotkeyPage);
-    }
-    hotkeyLayout->setContentsMargins(0, 0, 0, 0);
-    hotkeyLayout->addWidget(scrollArea);
+    m_loadingSettings = false;
+    retranslateUi();
 }
 
-void SettingsDialog::loadHotkeyBindings() {
-    auto bindings = m_config->getHotkeyBindings();
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        if (bindings.contains(it.key()))
-            it.value()->setBindings(bindings[it.key()]);
-        else
-            it.value()->setBindings({});
-    }
-    checkLetterJumpConflict();
+void SettingsDialog::applySettings() {
+    QString lang = ui->langCombo->currentData().toString();
+    m_config->setLanguage(lang);
+    switchLanguage(lang);
+    retranslateUi();
 
-    if (m_showSwitcherWarning) {
-        auto showBinds = bindings.value(HotkeyAction::SwitchToNextWindow);
-        m_showSwitcherWarning->setVisible(
-            bindings.contains(HotkeyAction::SwitchToNextWindow) && showBinds.isEmpty());
-    }
-}
+    bool startup = ui->startupCheck->isChecked();
+    if (startup != Startup::isOn())
+        Startup::toggle();
 
-void SettingsDialog::applyHotkeyBindings() {
-    HotkeyBindings bindings;
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        bindings[it.key()] = it.value()->bindings();
-    }
-    m_config->setHotkeyBindings(bindings);
-}
+    m_config->setAlwaysRunAsAdmin(ui->adminCheck->isChecked());
 
-bool SettingsDialog::checkConflict(HotkeyAction action, const HotkeyBinding& binding,
-                                    HotkeyAction& conflictAction, int& conflictIndex) const {
-    auto scope = hotkeyActionScope(action);
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        if (it.key() == action) continue;
-        if (hotkeyActionScope(it.key()) != scope) continue;
-        auto binds = it.value()->bindings();
-        for (int i = 0; i < binds.size(); ++i) {
-            if (binds[i] == binding) {
-                conflictAction = it.key();
-                conflictIndex = i;
-                return true;
-            }
-        }
-    }
-    return false;
-}
+    auto monitor = static_cast<DisplayMonitor>(ui->monitorCombo->currentData().toInt());
+    m_config->setDisplayMonitor(monitor);
 
-void SettingsDialog::checkLetterJumpConflict() {
-    bool hasLetter = false;
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        for (const auto& b : it.value()->bindings()) {
-            if (b.isSingleLetter()) {
-                hasLetter = true;
-                break;
-            }
-        }
-        if (hasLetter) break;
+    int theme = ui->themeCombo->currentData().toInt();
+    if (theme != m_config->getTheme()) {
+        m_config->setTheme(theme);
+        SettingsStyleHelper::applyTheme(this, ui);
+        ThemeManager::applyTheme();
     }
 
-    if (hasLetter) {
-        ui->letterJumpCheck->setChecked(false);
-        ui->letterJumpCheck->setEnabled(false);
-    } else {
-        ui->letterJumpCheck->setEnabled(true);
+    m_config->setMinIconSize(ui->minIconSizeSpin->value());
+    m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
+    m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
+    m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
+
+    {
+        Util::LogFlags flags = 0;
+        if (ui->chkLogDebug->isChecked()) flags |= Util::LogDebug;
+        if (ui->chkLogInfo->isChecked())  flags |= Util::LogInfo;
+        if (ui->chkLogWarn->isChecked())  flags |= Util::LogWarn;
+        if (ui->chkLogError->isChecked()) flags |= Util::LogError;
+        if (ui->chkLogFatal->isChecked()) flags |= Util::LogFatal;
+        m_config->setLogFlags(flags);
     }
-}
+    m_config->setLogDirectory(ui->logDirEdit->text());
+    Util::Logger::reconfigure();
 
-void SettingsDialog::applyStyleSheet() {
-    const auto& c = ThemeManager::current();
+    m_config->setIconCacheEnabled(ui->iconCacheCheck->isChecked());
+    m_config->setIconCacheDirectory(ui->cacheDirEdit->text());
 
-    setStyleSheet(QString("QDialog { background-color: %1; }").arg(c.bgColor.name()));
-
-    ui->topBar->setStyleSheet(QString("background-color: %1; border-bottom: 1px solid %2;")
-                              .arg(c.panelColor.name(), c.borderColor.name()));
-
-    ui->searchEdit->setStyleSheet(QString(
-        "QLineEdit {"
-        "  padding: 6px 10px; border: 1px solid %1; border-radius: 4px;"
-        "  background-color: %2; color: %3; font-size: 13px;"
-        "}"
-        "QLineEdit:focus { border-color: %4; }"
-    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
-
-    ui->navList->setStyleSheet(QString(
-        "QListWidget {"
-        "  background-color: %1; color: %2; border-right: 1px solid %3;"
-        "  border-top: none; border-left: none; border-bottom: none; outline: none;"
-        "  font-size: 13px;"
-        "}"
-        "QListWidget::item { padding: 10px 16px; border: none; }"
-        "QListWidget::item:selected { background-color: %4; color: white; }"
-        "QListWidget::item:hover:!selected { background-color: %5; }"
-    ).arg(c.panelColor.name(), c.textColor.name(), c.borderColor.name(),
-          c.highlightColor.name(), c.delegateHoverUnselected.name()));
-
-    ui->stackedWidget->setStyleSheet(QString("background-color: %1;").arg(c.bgColor.name()));
-
-    const QString groupBoxStyle = QString(
-        "QGroupBox { color: %1; font-size: 13px; font-weight: bold;"
-        "  border: 1px solid %2; border-radius: 6px; margin-top: 12px; padding-top: 16px; }"
-        "QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }"
-    ).arg(c.textColor.name(), c.borderColor.name());
-    ui->langGroup->setStyleSheet(groupBoxStyle);
-    ui->letterJumpGroup->setStyleSheet(groupBoxStyle);
-    ui->displayGroup->setStyleSheet(groupBoxStyle);
-    ui->logGroup->setStyleSheet(groupBoxStyle);
-    ui->cacheGroup->setStyleSheet(groupBoxStyle);
-    ui->blockedGroup->setStyleSheet(groupBoxStyle);
-
-    const QString comboStyle = QString(
-        "QComboBox { padding: 6px 10px; border: 1px solid %1; border-radius: 4px;"
-        "  background-color: %2; color: %3; font-size: 13px; }"
-        "QComboBox:focus { border-color: %4; }"
-        "QComboBox::drop-down { border: none; width: 24px; }"
-        "QComboBox::down-arrow { width: 0; }"
-        "QComboBox QAbstractItemView { background-color: %2; color: %3;"
-        "  border: 1px solid %1; selection-background-color: %5; }"
-    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(),
-          c.accentColor.name(), c.highlightColor.name());
-    ui->langCombo->setStyleSheet(comboStyle);
-    ui->monitorCombo->setStyleSheet(comboStyle);
-    ui->themeCombo->setStyleSheet(comboStyle);
-    ui->langLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->monitorLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->themeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->minIconSizeLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->logDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-    ui->cacheDirLabel->setStyleSheet(QString("color: %1; font-weight: normal;").arg(c.textColor.name()));
-
-    const QString checkStyle = QString(
-        "QCheckBox { color: %1; font-size: 13px; spacing: 8px; margin: 4px 0; }"
-        "QCheckBox::indicator { width: 16px; height: 16px; }"
-    ).arg(c.textColor.name());
-    ui->startupCheck->setStyleSheet(checkStyle);
-    ui->adminCheck->setStyleSheet(checkStyle);
-    ui->letterJumpCheck->setStyleSheet(checkStyle);
-    ui->mouseClickActivateCheck->setStyleSheet(checkStyle);
-    ui->clickShowGroupCheck->setStyleSheet(checkStyle);
-    ui->iconCacheCheck->setStyleSheet(checkStyle);
-    ui->chkLogDebug->setStyleSheet(checkStyle);
-    ui->chkLogInfo->setStyleSheet(checkStyle);
-    ui->chkLogWarn->setStyleSheet(checkStyle);
-    ui->chkLogError->setStyleSheet(checkStyle);
-    ui->chkLogFatal->setStyleSheet(checkStyle);
-
-    ui->aboutDesc->setStyleSheet(QString("color: %1; font-size: 14px;").arg(c.textColor.name()));
-
-    ui->bottomBar->setStyleSheet(QString("background-color: %1; border-top: 1px solid %2;")
-                                 .arg(c.panelColor.name(), c.borderColor.name()));
-
-    const QString btnStyle = QString(
-        "QPushButton {"
-        "  padding: 6px 20px; border: 1px solid %1; border-radius: 4px;"
-        "  background-color: %2; color: %3; font-size: 13px; min-width: 70px;"
-        "}"
-        "QPushButton:hover { background-color: %4; }"
-        "QPushButton:pressed { background-color: %5; }"
-        "QPushButton:disabled { color: %6; }"
-    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(),
-          c.highlightColor.name(), c.borderColor.name(), c.disabledText.name());
-    ui->btnOk->setStyleSheet(btnStyle);
-    ui->btnCancel->setStyleSheet(btnStyle);
-    ui->btnApply->setStyleSheet(btnStyle);
-    ui->btnAddBlocked->setStyleSheet(btnStyle);
-    ui->btnRemoveBlocked->setStyleSheet(btnStyle);
-    if (m_btnEditBlocked) m_btnEditBlocked->setStyleSheet(btnStyle);
-    if (m_btnExportBlocked) m_btnExportBlocked->setStyleSheet(btnStyle);
-    if (m_btnImportBlocked) m_btnImportBlocked->setStyleSheet(btnStyle);
-    ui->btnBrowseLogDir->setStyleSheet(btnStyle);
-    ui->btnBrowseCacheDir->setStyleSheet(btnStyle);
-    ui->btnClearCache->setStyleSheet(btnStyle);
-
-    // Blocked table style
-    ui->blockedTable->setStyleSheet(QString(
-        "QTableWidget { background-color: %1; color: %2; border: 1px solid %3;"
-        "  gridline-color: %3; font-size: 13px; }"
-        "QTableWidget::item:selected { background-color: %4; color: white; }"
-        "QHeaderView::section { background-color: %5; color: %2;"
-        "  border: 1px solid %3; padding: 4px; font-weight: bold; }"
-    ).arg(c.inputBg.name(), c.textColor.name(), c.borderColor.name(),
-          c.highlightColor.name(), c.panelColor.name()));
-
-    // log directory line edit
-    ui->logDirEdit->setStyleSheet(QString(
-        "QLineEdit { padding: 6px 10px; border: 1px solid %1; border-radius: 4px;"
-        "  background-color: %2; color: %3; font-size: 13px; }"
-        "QLineEdit:focus { border-color: %4; }"
-    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
-    ui->cacheDirEdit->setStyleSheet(ui->logDirEdit->styleSheet());
-
-    // min icon size spinbox
-    ui->minIconSizeSpin->setStyleSheet(QString(
-        "QSpinBox { padding: 6px 10px; border: 1px solid %1; border-radius: 4px;"
-        "  background-color: %2; color: %3; font-size: 13px; }"
-        "QSpinBox:focus { border-color: %4; }"
-        "QSpinBox::up-button, QSpinBox::down-button {"
-        "  border: none; width: 20px; }"
-    ).arg(c.borderColor.name(), c.inputBg.name(), c.textColor.name(), c.accentColor.name()));
+    m_config->setBlockedWindows(m_blockedMgr->collectEntries());
+    m_hotkeyMgr->applyBindings();
+    m_config->sync();
 }
 
 void SettingsDialog::retranslateUi() {
@@ -734,7 +306,6 @@ void SettingsDialog::retranslateUi() {
     ui->chkLogWarn->setText(tr("Warning"));
     ui->chkLogError->setText(tr("Error"));
     ui->chkLogFatal->setText(tr("Fatal"));
-
     ui->logDirLabel->setText(tr("Log Directory:"));
     ui->btnBrowseLogDir->setText(tr("Browse..."));
 
@@ -767,13 +338,15 @@ void SettingsDialog::retranslateUi() {
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
+
     QString version = QApplication::applicationVersion();
-    ui->aboutDesc->setText(tr("AltTaber - Window Switcher<br>"
-                              "Version: %1<br><br>"
-                              "A modern Alt+Tab replacement for Windows.<br><br>"
-                               "GitHub: <a href='https://github.com/Hendrix4858/AltTaber' "
-                               "style='color: #0078D4;'>Hendrix4858/AltTaber</a>")
-                           .arg(version));
+    ui->aboutDesc->setText(
+        tr("AltTaber - Window Switcher<br>"
+           "Version: %1<br><br>"
+           "A modern Alt+Tab replacement for Windows.<br><br>"
+           "GitHub: <a href='https://github.com/Hendrix4858/AltTaber' "
+           "style='color: #0078D4;'>Hendrix4858/AltTaber</a>")
+        .arg(version));
 
     ui->btnOk->setText(tr("OK"));
     ui->btnCancel->setText(tr("Cancel"));
@@ -797,136 +370,13 @@ void SettingsDialog::filterPages(const QString& text) {
     }
 }
 
-void SettingsDialog::loadSettings() {
-    m_loadingSettings = true;
-
-    QString lang = m_config->getLanguage();
-    int idx = ui->langCombo->findData(lang);
-    if (idx >= 0) ui->langCombo->setCurrentIndex(idx);
-
-    ui->startupCheck->setChecked(Startup::isOn());
-    ui->adminCheck->setChecked(m_config->getAlwaysRunAsAdmin());
-
-    idx = ui->monitorCombo->findData(m_config->getDisplayMonitor());
-    if (idx >= 0) ui->monitorCombo->setCurrentIndex(idx);
-
-    idx = ui->themeCombo->findData(m_config->getTheme());
-    if (idx >= 0) ui->themeCombo->setCurrentIndex(idx);
-
-    ui->minIconSizeSpin->setValue(m_config->getMinIconSize());
-
-    ui->letterJumpCheck->setChecked(m_config->getLetterJumpEnabled());
-
-    ui->mouseClickActivateCheck->setChecked(m_config->getMouseClickActivateEnabled());
-    ui->clickShowGroupCheck->setChecked(ui->mouseClickActivateCheck->isChecked());
-    ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
-    {
-        auto flags = m_config->getLogFlags();
-        ui->chkLogDebug->setChecked(flags & Util::LogDebug);
-        ui->chkLogInfo->setChecked(flags & Util::LogInfo);
-        ui->chkLogWarn->setChecked(flags & Util::LogWarn);
-        ui->chkLogError->setChecked(flags & Util::LogError);
-        ui->chkLogFatal->setChecked(flags & Util::LogFatal);
-    }
-    ui->logDirEdit->setText(m_config->getLogDirectory());
-
-    ui->iconCacheCheck->setChecked(m_config->getIconCacheEnabled());
-    ui->cacheDirEdit->setText(m_config->get("IconCacheDirectory", "").toString());
-
-    // blocked windows
-    ui->blockedTable->setRowCount(0);
-    auto blocked = m_config->getBlockedWindows();
-    for (const auto& entry : blocked) {
-        int row = ui->blockedTable->rowCount();
-        ui->blockedTable->insertRow(row);
-        auto* enabledItem = new QTableWidgetItem();
-        enabledItem->setFlags(enabledItem->flags() | Qt::ItemIsUserCheckable);
-        enabledItem->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
-        ui->blockedTable->setItem(row, 0, enabledItem);
-        ui->blockedTable->setItem(row, 1, new QTableWidgetItem(entry.comment));
-        ui->blockedTable->setItem(row, 2, new QTableWidgetItem(entry.title));
-        ui->blockedTable->setItem(row, 3, new QTableWidgetItem(entry.className));
-        ui->blockedTable->setItem(row, 4, new QTableWidgetItem(entry.processName));
-        ui->blockedTable->setItem(row, 5, new QTableWidgetItem(entry.processPath));
-    }
-
-    m_loadingSettings = false;
-
-    retranslateUi();
-}
-
-void SettingsDialog::applySettings() {
-    QString lang = ui->langCombo->currentData().toString();
-    m_config->setLanguage(lang);
-    switchLanguage(lang);
-    retranslateUi();
-
-    bool startup = ui->startupCheck->isChecked();
-    if (startup != Startup::isOn())
-        Startup::toggle();
-
-    m_config->setAlwaysRunAsAdmin(ui->adminCheck->isChecked());
-
-    auto monitor = static_cast<DisplayMonitor>(ui->monitorCombo->currentData().toInt());
-    m_config->setDisplayMonitor(monitor);
-
-    int theme = ui->themeCombo->currentData().toInt();
-    if (theme != m_config->getTheme()) {
-        m_config->setTheme(theme);
-        applyStyleSheet();
-        ThemeManager::applyTheme();
-    }
-
-    m_config->setMinIconSize(ui->minIconSizeSpin->value());
-
-    m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
-
-    m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
-    m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
-    {
-        Util::LogFlags flags = 0;
-        if (ui->chkLogDebug->isChecked()) flags |= Util::LogDebug;
-        if (ui->chkLogInfo->isChecked())  flags |= Util::LogInfo;
-        if (ui->chkLogWarn->isChecked())  flags |= Util::LogWarn;
-        if (ui->chkLogError->isChecked()) flags |= Util::LogError;
-        if (ui->chkLogFatal->isChecked()) flags |= Util::LogFatal;
-        m_config->setLogFlags(flags);
-    }
-    m_config->setLogDirectory(ui->logDirEdit->text());
-    Util::Logger::reconfigure();
-
-    m_config->setIconCacheEnabled(ui->iconCacheCheck->isChecked());
-    m_config->setIconCacheDirectory(ui->cacheDirEdit->text());
-
-    // blocked windows
-    QList<BlockedWindowEntry> blocked;
-    for (int i = 0; i < ui->blockedTable->rowCount(); ++i) {
-        BlockedWindowEntry entry;
-        entry.enabled = ui->blockedTable->item(i, 0)->checkState() == Qt::Checked;
-        entry.comment = ui->blockedTable->item(i, 1)->text();
-        entry.title = ui->blockedTable->item(i, 2)->text();
-        entry.className = ui->blockedTable->item(i, 3)->text();
-        entry.processName = ui->blockedTable->item(i, 4)->text();
-        entry.processPath = ui->blockedTable->item(i, 5)->text();
-        blocked.append(entry);
-    }
-    m_config->setBlockedWindows(blocked);
-
-    // hotkey bindings
-    applyHotkeyBindings();
-
-    m_config->sync();
-}
-
 void SettingsDialog::changeEvent(QEvent* event) {
     if (event->type() == QEvent::LanguageChange) {
         retranslateUi();
         QMetaObject::invokeMethod(this, [this] {
-            buildHotkeyPage();
-            loadHotkeyBindings();
+            m_hotkeyMgr->buildHotkeyPage(ui->stackedWidget, ui->hotkeyPlaceholder);
+            m_hotkeyMgr->loadBindings();
         }, Qt::QueuedConnection);
     }
     QDialog::changeEvent(event);
 }
-
-
