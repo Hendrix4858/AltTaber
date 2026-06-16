@@ -388,14 +388,9 @@
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="logDirLayout">
               <item>
-                <widget class="QLineEdit" name="logDirEdit">
+                 <widget class="QLineEdit" name="logDirEdit">
                  <property name="placeholderText">
                   <string>Support relative directories,default is log</string>
-                 </property>
-                 <property name="toolTip">
-                  <string>Leave empty to use default directory (&lt;appdir&gt;/log).
-Relative paths are resolved against the application directory.
-Examples: "logs" → &lt;appdir&gt;/logs, "../logs" → &lt;parent&gt;/logs</string>
                  </property>
                 </widget>
               </item>
@@ -463,14 +458,9 @@ Examples: "logs" → &lt;appdir&gt;/logs, "../logs" → &lt;parent&gt;/logs</str
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="cacheDirLayout">
               <item>
-                <widget class="QLineEdit" name="cacheDirEdit">
+                 <widget class="QLineEdit" name="cacheDirEdit">
                  <property name="placeholderText">
                   <string>Support relative directories,default is icon_cache</string>
-                 </property>
-                 <property name="toolTip">
-                  <string>Leave empty to use default directory (&lt;appdir&gt;/icon_cache).
-Relative paths are resolved against the application directory.
-Examples: "cache" → &lt;appdir&gt;/cache, "../cache" → &lt;parent&gt;/cache</string>
                  </property>
                 </widget>
               </item>
