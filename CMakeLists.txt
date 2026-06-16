@@ -88,6 +88,7 @@ target_sources(Win_Switcher PRIVATE
     src/WindowDescriptorBuilder.cpp header/WindowDescriptorBuilder.h
     src/ActivationHistory.cpp      header/ActivationHistory.h
     src/WindowCycleOrder.cpp       header/WindowCycleOrder.h
+    src/TaskbarMouseHelper.cpp     header/TaskbarMouseHelper.h
     src/OverlayController.cpp      header/OverlayController.h
     src/SelectionController.cpp    header/SelectionController.h
     src/GroupWindowCycler.cpp      header/GroupWindowCycler.h
@@ -114,6 +115,7 @@ target_sources(Win_Switcher PRIVATE
                                    header/core/HotkeyStrings.h
                                    header/core/HotkeyBinding.h
     src/core/ThemeManager.cpp      header/core/ThemeManager.h
+    src/HotkeyConflictResolver.cpp header/HotkeyConflictResolver.h
 )
 
 # ── Dialogs ──

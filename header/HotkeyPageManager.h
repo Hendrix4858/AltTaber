@@ -25,13 +25,12 @@ public:
     bool handleRecordedKey(quint32 vk, quint32 scan, DWORD flags, Qt::KeyboardModifiers mods);
 
     ConfigManager* config() const { return m_config; }
+    HotkeyBindings currentBindings() const;
 
 signals:
-    void bindingsChanged();
+    void bindingsChanged(bool hasSingleLetter);
 
 private:
-    bool checkConflict(HotkeyAction action, const HotkeyBinding& binding,
-                       HotkeyAction& conflictAction, int& conflictIndex) const;
     void checkLetterJumpConflict();
 
     ConfigManager* m_config;

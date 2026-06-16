@@ -125,12 +125,13 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             ui->clickShowGroupCheck->setEnabled(checked);
     });
 
-    connect(m_hotkeyMgr, &HotkeyPageManager::bindingsChanged, this, [this] {
-        bool hasLetter = false;
-        for (int i = 0; i < ui->blockedTable->rowCount(); ++i) {
-            // checkLetterJumpConflict derived logic
+    connect(m_hotkeyMgr, &HotkeyPageManager::bindingsChanged, this, [this](bool hasSingleLetter) {
+        if (hasSingleLetter) {
+            ui->letterJumpCheck->setChecked(false);
+            ui->letterJumpCheck->setEnabled(false);
+        } else {
+            ui->letterJumpCheck->setEnabled(true);
         }
-        // Simplified: just enable/disable based on whether any hotkey has single letter
     });
 
     loadSettings();

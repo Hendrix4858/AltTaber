@@ -1,4 +1,5 @@
 #include "TaskbarWindowCycler.h"
+#include "TaskbarMouseHelper.h"
 #include "GroupWindowCycler.h"
 #include "WindowManager.h"
 #include "utils/Util.h"
@@ -65,20 +66,16 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     }
     m_lastTaskbarDirection = forward;
 
-    static auto mouseEvent = [](DWORD flag) {
-        mouse_event(flag, 0, 0, 0, 0);
-    };
     if (forward) {
         if (windowCount == 1) {
             if ((hwnd != GetForegroundWindow() || IsIconic(hwnd))) {
-                mouseEvent(MOUSEEVENTF_LEFTDOWN);
-                mouseEvent(MOUSEEVENTF_LEFTUP);
+                TaskbarMouseHelper::click();
                 qDebug() << "(Taskbar)Switch by click";
             }
         } else {
             if (HWND thumbnail = Util::getCurrentTaskListThumbnailWnd(); IsWindowVisible(thumbnail)) {
                 qDebug() << "(Taskbar)Press LButton";
-                mouseEvent(MOUSEEVENTF_LEFTDOWN);
+                TaskbarMouseHelper::hold();
                 QTimer::singleShot(20, this, [hwnd]() {
                     Util::switchToWindow(hwnd, true);
                 });
@@ -90,7 +87,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
                 m_releaseTimer->setSingleShot(true);
                 m_releaseTimer->setInterval(200);
                 connect(m_releaseTimer, &QTimer::timeout, this, [this]() {
-                    mouseEvent(MOUSEEVENTF_LEFTUP);
+                    TaskbarMouseHelper::release();
                     qDebug() << "(Taskbar)Release LButton";
                     QTimer::singleShot(100, this, []() {
                         if (HWND thumbnail = Util::getCurrentTaskListThumbnailWnd(); IsWindowVisible(thumbnail)) {

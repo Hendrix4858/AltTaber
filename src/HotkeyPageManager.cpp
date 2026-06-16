@@ -1,4 +1,5 @@
 #include "HotkeyPageManager.h"
+#include "HotkeyConflictResolver.h"
 #include "core/ConfigManager.h"
 #include "core/ThemeManager.h"
 #include "hook/HotkeyRecorder.h"
@@ -103,24 +104,24 @@ void HotkeyPageManager::buildHotkeyPage(QStackedWidget* stackedWidget, QLabel* h
             }
             m_resolvingConflict = true;
 
-            HotkeyAction conflictAction;
-            int conflictIndex;
+            auto allBindings = currentBindings();
             for (const auto& b : bindings) {
-                if (checkConflict(action, b, conflictAction, conflictIndex)) {
-                    auto result = QMessageBox::warning(nullptr, tr("Conflict"),
+                auto result = HotkeyConflictResolver::findConflict(action, b, allBindings);
+                if (result.found) {
+                    auto warningResult = QMessageBox::warning(nullptr, tr("Conflict"),
                         tr("Hotkey \"%1\" is already used by \"%2\".\nOverwrite?")
-                            .arg(b.toString(), hotkeyActionDisplayName(conflictAction)),
+                            .arg(b.toString(), hotkeyActionDisplayName(result.action)),
                         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-                    if (result == QMessageBox::No) {
+                    if (warningResult == QMessageBox::No) {
                         recorder->rollback();
                         m_resolvingConflict = false;
                         checkLetterJumpConflict();
                         return;
                     }
-                    auto* conflictRecorder = m_recorders.value(conflictAction);
+                    auto* conflictRecorder = m_recorders.value(result.action);
                     if (conflictRecorder) {
                         auto conflictBinds = conflictRecorder->bindings();
-                        conflictBinds.removeAt(conflictIndex);
+                        conflictBinds.removeAt(result.index);
                         conflictRecorder->blockSignals(true);
                         conflictRecorder->setBindings(conflictBinds);
                         conflictRecorder->blockSignals(false);
@@ -227,34 +228,14 @@ bool HotkeyPageManager::handleRecordedKey(quint32 vk, quint32 scan, DWORD flags,
     return false;
 }
 
-bool HotkeyPageManager::checkConflict(HotkeyAction action, const HotkeyBinding& binding,
-                                       HotkeyAction& conflictAction, int& conflictIndex) const {
-    auto scope = hotkeyActionScope(action);
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        if (it.key() == action) continue;
-        if (hotkeyActionScope(it.key()) != scope) continue;
-        auto binds = it.value()->bindings();
-        for (int i = 0; i < binds.size(); ++i) {
-            if (binds[i] == binding) {
-                conflictAction = it.key();
-                conflictIndex = i;
-                return true;
-            }
-        }
-    }
-    return false;
+HotkeyBindings HotkeyPageManager::currentBindings() const {
+    HotkeyBindings all;
+    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
+        all[it.key()] = it.value()->bindings();
+    return all;
 }
 
 void HotkeyPageManager::checkLetterJumpConflict() {
-    bool hasLetter = false;
-    for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
-        for (const auto& b : it.value()->bindings()) {
-            if (b.isSingleLetter()) {
-                hasLetter = true;
-                break;
-            }
-        }
-        if (hasLetter) break;
-    }
-    emit bindingsChanged();
+    bool hasLetter = HotkeyConflictResolver::hasSingleLetterBinding(currentBindings());
+    emit bindingsChanged(hasLetter);
 }
