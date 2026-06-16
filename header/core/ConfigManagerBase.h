@@ -10,7 +10,9 @@
 #include <QDir>
 #include <QDebug>
 
-class ConfigManagerBase : public QObject {
+#include "core/IConfigStore.h"
+
+class ConfigManagerBase : public QObject, public IConfigStore {
     Q_OBJECT
 
 protected:
@@ -26,11 +28,13 @@ public:
     ConfigManagerBase(const ConfigManagerBase&) = delete;
     ConfigManagerBase& operator=(const ConfigManagerBase&) = delete;
 
-    QVariant get(const QString& key, const QVariant& defaultValue = QVariant()) const;
-    void set(const QString& key, const QVariant& value);
-    void remove(const QString& key);
+    QVariant get(const QString& key, const QVariant& defaultValue = QVariant()) const override;
+    void set(const QString& key, const QVariant& value) override;
+    void remove(const QString& key) override;
 
-    void sync();
+    void sync() override;
+
+    QObject* signalObject() override { return this; }
 
     void editConfigFile();
 

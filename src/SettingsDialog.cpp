@@ -29,8 +29,9 @@
 #include <QTableWidgetItem>
 #include "utils/Util.h"
 
-SettingsDialog::SettingsDialog(QWidget* parent)
+SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     : QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowMinimizeButtonHint)
+    , m_config(config)
     , ui(new Ui::SettingsDialog) {
     QElapsedTimer t;
     t.start();
@@ -105,7 +106,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
                                                "Icons will be re-extracted on next use."),
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (reply == QMessageBox::Yes) {
-            QDir dir(cfg().getIconCacheDirectory());
+            QDir dir(m_config->getIconCacheDirectory());
             if (dir.exists()) {
                 dir.removeRecursively();
                 QMessageBox::information(this, tr("Cache Cleared"),
@@ -465,7 +466,7 @@ void SettingsDialog::buildHotkeyPage() {
         if (reply == QMessageBox::Yes) {
             for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it)
                 it.value()->setBindings({});
-            cfg().resetHotkeys();
+            m_config->resetHotkeys();
             loadHotkeyBindings();
         }
     });
@@ -483,7 +484,7 @@ void SettingsDialog::buildHotkeyPage() {
 }
 
 void SettingsDialog::loadHotkeyBindings() {
-    auto bindings = cfg().getHotkeyBindings();
+    auto bindings = m_config->getHotkeyBindings();
     for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
         if (bindings.contains(it.key()))
             it.value()->setBindings(bindings[it.key()]);
@@ -504,7 +505,7 @@ void SettingsDialog::applyHotkeyBindings() {
     for (auto it = m_recorders.begin(); it != m_recorders.end(); ++it) {
         bindings[it.key()] = it.value()->bindings();
     }
-    cfg().setHotkeyBindings(bindings);
+    m_config->setHotkeyBindings(bindings);
 }
 
 bool SettingsDialog::checkConflict(HotkeyAction action, const HotkeyBinding& binding,
@@ -799,42 +800,42 @@ void SettingsDialog::filterPages(const QString& text) {
 void SettingsDialog::loadSettings() {
     m_loadingSettings = true;
 
-    QString lang = cfg().getLanguage();
+    QString lang = m_config->getLanguage();
     int idx = ui->langCombo->findData(lang);
     if (idx >= 0) ui->langCombo->setCurrentIndex(idx);
 
     ui->startupCheck->setChecked(Startup::isOn());
-    ui->adminCheck->setChecked(cfg().getAlwaysRunAsAdmin());
+    ui->adminCheck->setChecked(m_config->getAlwaysRunAsAdmin());
 
-    idx = ui->monitorCombo->findData(cfg().getDisplayMonitor());
+    idx = ui->monitorCombo->findData(m_config->getDisplayMonitor());
     if (idx >= 0) ui->monitorCombo->setCurrentIndex(idx);
 
-    idx = ui->themeCombo->findData(cfg().getTheme());
+    idx = ui->themeCombo->findData(m_config->getTheme());
     if (idx >= 0) ui->themeCombo->setCurrentIndex(idx);
 
-    ui->minIconSizeSpin->setValue(cfg().getMinIconSize());
+    ui->minIconSizeSpin->setValue(m_config->getMinIconSize());
 
-    ui->letterJumpCheck->setChecked(cfg().getLetterJumpEnabled());
+    ui->letterJumpCheck->setChecked(m_config->getLetterJumpEnabled());
 
-    ui->mouseClickActivateCheck->setChecked(cfg().getMouseClickActivateEnabled());
+    ui->mouseClickActivateCheck->setChecked(m_config->getMouseClickActivateEnabled());
     ui->clickShowGroupCheck->setChecked(ui->mouseClickActivateCheck->isChecked());
     ui->clickShowGroupCheck->setEnabled(ui->mouseClickActivateCheck->isChecked());
     {
-        auto flags = cfg().getLogFlags();
+        auto flags = m_config->getLogFlags();
         ui->chkLogDebug->setChecked(flags & Util::LogDebug);
         ui->chkLogInfo->setChecked(flags & Util::LogInfo);
         ui->chkLogWarn->setChecked(flags & Util::LogWarn);
         ui->chkLogError->setChecked(flags & Util::LogError);
         ui->chkLogFatal->setChecked(flags & Util::LogFatal);
     }
-    ui->logDirEdit->setText(cfg().getLogDirectory());
+    ui->logDirEdit->setText(m_config->getLogDirectory());
 
-    ui->iconCacheCheck->setChecked(cfg().getIconCacheEnabled());
-    ui->cacheDirEdit->setText(cfg().get("IconCacheDirectory", "").toString());
+    ui->iconCacheCheck->setChecked(m_config->getIconCacheEnabled());
+    ui->cacheDirEdit->setText(m_config->get("IconCacheDirectory", "").toString());
 
     // blocked windows
     ui->blockedTable->setRowCount(0);
-    auto blocked = cfg().getBlockedWindows();
+    auto blocked = m_config->getBlockedWindows();
     for (const auto& entry : blocked) {
         int row = ui->blockedTable->rowCount();
         ui->blockedTable->insertRow(row);
@@ -856,7 +857,7 @@ void SettingsDialog::loadSettings() {
 
 void SettingsDialog::applySettings() {
     QString lang = ui->langCombo->currentData().toString();
-    cfg().setLanguage(lang);
+    m_config->setLanguage(lang);
     switchLanguage(lang);
     retranslateUi();
 
@@ -864,24 +865,24 @@ void SettingsDialog::applySettings() {
     if (startup != Startup::isOn())
         Startup::toggle();
 
-    cfg().setAlwaysRunAsAdmin(ui->adminCheck->isChecked());
+    m_config->setAlwaysRunAsAdmin(ui->adminCheck->isChecked());
 
     auto monitor = static_cast<DisplayMonitor>(ui->monitorCombo->currentData().toInt());
-    cfg().setDisplayMonitor(monitor);
+    m_config->setDisplayMonitor(monitor);
 
     int theme = ui->themeCombo->currentData().toInt();
-    if (theme != cfg().getTheme()) {
-        cfg().setTheme(theme);
+    if (theme != m_config->getTheme()) {
+        m_config->setTheme(theme);
         applyStyleSheet();
         ThemeManager::applyTheme();
     }
 
-    cfg().setMinIconSize(ui->minIconSizeSpin->value());
+    m_config->setMinIconSize(ui->minIconSizeSpin->value());
 
-    cfg().setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
+    m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
 
-    cfg().setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
-    cfg().setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
+    m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
+    m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
     {
         Util::LogFlags flags = 0;
         if (ui->chkLogDebug->isChecked()) flags |= Util::LogDebug;
@@ -889,13 +890,13 @@ void SettingsDialog::applySettings() {
         if (ui->chkLogWarn->isChecked())  flags |= Util::LogWarn;
         if (ui->chkLogError->isChecked()) flags |= Util::LogError;
         if (ui->chkLogFatal->isChecked()) flags |= Util::LogFatal;
-        cfg().setLogFlags(flags);
+        m_config->setLogFlags(flags);
     }
-    cfg().setLogDirectory(ui->logDirEdit->text());
+    m_config->setLogDirectory(ui->logDirEdit->text());
     Util::Logger::reconfigure();
 
-    cfg().setIconCacheEnabled(ui->iconCacheCheck->isChecked());
-    cfg().setIconCacheDirectory(ui->cacheDirEdit->text());
+    m_config->setIconCacheEnabled(ui->iconCacheCheck->isChecked());
+    m_config->setIconCacheDirectory(ui->cacheDirEdit->text());
 
     // blocked windows
     QList<BlockedWindowEntry> blocked;
@@ -909,12 +910,12 @@ void SettingsDialog::applySettings() {
         entry.processPath = ui->blockedTable->item(i, 5)->text();
         blocked.append(entry);
     }
-    cfg().setBlockedWindows(blocked);
+    m_config->setBlockedWindows(blocked);
 
     // hotkey bindings
     applyHotkeyBindings();
 
-    cfg().sync();
+    m_config->sync();
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {

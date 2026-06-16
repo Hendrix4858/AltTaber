@@ -12,6 +12,7 @@ class KeyboardHooker;
 class TaskbarWheelHooker;
 class SingleApp;
 class ComInitializer;
+class ConfigManager;
 
 class SessionMonitor final : public QAbstractNativeEventFilter {
     bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) override;
@@ -32,6 +33,7 @@ private:
     void wireSignals(const HotkeyBindings& bindings);
     static bool tryRollback();
 
+    ConfigManager* m_config = nullptr;
     QApplication m_app;
     WindowManager* m_windowManager = nullptr;
     Widget* m_widget = nullptr;

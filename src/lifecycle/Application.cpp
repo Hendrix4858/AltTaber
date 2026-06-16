@@ -40,7 +40,7 @@ bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* messag
 }
 
 Application::Application(int argc, char* argv[])
-    : m_app(argc, argv) {
+    : m_app(argc, argv), m_config(&cfg()) {
     m_app.setOrganizationName("MrBeanCpp");
     m_app.setApplicationName("AltTaber");
     m_app.setApplicationVersion(APP_VERSION);
@@ -84,14 +84,14 @@ Application::Application(int argc, char* argv[])
     UpdateDialog::verifyUpdate(m_app);
     initLanguage();
 
-    if (cfg().getAlwaysRunAsAdmin() && !IsUserAnAdmin()) {
+    if (m_config->getAlwaysRunAsAdmin() && !IsUserAnAdmin()) {
         QString appPath = QApplication::applicationFilePath();
         ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
         QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
         return;
     }
 
-    auto bindings = cfg().effectiveHotkeyBindings();
+    auto bindings = m_config->effectiveHotkeyBindings();
     qInfo() << "[Main] Loaded" << bindings.size() << "hotkey actions";
 
     initConfig(bindings);
@@ -130,7 +130,7 @@ void Application::initControllers() {
         ThemeManager::resolveTheme() == Light ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
     qApp->setQuitOnLastWindowClosed(false);
 
-    m_windowManager = new WindowManager;
+    m_windowManager = new WindowManager(m_config);
     m_widget = new Widget(m_windowManager);
     m_windowManager->setSelfHwnd((HWND) m_widget->winId());
 }
@@ -157,11 +157,11 @@ void Application::initUI() {
 void Application::initHooks(const HotkeyBindings& bindings) {
     m_keyboardHooker = new KeyboardHooker((HWND) m_widget->winId());
     m_keyboardHooker->updateBindings(bindings);
-    m_keyboardHooker->setPaused(cfg().getPaused());
+    m_keyboardHooker->setPaused(m_config->getPaused());
     m_widget->updateOverlayBindings(bindings);
 
     m_taskbarHooker = new TaskbarWheelHooker;
-    m_taskbarHooker->setPaused(cfg().getPaused());
+    m_taskbarHooker->setPaused(m_config->getPaused());
 
     qInfo() << "[Main] Installing WinEvent hook for EVENT_SYSTEM_FOREGROUND";
     setWinEventHook([this](DWORD event, HWND hwnd) {
@@ -208,13 +208,13 @@ void Application::wireSignals(const HotkeyBindings& bindings) {
                      m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
 
     // Re-inject bindings when config is saved
-    QObject::connect(&cfg(), &ConfigManager::configEdited, &m_app, [this]() {
+    QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
         qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
-        auto b = cfg().effectiveHotkeyBindings();
-        qInfo() << "[Config] binding count:" << b.size() << "paused:" << cfg().getPaused();
+        auto b = m_config->effectiveHotkeyBindings();
+        qInfo() << "[Config] binding count:" << b.size() << "paused:" << m_config->getPaused();
         m_keyboardHooker->updateBindings(b);
-        m_keyboardHooker->setPaused(cfg().getPaused());
-        m_taskbarHooker->setPaused(cfg().getPaused());
+        m_keyboardHooker->setPaused(m_config->getPaused());
+        m_taskbarHooker->setPaused(m_config->getPaused());
         m_widget->updateOverlayBindings(b);
         m_keyboardHooker->resetActivationModifiers();
     });

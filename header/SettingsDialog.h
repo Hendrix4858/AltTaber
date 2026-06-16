@@ -8,6 +8,8 @@
 #include <QPushButton>
 #include "core/HotkeyAction.h"
 
+class ConfigManager;
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class SettingsDialog;
@@ -19,7 +21,7 @@ class HotkeyRecorder;
 class SettingsDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit SettingsDialog(QWidget* parent = nullptr);
+    explicit SettingsDialog(ConfigManager* config, QWidget* parent = nullptr);
     ~SettingsDialog() override;
 
 protected:
@@ -41,6 +43,7 @@ private:
                        HotkeyAction& conflictAction, int& conflictIndex) const;
     void checkLetterJumpConflict();
 
+    ConfigManager* m_config;
     Ui::SettingsDialog* ui;
     bool m_loadingSettings = false;
     bool m_resolvingConflict = false;

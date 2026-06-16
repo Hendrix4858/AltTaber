@@ -4,8 +4,8 @@
 #include "WindowFilter.h"
 #include "core/ConfigManager.h"
 
-WindowManager::WindowManager(HWND selfHwnd, QObject* parent)
-    : QObject(parent), m_selfHwnd(selfHwnd) {
+WindowManager::WindowManager(ConfigManager* config, HWND selfHwnd, QObject* parent)
+    : QObject(parent), m_config(config), m_selfHwnd(selfHwnd) {
     reloadFilterRules();
 }
 
@@ -23,7 +23,7 @@ void WindowManager::recordWindowActivation(HWND hwnd) {
 
 void WindowManager::reloadFilterRules() {
     WindowFilterRule rule = WindowFilter::builtinRules();
-    auto blocked = cfg().getBlockedWindows();
+    auto blocked = m_config->getBlockedWindows();
     for (const auto& entry : blocked) {
         if (!entry.enabled) continue;
         WindowBlockRule blockRule;

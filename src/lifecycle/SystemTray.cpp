@@ -80,7 +80,7 @@ void SystemTray::setMenu(QWidget* parent) {
     connect(m_settingsAction, &QAction::triggered, this, [] {
         static SettingsDialog* dlg = nullptr;
         if (!dlg) {
-            dlg = new SettingsDialog;
+            dlg = new SettingsDialog(&cfg());
             dlg->setAttribute(Qt::WA_DeleteOnClose);
             QObject::connect(dlg, &QObject::destroyed, [] { dlg = nullptr; });
         }

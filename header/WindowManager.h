@@ -6,11 +6,13 @@
 #include "ActivationHistory.h"
 #include "WindowFilter.h"
 
+class ConfigManager;
+
 class WindowManager : public QObject {
     Q_OBJECT
 
 public:
-    explicit WindowManager(HWND selfHwnd = nullptr, QObject* parent = nullptr);
+    explicit WindowManager(ConfigManager* config, HWND selfHwnd = nullptr, QObject* parent = nullptr);
     void setSelfHwnd(HWND hwnd);
 
     QList<WindowGroup> prepareWindowGroupList();
@@ -22,6 +24,7 @@ public:
     QList<HWND> filteredHwndsForExe(const QString& exePath);
 
 private:
+    ConfigManager* m_config = nullptr;
     HWND m_selfHwnd = nullptr;
     ActivationHistory m_activationHistory;
     WindowFilter m_filter;
