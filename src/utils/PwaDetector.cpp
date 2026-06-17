@@ -95,8 +95,16 @@ namespace PwaDetector {
     static QIcon loadPwaIconFromDisk(const QString& appUserModelId) {
         if (appUserModelId.isEmpty())
             return {};
+        // Chromium AUMID:
+        //   Chromium._crx_<26-char-shortened-id>
+        //
+        // Edge AUMID:
+        //   MSEdge._crx__<25-char-shortened-id>
+        //
+        // Use _crx_+ to accept both "_crx_" and "_crx__" prefixes and
+        // capture only the shortened application id.
         static const QRegularExpression re(
-            R"(_crx_([a-z0-9]+)$)",
+            R"(_crx_+([a-z0-9]+)$)",
             QRegularExpression::CaseInsensitiveOption);
         auto match = re.match(appUserModelId);
         if (!match.hasMatch())
