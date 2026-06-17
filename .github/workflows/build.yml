@@ -24,7 +24,7 @@ jobs:
             preset: release-x64
             qt_env_var: QT_DIR_X64
           - arch: arm64
-            qt_arch: win64_msvc2022_arm64
+            qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
     runs-on: windows-2022
@@ -57,12 +57,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64]
+        arch: [x64, arm64]
         include:
           - arch: x64
             qt_arch: win64_msvc2022_64
             preset: release-x64
             qt_env_var: QT_DIR_X64
+          - arch: arm64
+            qt_arch: win64_msvc2022_arm64_cross_compiled
+            preset: release-arm64
+            qt_env_var: QT_DIR_ARM64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
