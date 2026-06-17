@@ -41,16 +41,25 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     connect(ui->ckPreRelease, &QCheckBox::toggled, this, [this](bool checked) {
         m_includePreRelease = checked;
         if (!m_cachedReleases.isEmpty()) {
+            QJsonObject bestObj;
+            QVersionNumber bestVer;
             for (const auto& val : m_cachedReleases) {
                 auto obj = val.toObject();
                 if (!m_includePreRelease && obj["prerelease"].toBool())
                     continue;
-                applyRelease(obj);
-                return;
+                auto ver = normalizeVersion(obj["tag_name"].toString());
+                if (!bestObj.isEmpty() && ver <= bestVer)
+                    continue;
+                bestObj = obj;
+                bestVer = ver;
             }
-            m_phase = Phase::FetchError;
-            m_errorCache = tr("No matching release found");
-            retranslateTexts();
+            if (!bestObj.isEmpty()) {
+                applyRelease(bestObj);
+            } else {
+                m_phase = Phase::FetchError;
+                m_errorCache = tr("No matching release found");
+                retranslateTexts();
+            }
         }
     });
     connect(ui->btn_update, &QPushButton::clicked, this, [this] {
@@ -138,18 +147,26 @@ void UpdateDialog::fetchGithubReleaseInfo() {
         const QJsonDocument doc = QJsonDocument::fromJson(data);
         m_cachedReleases = doc.array();
 
+        QJsonObject bestObj;
+        QVersionNumber bestVer;
         for (const auto& val : m_cachedReleases) {
             auto obj = val.toObject();
             if (!m_includePreRelease && obj["prerelease"].toBool())
                 continue;
-            applyRelease(obj);
-            return;
+            auto ver = normalizeVersion(obj["tag_name"].toString());
+            if (!bestObj.isEmpty() && ver <= bestVer)
+                continue;
+            bestObj = obj;
+            bestVer = ver;
         }
-
-        ui->progressBar->hide();
-        m_phase = Phase::FetchError;
-        m_errorCache = tr("No matching release found");
-        retranslateTexts();
+        if (!bestObj.isEmpty()) {
+            applyRelease(bestObj);
+        } else {
+            ui->progressBar->hide();
+            m_phase = Phase::FetchError;
+            m_errorCache = tr("No matching release found");
+            retranslateTexts();
+        }
     });
 }
 
