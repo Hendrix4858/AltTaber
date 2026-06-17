@@ -1,0 +1,137 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+env:
+  QT_VERSION: "6.8.2"
+
+jobs:
+  # ─── Job 1: 编译验证 (日常 PR / push) ───
+  check:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+        include:
+          - arch: x64
+            qt_arch: win64_msvc2022_64
+            preset: release-x64
+            qt_env_var: QT_DIR_X64
+          - arch: arm64
+            qt_arch: win64_msvc2022_arm64
+            preset: release-arm64
+            qt_env_var: QT_DIR_ARM64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }} (${{ matrix.qt_arch }})
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: ${{ matrix.qt_arch }}
+
+      - name: Set Qt env for CMake preset
+        shell: pwsh
+        run: |
+          echo "${{ matrix.qt_env_var }}=$env:QT_DIR" >> $env:GITHUB_ENV
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build build/${{ matrix.arch }} --config Release
+
+  # ─── Job 2: 正式发布 (仅 tag push) ───
+  release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+        include:
+          - arch: x64
+            qt_arch: win64_msvc2022_64
+            preset: release-x64
+            qt_env_var: QT_DIR_X64
+          - arch: arm64
+            qt_arch: win64_msvc2022_arm64
+            preset: release-arm64
+            qt_env_var: QT_DIR_ARM64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }} (${{ matrix.qt_arch }})
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: ${{ matrix.qt_arch }}
+
+      - name: Set Qt env for CMake preset
+        shell: pwsh
+        run: |
+          echo "${{ matrix.qt_env_var }}=$env:QT_DIR" >> $env:GITHUB_ENV
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build portable zip
+        run: cmake --build build/${{ matrix.arch }} --config Release --target zip
+
+      - name: Build installer
+        run: cmake --build build/${{ matrix.arch }} --config Release --target installer
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AltTaber-${{ github.ref_name }}-${{ matrix.arch }}
+          path: build/output/**/*.zip
+          if-no-files-found: error
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AltTaber-Setup-${{ github.ref_name }}-${{ matrix.arch }}
+          path: build/output/**/*-Setup.exe
+          if-no-files-found: error
+
+  # ─── Job 3: 创建 GitHub Release ───
+  create-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: [release]
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - name: Determine pre-release
+        id: check
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -match '-') { echo "prerelease=true" >> $env:GITHUB_OUTPUT }
+          else { echo "prerelease=false" >> $env:GITHUB_OUTPUT }
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AltTaber ${{ github.ref_name }}
+          prerelease: ${{ steps.check.outputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            AltTaber-*/AltTaber-*.zip
+            AltTaber-Setup-*/AltTaber-*-Setup.exe
