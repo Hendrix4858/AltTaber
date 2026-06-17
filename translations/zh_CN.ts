@@ -333,6 +333,26 @@ Overwrite?</source>
         <translation> px</translation>
     </message>
     <message>
+        <location filename="../ui/SettingsDialog.ui" line="271"/>
+        <source>PWA (Progressive Web Apps)</source>
+        <translation>PWA（渐进式 Web 应用）</translation>
+    </message>
+    <message>
+        <location filename="../ui/SettingsDialog.ui" line="277"/>
+        <source>Enable PWA detection</source>
+        <translation>启用 PWA 检测</translation>
+    </message>
+    <message>
+        <location filename="../ui/SettingsDialog.ui" line="284"/>
+        <source>Show as separate groups</source>
+        <translation>显示为独立分组</translation>
+    </message>
+    <message>
+        <location filename="../ui/SettingsDialog.ui" line="291"/>
+        <source>Mark within browser group</source>
+        <translation>在浏览器分组内标记</translation>
+    </message>
+    <message>
         <location filename="../ui/SettingsDialog.ui" line="300"/>
         <source>Hotkey settings coming soon...</source>
         <translation>快捷键设置即将推出...</translation>
