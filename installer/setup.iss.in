@@ -39,7 +39,7 @@ MinVersion=10.0.10240
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "zh"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "zh"; MessagesFile: "{#MyAppSourceDir}\installer\ChineseSimplified.isl"
 
 [CustomMessages]
 en.AppRunningMsg=AltTaber is running. Please close it first.
