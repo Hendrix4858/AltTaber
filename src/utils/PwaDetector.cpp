@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QStandardPaths>
 #include <QCryptographicHash>
+#include <QRegularExpression>
 #include <propsys.h>
 #include <propkey.h>
 
@@ -47,13 +48,6 @@ namespace PwaDetector {
         return false;
     }
 
-    // Chromium AUMID rule: extension_id (32) → AUMID suffix (25) = left(10) + mid(17)
-    static QString makeAumidKey(const QString& extensionId) {
-        if (extensionId.size() != 32)
-            return {};
-        return extensionId.left(10) + extensionId.mid(16);
-    }
-
     static QStringList getManifestResourcesDirs() {
         QString localAppData = QStandardPaths::writableLocation(
             QStandardPaths::GenericDataLocation);
@@ -66,6 +60,16 @@ namespace PwaDetector {
 
     // Build index: AUMID suffix → full path to extension directory.
     // Scans all known browser paths once and caches the result.
+    //
+    // Windows AUMID has a 64-character limit (kMaxAppModelIdLength in
+    // chrome/installer/util/util_constants.h). The PWA component is
+    // "_crx_" + 32-char app_id = 37 chars, exceeding the per-component
+    // max of 31 (64 / 2 components - 1 separator). Chromium shortens it
+    // via ShortenAppModelIdComponent() in shell_util.cc which keeps the
+    // outer portions: left(15) + right(16). After stripping the "_crx_"
+    // prefix, the Chrome AUMID suffix becomes left(10) + right(16) = 26
+    // chars. Edge's prefix is 1 char longer, yielding left(9)+right(16)
+    // = 25 chars. We insert both keys to cover both browsers.
     static const QHash<QString, QString>& getDirectoryIndex() {
         static QHash<QString, QString> index;
         static bool built = false;
@@ -74,25 +78,18 @@ namespace PwaDetector {
 
         for (const auto& baseDir : getManifestResourcesDirs()) {
             QDir dir(baseDir);
-            if (!dir.exists()) {
-                qDebug().noquote() << "[PwaDetector] scan dir NOT FOUND:" << baseDir;
-                continue;
-            }
-            qDebug().noquote() << "[PwaDetector] scanning" << baseDir;
+            if (!dir.exists()) continue;
             auto entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::NoSort);
             for (const auto& entry : entries) {
-                QString key = makeAumidKey(entry);
-                if (key.isEmpty()) continue;
                 QString fullPath = dir.absoluteFilePath(entry);
-                if (index.contains(key)) {
-                    qWarning() << "[PwaDetector] Duplicate PWA key:" << key;
-                } else {
-                    index.insert(key, fullPath);
-                    qDebug().noquote() << "[PwaDetector]   indexed" << entry << "->" << key;
-                }
+                QString key26 = entry.left(10) + entry.right(16);
+                QString key25 = entry.left(9) + entry.right(16);
+                if (!index.contains(key26))
+                    index.insert(key26, fullPath);
+                if (!index.contains(key25))
+                    index.insert(key25, fullPath);
             }
         }
-        qDebug().noquote() << "[PwaDetector] indexed" << index.size() << "PWA directories total";
         return index;
     }
 
@@ -100,57 +97,40 @@ namespace PwaDetector {
     static QIcon loadPwaIconFromDisk(const QString& appUserModelId) {
         if (appUserModelId.isEmpty())
             return {};
-        int idx = appUserModelId.indexOf("_crx_");
-        if (idx < 0) return {};
-        QString aumidSuffix = appUserModelId.mid(idx + 5);
-
-        qDebug().noquote() << "[PwaDetector] lookup aumidSuffix =" << aumidSuffix;
+        static const QRegularExpression re(
+            R"(_crx_+([a-z0-9]+)$)",
+            QRegularExpression::CaseInsensitiveOption);
+        auto match = re.match(appUserModelId);
+        if (!match.hasMatch())
+            return {};
+        QString aumidSuffix = match.captured(1);
 
         const auto& dirIndex = getDirectoryIndex();
         auto it = dirIndex.find(aumidSuffix);
-        if (it == dirIndex.end()) {
-            qDebug().noquote() << "[PwaDetector]   MISS - not in index (indexSize="
-                     << dirIndex.size() << ")";
+        if (it == dirIndex.end())
             return {};
-        }
-
-        qDebug().noquote() << "[PwaDetector]   HIT ->" << it.value();
 
         QDir iconsDir(it.value() + "/Icons");
-        if (!iconsDir.exists()) {
-            qDebug().noquote() << "[PwaDetector]   icons dir NOT FOUND:"
-                     << iconsDir.path();
+        if (!iconsDir.exists())
             return {};
-        }
 
         auto files = iconsDir.entryInfoList({"*.png"}, QDir::Files, QDir::NoSort);
-        qDebug().noquote() << "[PwaDetector]   found" << files.size()
-                 << "PNGs in" << iconsDir.path();
-
         QFileInfo best;
         int bestDim = 0;
         for (const auto& fi : files) {
             bool ok;
             int dim = fi.baseName().toInt(&ok);
-            qDebug().noquote() << "[PwaDetector]     candidate:" << fi.fileName()
-                     << "dim=" << dim;
             if (ok && dim >= 64 && dim > bestDim) {
                 bestDim = dim;
                 best = fi;
             }
         }
-        if (!best.exists()) {
-            qDebug().noquote() << "[PwaDetector]   no icon >= 64 in"
-                     << iconsDir.path();
+        if (!best.exists())
             return {};
-        }
 
         QIcon icon(best.absoluteFilePath());
-        if (icon.isNull()) {
-            qDebug().noquote() << "[PwaDetector]   QIcon null for"
-                     << best.absoluteFilePath();
+        if (icon.isNull())
             return {};
-        }
 
         QPixmap pm = icon.pixmap(icon.availableSizes().value(0, QSize(0,0)));
         qDebug().noquote() << "[PwaDetector] manifest icon:"
@@ -197,11 +177,8 @@ namespace PwaDetector {
             }
         }
 
-        qDebug().noquote() << "[PwaDetector] manifest miss, fallback to window icon";
         QPixmap pix = Util::getWindowIcon(hwnd);
         if (!pix.isNull()) {
-            qDebug().noquote() << "[PwaDetector] window icon size =" << pix.size()
-                     << "aumid =" << appUserModelId;
             QIcon icon(pix);
             if (!appUserModelId.isEmpty()) {
                 memCache.insert(appUserModelId, icon);
