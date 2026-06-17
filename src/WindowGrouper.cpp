@@ -30,7 +30,7 @@ namespace WindowGrouper {
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
-                if (desc.windowKind == WindowKind::Pwa) {
+                if (desc.windowKind == WindowKind::Pwa && separateGroups) {
                     group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
                 } else {
                     group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
