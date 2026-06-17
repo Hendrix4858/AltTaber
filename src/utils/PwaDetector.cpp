@@ -84,10 +84,8 @@ namespace PwaDetector {
                 QString fullPath = dir.absoluteFilePath(entry);
                 QString key26 = entry.left(10) + entry.right(16);
                 QString key25 = entry.left(9) + entry.right(16);
-                if (!index.contains(key26))
-                    index.insert(key26, fullPath);
-                if (!index.contains(key25))
-                    index.insert(key25, fullPath);
+                index.insert(key26, fullPath);
+                index.insert(key25, fullPath);
             }
         }
         return index;
@@ -98,7 +96,7 @@ namespace PwaDetector {
         if (appUserModelId.isEmpty())
             return {};
         static const QRegularExpression re(
-            R"(_crx_+([a-z0-9]+)$)",
+            R"(_crx_([a-z0-9]+)$)",
             QRegularExpression::CaseInsensitiveOption);
         auto match = re.match(appUserModelId);
         if (!match.hasMatch())
