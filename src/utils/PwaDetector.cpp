@@ -38,14 +38,25 @@ namespace PwaDetector {
 
     bool isPwaWindow(const QString& processPath, const QString& appUserModelId) {
         if (appUserModelId.isEmpty()) return false;
+        if (!appUserModelId.contains("_crx_")) return false;
 
         QString processName = QFileInfo(processPath).fileName().toLower();
-        static const QStringList pwaBrowsers = {
-            "chrome.exe", "msedge.exe", "chromium.exe"
-        };
-        if (pwaBrowsers.contains(processName))
-            return appUserModelId.contains("_crx_");
-        return false;
+        return processName == "chrome.exe" || processName == "msedge.exe"
+            || processName == "chromium.exe";
+    }
+
+    static QString extractCrxId(const QString& aumid) {
+        static const QRegularExpression re(
+            R"(_crx_+([a-z0-9]+))",
+            QRegularExpression::CaseInsensitiveOption);
+        auto match = re.match(aumid);
+        if (!match.hasMatch())
+            return {};
+        return match.captured(1);
+    }
+
+    static bool isValidCrxId(const QString& id) {
+        return id.length() >= 16;
     }
 
     static QStringList getManifestResourcesDirs() {
@@ -82,10 +93,9 @@ namespace PwaDetector {
             auto entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::NoSort);
             for (const auto& entry : entries) {
                 QString fullPath = dir.absoluteFilePath(entry);
-                QString key26 = entry.left(10) + entry.right(16);
-                QString key25 = entry.left(9) + entry.right(16);
-                index.insert(key26, fullPath);
-                index.insert(key25, fullPath);
+                index.insert(entry, fullPath);
+                index.insert(entry.left(10) + entry.right(16), fullPath);
+                index.insert(entry.left(9)  + entry.right(16), fullPath);
             }
         }
         return index;
@@ -93,26 +103,15 @@ namespace PwaDetector {
 
     // Try loading the largest PNG (>=64) from the Manifest Resources directory.
     static QIcon loadPwaIconFromDisk(const QString& appUserModelId) {
-        if (appUserModelId.isEmpty())
+        if (appUserModelId.isEmpty() || !appUserModelId.contains("_crx_"))
             return {};
-        // Chromium AUMID:
-        //   Chromium._crx_<26-char-shortened-id>
-        //
-        // Edge AUMID:
-        //   MSEdge._crx__<25-char-shortened-id>
-        //
-        // Use _crx_+ to accept both "_crx_" and "_crx__" prefixes and
-        // capture only the shortened application id.
-        static const QRegularExpression re(
-            R"(_crx_+([a-z0-9]+)$)",
-            QRegularExpression::CaseInsensitiveOption);
-        auto match = re.match(appUserModelId);
-        if (!match.hasMatch())
+
+        QString crxId = extractCrxId(appUserModelId);
+        if (crxId.isEmpty() || !isValidCrxId(crxId))
             return {};
-        QString aumidSuffix = match.captured(1);
 
         const auto& dirIndex = getDirectoryIndex();
-        auto it = dirIndex.find(aumidSuffix);
+        auto it = dirIndex.find(crxId);
         if (it == dirIndex.end())
             return {};
 
