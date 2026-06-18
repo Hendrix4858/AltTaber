@@ -295,7 +295,7 @@ namespace Util {
 
         QImage img = QImage::fromHBITMAP(hBitmap);
         DeleteObject(hBitmap);
-        return QPixmap::fromImage(img.mirrored(false, true));
+        return QPixmap::fromImage(img);
     }
 
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {
