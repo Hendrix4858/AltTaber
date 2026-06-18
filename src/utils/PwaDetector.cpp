@@ -214,29 +214,12 @@ namespace PwaDetector {
             if (auto icon = memCache.value(appUserModelId); !icon.isNull())
                 return icon;
 
-            // Try Manifest Resources on disk FIRST (Chromium/Chrome/Edge PWAs)
-            QIcon manifestIcon = loadPwaIconFromDisk(appUserModelId);
-            if (manifestIcon.isNull())
-                qDebug().noquote() << "[IconFallback] ManifestResources miss"
-                         << "aumid=" << appUserModelId;
-            if (!manifestIcon.isNull()) {
-                memCache.insert(appUserModelId, manifestIcon);
-                QDir().mkpath(cfg().getIconCacheDirectory() + "/icons");
-                cachePath = cfg().getIconCacheDirectory() + "/icons/pwa_"
-                    + QCryptographicHash::hash(
-                        appUserModelId.toUtf8(), QCryptographicHash::Md5).toHex()
-                    + ".png";
-                auto sizes = manifestIcon.availableSizes();
-                if (!sizes.isEmpty())
-                    manifestIcon.pixmap(sizes.first()).save(cachePath, "PNG");
-                return manifestIcon;
-            }
-
-            // Fall back to old disk cache (may contain old low-res icon)
             cachePath = cfg().getIconCacheDirectory() + "/icons/pwa_"
                 + QCryptographicHash::hash(
                     appUserModelId.toUtf8(), QCryptographicHash::Md5).toHex()
                 + ".png";
+
+            // Load from disk cache (if previously cached)
             if (QFile::exists(cachePath)) {
                 QIcon icon(cachePath);
                 if (!icon.isNull()) {
@@ -244,22 +227,34 @@ namespace PwaDetector {
                     return icon;
                 }
             }
-        }
 
-        // WindowsAppModel (!App) PWA: get icon from Shell AppsFolder, fall back to exe icon.
-        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel) {
-            QPixmap shellPix = Util::getShellAppIcon(hwnd);
-            if (!shellPix.isNull()) {
-                QIcon icon(shellPix);
-                if (!appUserModelId.isEmpty()) {
+            // Try Shell AppsFolder icon for all PWA types
+            {
+                QPixmap shellPix = Util::getShellAppIcon(hwnd);
+                if (!shellPix.isNull()) {
+                    QIcon icon(shellPix);
                     memCache.insert(appUserModelId, icon);
                     QDir().mkpath(cfg().getIconCacheDirectory() + "/icons");
                     icon.pixmap(shellPix.size()).save(cachePath, "PNG");
+                    return icon;
                 }
-                return icon;
             }
-            return Util::getCachedIcon(fallbackExePath, hwnd);
+
+            // Try Manifest Resources on disk (Chromium _crx_ PWAs)
+            QIcon manifestIcon = loadPwaIconFromDisk(appUserModelId);
+            if (!manifestIcon.isNull()) {
+                memCache.insert(appUserModelId, manifestIcon);
+                QDir().mkpath(cfg().getIconCacheDirectory() + "/icons");
+                auto sizes = manifestIcon.availableSizes();
+                if (!sizes.isEmpty())
+                    manifestIcon.pixmap(sizes.first()).save(cachePath, "PNG");
+                return manifestIcon;
+            }
         }
+
+        // WindowsAppModel (!App) PWA: fall back to browser exe icon.
+        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel)
+            return Util::getCachedIcon(fallbackExePath, hwnd);
 
         // ChromiumCrx / other: normal getWindowIcon + getCachedIcon chain
         QPixmap pix = Util::getWindowIcon(hwnd);

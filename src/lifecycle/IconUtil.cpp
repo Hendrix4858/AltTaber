@@ -289,13 +289,13 @@ namespace Util {
         if (FAILED(hr) || !imgFactory) return {};
 
         HBITMAP hBitmap = nullptr;
-        SIZE sz = {256, 256};
+        SIZE sz = {64, 64};
         hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
         if (FAILED(hr) || !hBitmap) return {};
 
         QImage img = QImage::fromHBITMAP(hBitmap);
         DeleteObject(hBitmap);
-        return QPixmap::fromImage(img);
+        return QPixmap::fromImage(img.mirrored(false, true));
     }
 
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {

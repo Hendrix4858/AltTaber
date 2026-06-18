@@ -26,10 +26,10 @@ void CALLBACK WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd, 
         WCHAR className[256] = {};
         GetClassNameW(hwnd, className, 256);
         auto title = Util::getWindowTitle(hwnd);
-        qDebug() << "[WinEvent]" << eventName
-                << "hwnd=" << Qt::hex << hwnd << Qt::dec
-                << "class=" << QString::fromWCharArray(className)
-                << "title=" << title;
+        // qDebug() << "[WinEvent]" << eventName
+        //         << "hwnd=" << Qt::hex << hwnd << Qt::dec
+        //         << "class=" << QString::fromWCharArray(className)
+        //         << "title=" << title;
     }
 
     if (callback)
