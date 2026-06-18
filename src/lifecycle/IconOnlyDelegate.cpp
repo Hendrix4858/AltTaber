@@ -2,6 +2,7 @@
 #include "WindowTypes.h"
 #include "core/ThemeManager.h"
 #include <QDebug>
+#include <QStyle>
 
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();
@@ -17,15 +18,13 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
 
     auto icon = qvariant_cast<QIcon>(index.data(Qt::DecorationRole));
     if (!icon.isNull()) {
-        QSize target = option.decorationSize;
-        QPixmap pm = icon.pixmap(target);
-        if (pm.size() != target)
-            pm = pm.scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPoint topLeft(
-            option.rect.center().x() - pm.width() / 2,
-            option.rect.center().y() - pm.height() / 2
+        QRect aligned = QStyle::alignedRect(
+            option.direction,
+            Qt::AlignCenter,
+            option.decorationSize,
+            option.rect
         );
-        painter->drawPixmap(topLeft, pm);
+        icon.paint(painter, aligned);
     }
 
     auto windowCount = qvariant_cast<WindowGroup>(index.data(Qt::UserRole)).windows.size();

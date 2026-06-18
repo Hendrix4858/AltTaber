@@ -69,7 +69,8 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
 
     if (totalNeeded > maxWidth) {
         int newGridWidth = maxWidth / m_model->groupCount();
-        int newIconSize = qMax(minIcon, newGridWidth * iconSize / gridWidth);
+        constexpr int kIconPadding = 16;
+        int newIconSize = qMax(minIcon, newGridWidth - kIconPadding);
         if (newIconSize > newGridWidth)
             newIconSize = newGridWidth;
 
