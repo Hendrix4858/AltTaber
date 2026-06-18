@@ -84,6 +84,16 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
         listView->setGridSize({80, 80});
     }
 
+    qDebug().noquote()
+        << "[LayoutDebug]"
+        << "gridSize=" << listView->gridSize()
+        << "iconSize=" << listView->iconSize()
+        << "spacing=" << listView->spacing()
+        << "viewport.margins=" << listView->viewport()->contentsMargins()
+        << "width=" << listView->width()
+        << "height=" << listView->height()
+        << "groupCount=" << m_model->groupCount();
+
     auto firstIndex = m_model->index(0);
     auto firstRect = listView->visualRect(firstIndex);
     auto width = listView->gridSize().width() * m_model->groupCount() + (firstRect.x() - listView->frameWidth());
