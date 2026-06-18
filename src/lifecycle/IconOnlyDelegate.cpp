@@ -25,14 +25,6 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
             option.rect.center().x() - pm.width() / 2,
             option.rect.center().y() - pm.height() / 2
         );
-        qDebug().noquote()
-            << "[IconPaint]"
-            << "row=" << index.row()
-            << "target=" << target
-            << "pm.size=" << pm.size()
-            << "option.rect=" << option.rect
-            << "topLeft=" << topLeft
-            << "drawRect=" << QRect(topLeft, pm.size());
         painter->drawPixmap(topLeft, pm);
     }
 

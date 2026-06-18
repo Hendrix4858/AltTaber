@@ -10,10 +10,8 @@ TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* 
     : QObject(parent), m_groupCycler(cyc), m_windowManager(wm) {}
 
 void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windowCount) {
-    qDebug() << "(Taskbar)Wheel on:" << exePath << forward << windowCount;
     if (exePath.isEmpty()) return;
     if (!windowCount) {
-        qDebug() << "No window for this app";
         return;
     }
 
@@ -32,7 +30,6 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
         auto childPaths = Util::getChildProcessPaths(exePath);
         if (childPaths.isEmpty()) return;
         if (childPaths.size() == 1) {
-            qDebug() << "Try to switch to child process:" << childPaths.first();
             tbOrder = m_windowManager->filteredHwndsForExe(childPaths.first());
         } else {
             qWarning() << "Multiple child processes" << childPaths;
@@ -43,7 +40,6 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             }
             for (auto& path : childPaths) {
                 if (validPaths.contains(path.toLower())) {
-                    qDebug() << "Try to switch to valid child process:" << path;
                     tbOrder = m_windowManager->filteredHwndsForExe(path);
                     break;
                 }
@@ -70,11 +66,9 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
         if (windowCount == 1) {
             if ((hwnd != GetForegroundWindow() || IsIconic(hwnd))) {
                 TaskbarMouseHelper::click();
-                qDebug() << "(Taskbar)Switch by click";
             }
         } else {
             if (HWND thumbnail = Util::getCurrentTaskListThumbnailWnd(); IsWindowVisible(thumbnail)) {
-                qDebug() << "(Taskbar)Press LButton";
                 TaskbarMouseHelper::hold();
                 QTimer::singleShot(20, this, [hwnd]() {
                     Util::switchToWindow(hwnd, true);
@@ -88,7 +82,6 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
                 m_releaseTimer->setInterval(200);
                 connect(m_releaseTimer, &QTimer::timeout, this, [this]() {
                     TaskbarMouseHelper::release();
-                    qDebug() << "(Taskbar)Release LButton";
                     QTimer::singleShot(100, this, []() {
                         if (HWND thumbnail = Util::getCurrentTaskListThumbnailWnd(); IsWindowVisible(thumbnail)) {
                             if (HWND taskbar = FindWindow(L"Shell_TrayWnd", nullptr))
@@ -100,14 +93,10 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             m_releaseTimer->stop();
             m_releaseTimer->start();
         }
-        qDebug() << "(Taskbar)Switch to" << hwnd << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd);
     } else {
         if (auto normal = GroupWindowCycler::rotateToNormalWindow(tbOrder, hwnd, false)) {
-            if (normal != hwnd)
-                qDebug() << "(Taskbar)Skip minimized" << hwnd << "->" << normal;
             hwnd = normal;
             ShowWindow(hwnd, SW_MINIMIZE);
-            qDebug() << "(Taskbar)Minimize" << hwnd << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd);
         }
     }
 

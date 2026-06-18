@@ -3,7 +3,6 @@
 #include "hook/uiautomation.h"
 #include "utils/AppUtil.h"
 #include "utils/Util.h"
-#include <QTime>
 
 namespace { TaskbarWheelHooker* s_instance = nullptr; }
 
@@ -16,17 +15,10 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
         HWND topLevelHwnd = Util::topWindowFromPoint(data->pt);
         if (Util::isTaskbarWindow(topLevelHwnd)) {
             auto delta = (short) HIWORD(data->mouseData);
-            qDebug() << "--- Taskbar Mouse Wheel" << (delta > 0 ? "↑" : "↓")
-                     << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
-                     << "class=" << Util::getClassName(topLevelHwnd)
-                     << "pt=(" << data->pt.x << "," << data->pt.y << ")";
             auto element = UIAutomation::getElementUnderMouse();
-            qDebug() << delta << element.getClassName() << element.getAutomationId() << element.getName();
             if (element.getClassName() == "CEF-OSC-WIDGET") {
-                qDebug() << "detect CEF, walk up to find TaskListButton";
                 element = UIAutomation::findAncestorByClassName(element, "Taskbar.TaskListButtonAutomationPeer");
                 if (!element.isValid()) {
-                    qDebug() << "no Taskbar button ancestor found, skip";
                     return CallNextHookEx(nullptr, nCode, wParam, lParam);
                 }
             }
@@ -68,19 +60,9 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
                 m_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
                 if (m_mouseHook == nullptr)
                     qCritical() << "Failed to install m_mouseHook";
-                else
-                    qDebug() << "Enter Taskbar" << QTime::currentTime()
-                             << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
-                             << "class=" << Util::getClassName(topLevelHwnd);
             } else {
                 UnhookWindowsHookEx(m_mouseHook);
                 m_mouseHook = nullptr;
-                auto pt = Util::getCursorPos();
-                auto className = Util::getClassName(topLevelHwnd);
-                qDebug() << "Leave Taskbar" << QTime::currentTime()
-                         << "hwnd=" << Qt::hex << topLevelHwnd << Qt::dec
-                         << "class=" << className
-                         << "x=" << pt.x << "y=" << pt.y;
                 emit leaveTaskbar();
             }
         }

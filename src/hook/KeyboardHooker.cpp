@@ -50,7 +50,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
         if (keyEvent->flags & LLKHF_INJECTED) {
-            qDebug() << "[KeyHook] Injected event ignored, vkCode=" << keyEvent->vkCode;
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
         }
 
@@ -63,9 +62,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             inst->m_keyRecord.flags = keyEvent->flags;
             inst->m_keyRecord.modifiers = mods;
             inst->m_keyRecord.ready.store(true, std::memory_order_release);
-            qDebug() << "[RecordRaw] post vk=" << keyEvent->vkCode
-                     << "sc=" << keyEvent->scanCode << "flags=" << keyEvent->flags
-                     << "mods=" << mods;
             PostMessageW(inst->m_recorderHwnd, KeyboardHooker::RecordingMessageId, 0, 0);
             return 1;
         }
@@ -77,9 +73,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (!inst) return CallNextHookEx(nullptr, nCode, wParam, lParam);
 
             QString keyName = HotkeyStrings::vkCodeToString(keyEvent->vkCode);
-            qDebug() << "[KeyHook] KeyDown: vk=" << keyEvent->vkCode
-                     << "sc=" << keyEvent->scanCode << "ext=" << ((keyEvent->flags & LLKHF_EXTENDED) != 0)
-                     << "key=" << keyName << "mods=" << mods;
 
             int checkedCount = 0;
             bool overlayVisible = IsWindowVisible(inst->m_ownerHwnd);
@@ -96,9 +89,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     qDebug() << "[KeyHook] skip SwitchProcessWindow (overlay visible)";
                     continue;
                 }
-
-                qDebug() << "[KeyHook] Checking" << hotkeyActionName(it.key())
-                         << "binds=" << it.value().size();
 
                 for (const auto& binding : it.value()) {
                     ++checkedCount;
@@ -169,9 +159,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
     if (nCode == HC_ACTION) {
         auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
-        if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
-            qDebug() << "[KeyHook] ⚠️ Key NOT eaten, falling through to Windows: vk="
-                     << keyEvent->vkCode << "sc=" << keyEvent->scanCode;
+        // if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
     }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
