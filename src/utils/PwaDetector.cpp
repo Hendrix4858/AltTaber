@@ -5,6 +5,7 @@
 #include <QFileInfoList>
 #include <QDebug>
 #include <QDir>
+#include <QImage>
 #include <QFile>
 #include <QStandardPaths>
 #include <QCryptographicHash>
@@ -98,12 +99,8 @@ namespace PwaDetector {
     // prefix, the Chrome AUMID suffix becomes left(10) + right(16) = 26
     // chars. Edge's prefix is 1 char longer, yielding left(9)+right(16)
     // = 25 chars. We insert both keys to cover both browsers.
-    static const QHash<QString, QString>& getDirectoryIndex() {
-        static QHash<QString, QString> index;
-        static bool built = false;
-        if (built) return index;
-        built = true;
-
+    static QHash<QString, QString> buildDirectoryIndex() {
+        QHash<QString, QString> index;
         for (const auto& baseDir : getManifestResourcesDirs()) {
             QDir dir(baseDir);
             if (!dir.exists()) continue;
@@ -118,6 +115,25 @@ namespace PwaDetector {
         return index;
     }
 
+    static const QHash<QString, QString>& getDirectoryIndex(bool forceRefresh = false) {
+        static QHash<QString, QString> index;
+        static bool initialized = false;
+
+        if (!initialized) {
+            index = buildDirectoryIndex();
+            initialized = true;
+            return index;
+        }
+
+        if (forceRefresh) {
+            auto fresh = buildDirectoryIndex();
+            for (auto it = fresh.begin(); it != fresh.end(); ++it)
+                index.insert(it.key(), it.value());
+        }
+
+        return index;
+    }
+
     // Try loading the largest PNG (>=64) from the Manifest Resources directory.
     static QIcon loadPwaIconFromDisk(const QString& appUserModelId) {
         if (appUserModelId.isEmpty() || !appUserModelId.contains("_crx_"))
@@ -129,8 +145,13 @@ namespace PwaDetector {
 
         const auto& dirIndex = getDirectoryIndex();
         auto it = dirIndex.find(crxId);
-        if (it == dirIndex.end())
-            return {};
+        if (it == dirIndex.end()) {
+            // PWA directory might not have existed at init time → retry once
+            const auto& refreshed = getDirectoryIndex(true);
+            it = refreshed.find(crxId);
+            if (it == refreshed.end())
+                return {};
+        }
 
         QDir iconsDir(it.value() + "/Icons");
         if (!iconsDir.exists())
@@ -139,10 +160,17 @@ namespace PwaDetector {
         auto files = iconsDir.entryInfoList({"*.png"}, QDir::Files, QDir::NoSort);
         QFileInfo best;
         int bestDim = 0;
+        // Prefer 64, otherwise pick the largest available
         for (const auto& fi : files) {
             bool ok;
             int dim = fi.baseName().toInt(&ok);
-            if (ok && dim >= 64 && dim > bestDim) {
+            if (!ok) continue;
+            if (dim == 64) {
+                best = fi;
+                bestDim = 64;
+                break;
+            }
+            if (dim > bestDim) {
                 bestDim = dim;
                 best = fi;
             }
@@ -153,6 +181,22 @@ namespace PwaDetector {
         QIcon icon(best.absoluteFilePath());
         if (icon.isNull())
             return {};
+
+        // Debug: check if PNG is actually transparent
+        QImage img(best.absoluteFilePath());
+        if (!img.isNull()) {
+            int opaque = 0;
+            int sw = qMin(img.width(), 64);
+            int sh = qMin(img.height(), 64);
+            for (int y = 0; y < sh; ++y)
+                for (int x = 0; x < sw; ++x)
+                    if (qAlpha(img.pixel(x, y)) > 0)
+                        opaque++;
+            qDebug().noquote() << "[PwaDetector] icon check:"
+                     << best.fileName() << best.absoluteFilePath()
+                     << "img=" << img.size()
+                     << "opaque=" << (opaque * 100 / (sw * sh)) << "%";
+        }
 
         QPixmap pm = icon.pixmap(icon.availableSizes().value(0, QSize(0,0)));
         qDebug().noquote() << "[PwaDetector] manifest icon:"
@@ -172,6 +216,9 @@ namespace PwaDetector {
 
             // Try Manifest Resources on disk FIRST (Chromium/Chrome/Edge PWAs)
             QIcon manifestIcon = loadPwaIconFromDisk(appUserModelId);
+            if (manifestIcon.isNull())
+                qDebug().noquote() << "[IconFallback] ManifestResources miss"
+                         << "aumid=" << appUserModelId;
             if (!manifestIcon.isNull()) {
                 memCache.insert(appUserModelId, manifestIcon);
                 QDir().mkpath(cfg().getIconCacheDirectory() + "/icons");
@@ -199,6 +246,13 @@ namespace PwaDetector {
             }
         }
 
+        // WindowsAppModel (!App) PWA: WM_GETICON returns transparent placeholder at early stage.
+        // Edge uses SetAppIconForWindow (async), not WM_SETICON → ICON_BIG is never reliable.
+        // Fall back to browser exe icon directly.
+        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel)
+            return Util::getCachedIcon(fallbackExePath, hwnd);
+
+        // ChromiumCrx / other: normal getWindowIcon + getCachedIcon chain
         QPixmap pix = Util::getWindowIcon(hwnd);
         if (!pix.isNull()) {
             QIcon icon(pix);
