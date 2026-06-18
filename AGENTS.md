@@ -1,6 +1,6 @@
 # AGENTS.md — AltTaber (Win_Switcher)
 
-Qt 6 C++20 Windows Alt+Tab switcher. Single executable, no tests, no CI.
+Qt 6 C++20 Windows Alt+Tab switcher. Single executable, tests in `tests/`, CI via GitHub Actions.
 
 ## Build & Run
 
@@ -12,9 +12,9 @@ cmake --build build/ai
 ```
 
 - **Requires**: CMake ≥3.29, MSVC 2022, Qt 6 (Core, Gui, Widgets, Xml, Network)
-- **MSVC flag**: `/utf-8` is forced on MSVC (`CMakeLists.txt:130`)
+- **MSVC flag**: `/utf-8` is forced on MSVC (`CMakeLists.txt:211`)
 - **Debug**: keep console for qDebug output; **Release**: `WIN32_EXECUTABLE=ON` → no console
-- **Links**: `Dwmapi.lib`
+- **Links**: `Dwmapi.lib`, `Propsys.lib`, `windowsapp.lib`
 
 ### Release (multi-arch portable zip + installer)
 
@@ -78,10 +78,20 @@ cmake --build "build/ai/x64" --target installer    # build → windeployqt → I
 - **`Widget`** — Overlay QWidget. State machine: Hidden→Showing→Visible→Hiding. Handles key events, wheel, paint with acrylic blur.
 - **`WindowManager`** — Builds window group list, MRU activation tracking, group window rotation.
 - **`WindowGroupModel`** — `QAbstractListModel` feeding a `QListView`.
+- **`OverlayController`** — Coordinates overlay show/hide state transitions and input routing.
+- **`SelectionController`** — Handles visual selection highlight and directional navigation.
+- **`GroupWindowCycler`** — Rotates windows within a selected app group.
+- **`TaskbarWindowCycler`** — Rotates windows per app when hovering taskbar and using mouse wheel.
 - **`KeyboardHooker`** — WH_KEYBOARD_LL, emits `hotkeyTriggered(action, modifiers)` and `altReleased()`. Uses `Qt::QueuedConnection`.
+- **`TaskbarWheelHooker`** — WH_MOUSE_LL hook for taskbar wheel rotation.
+- **`HotkeyRecorder`** — Captures and validates user-defined hotkey combos in settings.
+- **`HotkeyConflictResolver`** — Detects and resolves binding conflicts.
 - **`ConfigManager`** — Singleton via `cfg()`. Config file: **`config.json`** (JSON, not `config.ini` as the README claims). Path: `%APPDATA%\MrBeanCpp\AltTaber\config.json`.
 - **`SystemTray`** — Singleton via `sysTray()`. Menu: Update, Settings, Pause, Restart as Admin, Startup, Display Monitor, Quit.
 - **`ThemeManager`** — Dark/Light/System. Reads Windows registry for System theme detection.
+- **`Application`** — QApplication subclass; owns all services, handles session management and WinEvent filtering.
+- **`HotkeyService`** — Manages dynamic hotkey re-injection after config changes.
+- **`UpdateService`** — Checks GitHub releases, downloads and installs updates.
 
 ## Hotkey System
 
@@ -134,5 +144,5 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 - **AppId** must remain `AltTaber.MrBeanCpp` forever for Inno upgrade detection.
 - **Project target** is `Win_Switcher`; **output binary** is `AltTaber.exe`
 - **Icon cache** (`IconCacheDirectory` config) needs deletion if `icon.ico` changes on disk (Windows caches aggressively); referenced in comment at `CMakeLists.txt:21`
-- **No tests, no CI, no linters, no formatters** — manual testing only
+- **No linters, no formatters** — manual testing only
 - **Admin elevation**: `ShellExecuteW(..., L"runas", ...)` re-launches; auto-start uses Scheduled Task (admin) vs Registry (non-admin) via `Startup.h`
