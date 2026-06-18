@@ -24,12 +24,15 @@ jobs:
             preset: release-x64
             qt_env_var: QT_DIR_X64
           - arch: arm64
-            qt_arch: win64_msvc2022_arm64
+            qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+
+      - name: List available Qt architectures
+        run: python -m aqt list-qt windows desktop --arch ${{ env.QT_VERSION }}
 
       - name: Install Qt ${{ env.QT_VERSION }} (${{ matrix.qt_arch }})
         uses: jurplel/install-qt-action@v4
@@ -61,7 +64,7 @@ jobs:
             preset: release-x64
             qt_env_var: QT_DIR_X64
           - arch: arm64
-            qt_arch: win64_msvc2022_arm64
+            qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
     runs-on: windows-2022
