@@ -100,6 +100,7 @@ public:
 
     void setPaused(bool paused) {
         set("Paused", paused);
+        sync();
     }
 
     bool getPwaEnabled() {

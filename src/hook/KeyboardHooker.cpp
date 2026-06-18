@@ -46,8 +46,24 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         KeyboardHooker::updateModifierState(inst->m_modState, wParam, keyEvent->vkCode);
 
-        if (inst->m_paused)
+        if (inst->m_paused) {
+            // When paused, only process TogglePause so the user can unpause
+            if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN) {
+                Qt::KeyboardModifiers mods = KeyboardHooker::toQtModifiers(inst->m_modState);
+                auto it = inst->m_bindings.find(HotkeyAction::TogglePause);
+                if (it != inst->m_bindings.end()) {
+                    for (const auto& binding : it.value()) {
+                        if (binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
+                                                    (keyEvent->flags & LLKHF_EXTENDED) != 0, mods)) {
+                            qInfo() << "[KeyHook] paused emit TogglePause";
+                            emit inst->hotkeyTriggered(it.key(), mods);
+                            return 1;
+                        }
+                    }
+                }
+            }
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
+        }
 
         if (keyEvent->flags & LLKHF_INJECTED) {
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
