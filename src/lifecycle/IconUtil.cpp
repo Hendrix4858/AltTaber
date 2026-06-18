@@ -289,7 +289,7 @@ namespace Util {
         if (FAILED(hr) || !imgFactory) return {};
 
         HBITMAP hBitmap = nullptr;
-        SIZE sz = {64, 64};
+        SIZE sz = {256, 256};
         hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
         if (FAILED(hr) || !hBitmap) return {};
 
