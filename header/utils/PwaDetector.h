@@ -6,7 +6,15 @@
 #include <QIcon>
 
 namespace PwaDetector {
+
+    enum class PwaType {
+        None,
+        ChromiumCrx,
+        WindowsAppModel
+    };
+
     QString getAppUserModelId(HWND hwnd);
+    PwaType detectPwaType(const QString& processPath, const QString& appUserModelId);
     bool isPwaWindow(const QString& processPath, const QString& appUserModelId);
     QIcon getPwaIcon(HWND hwnd, const QString& appUserModelId, const QString& fallbackExePath);
 }

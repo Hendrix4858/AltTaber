@@ -36,13 +36,30 @@ namespace PwaDetector {
         return aumid;
     }
 
-    bool isPwaWindow(const QString& processPath, const QString& appUserModelId) {
-        if (appUserModelId.isEmpty()) return false;
-        if (!appUserModelId.contains("_crx_")) return false;
+    PwaType detectPwaType(const QString& processPath, const QString& appUserModelId) {
+        if (appUserModelId.isEmpty()) return PwaType::None;
 
         QString processName = QFileInfo(processPath).fileName().toLower();
-        return processName == "chrome.exe" || processName == "msedge.exe"
-            || processName == "chromium.exe";
+        bool knownBrowser = processName == "chrome.exe" || processName == "msedge.exe"
+                         || processName == "chromium.exe";
+        if (!knownBrowser) return PwaType::None;
+
+        if (appUserModelId.contains("_crx_"))
+            return PwaType::ChromiumCrx;
+
+        // Edge Windows AppModel PWA: gemini.google.com-D0A8E439_vn3jms8s81tkg!App
+        if (processName == "msedge.exe"
+            && appUserModelId.endsWith("!App")
+            && appUserModelId.contains('.'))
+        {
+            return PwaType::WindowsAppModel;
+        }
+
+        return PwaType::None;
+    }
+
+    bool isPwaWindow(const QString& processPath, const QString& appUserModelId) {
+        return detectPwaType(processPath, appUserModelId) != PwaType::None;
     }
 
     static QString extractCrxId(const QString& aumid) {
