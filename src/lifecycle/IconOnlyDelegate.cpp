@@ -1,6 +1,7 @@
 #include "lifecycle/IconOnlyDelegate.h"
 #include "WindowTypes.h"
 #include "core/ThemeManager.h"
+#include <QDebug>
 
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();
@@ -20,9 +21,19 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         QPixmap pm = icon.pixmap(target);
         if (pm.size() != target)
             pm = pm.scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QRect iconRect{QPoint(0, 0), pm.size()};
-        iconRect.moveCenter(option.rect.center());
-        painter->drawPixmap(iconRect, pm);
+        QPoint topLeft(
+            option.rect.center().x() - pm.width() / 2,
+            option.rect.center().y() - pm.height() / 2
+        );
+        qDebug().noquote()
+            << "[IconPaint]"
+            << "row=" << index.row()
+            << "target=" << target
+            << "pm.size=" << pm.size()
+            << "option.rect=" << option.rect
+            << "topLeft=" << topLeft
+            << "drawRect=" << QRect(topLeft, pm.size());
+        painter->drawPixmap(topLeft, pm);
     }
 
     auto windowCount = qvariant_cast<WindowGroup>(index.data(Qt::UserRole)).windows.size();
@@ -43,4 +54,10 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         painter->setPen(colors.badgeText);
         painter->drawText(badgeRect, Qt::AlignCenter, text);
     }
+}
+
+QSize IconOnlyDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const {
+    Q_UNUSED(option);
+    Q_UNUSED(index);
+    return QSize(80, 80);
 }
