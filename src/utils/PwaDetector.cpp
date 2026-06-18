@@ -246,11 +246,20 @@ namespace PwaDetector {
             }
         }
 
-        // WindowsAppModel (!App) PWA: WM_GETICON returns transparent placeholder at early stage.
-        // Edge uses SetAppIconForWindow (async), not WM_SETICON → ICON_BIG is never reliable.
-        // Fall back to browser exe icon directly.
-        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel)
+        // WindowsAppModel (!App) PWA: get icon from Shell AppsFolder, fall back to exe icon.
+        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel) {
+            QPixmap shellPix = Util::getShellAppIcon(hwnd);
+            if (!shellPix.isNull()) {
+                QIcon icon(shellPix);
+                if (!appUserModelId.isEmpty()) {
+                    memCache.insert(appUserModelId, icon);
+                    QDir().mkpath(cfg().getIconCacheDirectory() + "/icons");
+                    icon.pixmap(shellPix.size()).save(cachePath, "PNG");
+                }
+                return icon;
+            }
             return Util::getCachedIcon(fallbackExePath, hwnd);
+        }
 
         // ChromiumCrx / other: normal getWindowIcon + getCachedIcon chain
         QPixmap pix = Util::getWindowIcon(hwnd);

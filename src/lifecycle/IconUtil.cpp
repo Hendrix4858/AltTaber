@@ -1,4 +1,6 @@
 #include "lifecycle/IconUtil.h"
+#include "utils/PwaDetector.h"
+
 #include <QDebug>
 #include <QFileInfo>
 #include <QFileIconProvider>
@@ -11,6 +13,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDateTime>
+#include <QImage>
 #include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
 #include "utils/WindowUtil.h"
@@ -24,7 +27,6 @@
 #include <winrt/Windows.Management.Deployment.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
-
 namespace Util {
     QIcon getJumboIcon(const QString& filePath) {
         SHFILEINFOW sfi = {nullptr};
@@ -267,6 +269,33 @@ namespace Util {
         if (!hIcon)
             hIcon = reinterpret_cast<HICON>(GetClassLongPtr(hwnd, GCLP_HICON));
         return QtWin::fromHICON(hIcon);
+    }
+
+    QPixmap getShellAppIcon(HWND hwnd) {
+        QString aumid = PwaDetector::getAppUserModelId(hwnd);
+        if (aumid.isEmpty()) return {};
+
+        // AppsFolder namespace: shell:AppsFolder\<AUMID>
+        QString path = QStringLiteral("shell:AppsFolder\\") + aumid;
+        CComPtr<IShellItem> shellItem;
+        HRESULT hr = SHCreateItemFromParsingName(
+            reinterpret_cast<const wchar_t*>(path.utf16()),
+            nullptr,
+            IID_PPV_ARGS(&shellItem));
+        if (FAILED(hr) || !shellItem) return {};
+
+        CComPtr<IShellItemImageFactory> imgFactory;
+        hr = shellItem->QueryInterface(IID_PPV_ARGS(&imgFactory));
+        if (FAILED(hr) || !imgFactory) return {};
+
+        HBITMAP hBitmap = nullptr;
+        SIZE sz = {256, 256};
+        hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
+        if (FAILED(hr) || !hBitmap) return {};
+
+        QImage img = QImage::fromHBITMAP(hBitmap);
+        DeleteObject(hBitmap);
+        return QPixmap::fromImage(img);
     }
 
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {
