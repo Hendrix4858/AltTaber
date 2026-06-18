@@ -46,6 +46,12 @@ en.AppRunningMsg=AltTaber is running. Please close it first.
 zh.AppRunningMsg=AltTaber 正在运行，请先关闭它。
 en.AppStillRunning=Still running. Click Retry after closing, or Cancel to abort.
 zh.AppStillRunning=仍在运行。关闭后请点"重试"，或点"取消"中止。
+en.GracefulCloseMsg=Close AltTaber automatically? (Recommended)
+zh.GracefulCloseMsg=是否自动关闭 AltTaber？（推荐）
+en.ForceKillMsg=Forcefully terminate AltTaber? (May cause data loss)
+zh.ForceKillMsg=是否强制终止 AltTaber？（可能导致数据丢失）
+en.KillFailedMsg=Failed to terminate AltTaber. Please close it manually.
+zh.KillFailedMsg=无法终止 AltTaber。请手动关闭。
 en.DeleteConfig=Delete configuration and settings?
 zh.DeleteConfig=删除配置和设置？
 
@@ -68,6 +74,14 @@ Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent
 Type: filesandordirs; Name: "{app}\*"
 
 [Code]
+const
+  WM_CLOSE = $0010;
+
+function PostMessage(hWnd: Integer; Msg: DWORD; wParam: DWORD; lParam: Integer): Boolean;
+  external 'PostMessageW@user32.dll stdcall';
+function GetTickCount: DWORD;
+  external 'GetTickCount@kernel32.dll stdcall';
+
 function CmdLineParamExists(const Param: string): Boolean;
 var
   i: Integer;
@@ -86,16 +100,109 @@ begin
   Result := FindWindowByWindowName('AltTaber') <> 0;
 end;
 
-function PrepareToInstall(var NeedsRestart: Boolean): String;
+function WaitForAppExit(TimeoutMs: Integer): Boolean;
+var
+  Start: DWORD;
 begin
-  Result := '';
+  Start := GetTickCount;
   while IsAppRunning do begin
-    if MsgBox(CustomMessage('AppRunningMsg') + #13#10 + CustomMessage('AppStillRunning'),
-              mbConfirmation, MB_RETRYCANCEL) = IDCANCEL then begin
-      Result := 'Setup was cancelled by the user.';
+    Sleep(200);
+    if (GetTickCount - Start) > TimeoutMs then begin
+      Result := False;
       Exit;
     end;
   end;
+  Result := True;
+end;
+
+// GracefulStopApp uses a layered approach:
+//   1) Post WM_CLOSE to trigger Qt aboutToQuit + destructors
+//   2) If still running: taskkill without /f (allows cleanup)
+//   3) Returns False if app is still alive after both attempts
+function GracefulStopApp: Boolean;
+var
+  hWnd: Integer;
+  ResultCode: Integer;
+begin
+  // Step 1: Send WM_CLOSE — triggers Qt event loop to quit gracefully
+  hWnd := FindWindowByWindowName('AltTaber');
+  if hWnd <> 0 then begin
+    PostMessage(hWnd, WM_CLOSE, 0, 0);
+    if WaitForAppExit(4000) then begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  // Step 2: taskkill without /f — allows process to clean up resources
+  if Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM AltTaber.exe', '',
+          SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0) then begin
+    if WaitForAppExit(3000) then begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  Result := False;
+end;
+
+// ForceKillApp last resort: taskkill /f — only used when graceful close fails
+function ForceKillApp: Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM AltTaber.exe', '',
+                 SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  if Result then
+    WaitForAppExit(3000);
+end;
+
+// Escalating prompt loop:
+//   Retry  — user says they closed it, re-check
+//   Cancel → offer automatic close → GracefulStopApp
+//         → if that fails, offer force kill → ForceKillApp
+function PromptAndKillLoop: Boolean;
+begin
+  Result := False;
+  while IsAppRunning do begin
+    case MsgBox(CustomMessage('AppRunningMsg') + #13#10 + CustomMessage('AppStillRunning'),
+                mbConfirmation, MB_RETRYCANCEL) of
+      IDRETRY:
+        begin
+          // User closed it manually; re-check
+        end;
+      IDCANCEL:
+        begin
+          // Level 1: Suggest automatic graceful close
+          if MsgBox(CustomMessage('GracefulCloseMsg'), mbConfirmation, MB_YESNO) = IDYES then begin
+            if GracefulStopApp then begin
+              Result := True;
+              Exit;
+            end;
+            // Level 2: Graceful close failed — offer force kill as last resort
+            if MsgBox(CustomMessage('ForceKillMsg'), mbConfirmation, MB_YESNO) = IDYES then begin
+              if ForceKillApp then begin
+                Result := True;
+                Exit;
+              end else begin
+                MsgBox(CustomMessage('KillFailedMsg'), mbError, MB_OK);
+              end;
+            end;
+          end;
+          Exit;
+        end;
+    end;
+  end;
+  Result := True;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if not IsAppRunning then
+    Exit;
+  if not PromptAndKillLoop then
+    Result := 'Setup was cancelled by the user.';
 end;
 
 procedure BackupAndWriteMarker;
@@ -151,13 +258,11 @@ end;
 function InitializeUninstall: Boolean;
 begin
   Result := True;
-  while IsAppRunning do begin
-    if MsgBox(CustomMessage('AppRunningMsg') + #13#10 + CustomMessage('AppStillRunning'),
-              mbConfirmation, MB_RETRYCANCEL) = IDCANCEL then begin
-      Result := False;
-      Exit;
-    end;
-  end;
+  if not IsAppRunning then
+    Exit;
+  if not PromptAndKillLoop then
+    Result := False;
+
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
