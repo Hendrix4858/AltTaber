@@ -30,6 +30,7 @@ private:
     QAction* m_updateAction = nullptr;
     QAction* m_settingsAction = nullptr;
     QAction* m_pauseAction = nullptr;
+    QAction* m_restartAction = nullptr;
     QAction* m_restartAdminAction = nullptr;
     QMenu* m_monitorMenu = nullptr;
     QActionGroup* m_monitorGroup = nullptr;

@@ -128,6 +128,17 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 - Run `lupdate` manually: `cmake --build build/ai --target Win_Switcher_lupdate`
 - `lrelease` runs automatically on every build via CMake pre-build command
 
+### Workflow: Adding new `tr()` strings (e.g. new tray menu item)
+
+1. Edit C++ code to add `tr("NewString")` and connect signals
+2. Run `lupdate` **before** editing the `.ts` file:
+   ```
+   cmake --build build/ai --target Win_Switcher_lupdate
+   ```
+   This auto-generates `<message>` entries with correct `<location>` line numbers
+3. Open `translations/zh_CN.ts`, find the new `<source>NewString</source>`, fill in `<translation>` with the Chinese translation
+4. Rebuild — `lrelease` runs automatically as a pre-build step
+
 ## Style & Conventions
 
 - `Q_OBJECT` in every QObject subclass (MOC enabled via `CMAKE_AUTOMOC`)

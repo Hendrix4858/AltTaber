@@ -33,6 +33,7 @@ void SystemTray::retranslateMenu() {
     m_updateAction->setText(tr("Check for Updates"));
     m_settingsAction->setText(tr("Settings"));
     m_pauseAction->setText(tr("Pause"));
+    m_restartAction->setText(tr("Restart"));
     m_restartAdminAction->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
     m_monitorMenu->setTitle(tr("Display Monitor"));
     auto actions = m_monitorGroup->actions();
@@ -61,6 +62,7 @@ void SystemTray::setMenu(QWidget* parent) {
     m_settingsAction = new QAction(m_menu);
     m_pauseAction = new QAction(m_menu);
     m_pauseAction->setCheckable(true);
+    m_restartAction = new QAction(m_menu);
     m_restartAdminAction = new QAction(m_menu);
     m_monitorMenu = new QMenu(m_menu);
     m_quitAction = new QAction(m_menu);
@@ -99,6 +101,13 @@ void SystemTray::setMenu(QWidget* parent) {
     connect(m_pauseAction, &QAction::triggered, this, [this](bool checked) {
         cfg().setPaused(checked);
         this->showMessage(tr("Pause"), checked ? tr("ON \xE2\x9C\x93") : tr("OFF \xC3\x97"));
+    });
+
+    connect(m_restartAction, &QAction::triggered, this, [] {
+        QString appPath = QApplication::applicationFilePath();
+        ShellExecuteW(nullptr, nullptr, (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
+        QuitReason::markIntentional();
+        QApplication::quit();
     });
 
     connect(m_menu, &QMenu::aboutToShow, this, [this] {
@@ -145,6 +154,7 @@ void SystemTray::setMenu(QWidget* parent) {
     m_menu->addAction(m_settingsAction);
     m_menu->addSeparator();
     m_menu->addAction(m_pauseAction);
+    m_menu->addAction(m_restartAction);
     m_menu->addSeparator();
     m_menu->addAction(m_restartAdminAction);
     m_menu->addMenu(m_monitorMenu);

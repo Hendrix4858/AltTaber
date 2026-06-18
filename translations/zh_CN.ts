@@ -740,24 +740,29 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
     </message>
     <message>
         <location filename="../src/lifecycle/SystemTray.cpp" line="35"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="101"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
     <message>
         <location filename="../src/lifecycle/SystemTray.cpp" line="36"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="108"/>
+        <source>Restart</source>
+        <translation>重新打开</translation>
+    </message>
+    <message>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="37"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="117"/>
         <source>Running as Administrator</source>
         <translation>当前为管理员</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="36"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="108"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="37"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="117"/>
         <source>Restart as Administrator</source>
         <translation>以管理员身份重新启动</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="37"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="38"/>
         <source>Display Monitor</source>
         <translation>显示监视器</translation>
     </message>
@@ -777,17 +782,17 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
         <translation>退出 &gt;</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="101"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
         <source>ON ✓</source>
         <translation>已开 ✓</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="101"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
         <source>OFF ×</source>
         <translation>已关 ×</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="135"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="144"/>
         <source>Display Monitor Changed</source>
         <translation>显示监视器已更改</translation>
     </message>
