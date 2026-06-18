@@ -116,19 +116,24 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             // Overlay key routing: when overlay is visible, intercept overlay-scoped
             // keys and forward via dedicated signal to prevent Windows from processing
             // them (e.g. Tab changing focus) before the widget receives them
+            // Strip activation modifiers (e.g. Alt held to show overlay) so that
+            // custom bindings like Left→CycleBackward work even while Alt is held.
             {
                 bool overlayVisible = IsWindowVisible(inst->m_ownerHwnd);
                 if (overlayVisible) {
+                    Qt::KeyboardModifiers effectiveMods = mods;
+                    if (inst->m_waitingForModifierRelease)
+                        effectiveMods = mods & ~inst->m_activationModifiers;
                     for (auto it = inst->m_bindings.begin();
                          it != inst->m_bindings.end(); ++it) {
                         if (hotkeyActionScope(it.key()) != HotkeyScope::Overlay)
                             continue;
                         for (const auto& b : it.value()) {
                             if (b.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
-                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, mods)) {
+                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, effectiveMods)) {
                                 qInfo() << "[KeyHook] overlay-key-routing ->"
                                         << hotkeyActionName(it.key());
-                                emit inst->overlayKeyTriggered(it.key(), mods);
+                                emit inst->overlayKeyTriggered(it.key(), effectiveMods);
                                 return 1;
                             }
                         }
