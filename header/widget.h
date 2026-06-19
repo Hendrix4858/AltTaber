@@ -28,6 +28,7 @@ protected:
     void keyReleaseEvent(QKeyEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
     void hideEvent(QHideEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 public:
     explicit Widget(WindowManager* wm, QWidget* parent = nullptr);

@@ -59,7 +59,7 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -76,7 +76,31 @@ Type: filesandordirs; Name: "{app}\*"
 [Code]
 const
   WM_CLOSE = $0010;
+  TH32CS_SNAPPROCESS = $00000002;
+  INVALID_HANDLE_VALUE = -1;
 
+type
+  TProcessEntry32 = record
+    dwSize: DWORD;
+    cntUsage: DWORD;
+    th32ProcessID: DWORD;
+    th32DefaultHeapID: DWORD;
+    th32ModuleID: DWORD;
+    cntThreads: DWORD;
+    th32ParentProcessID: DWORD;
+    pcPriClassBase: Long;
+    dwFlags: DWORD;
+    szExeFile: array[0..259] of Char;
+  end;
+
+function CreateToolhelp32Snapshot(dwFlags: DWORD; th32ProcessID: DWORD): Long;
+  external 'CreateToolhelp32Snapshot@kernel32.dll stdcall';
+function Process32First(hSnapshot: Long; var lppe: TProcessEntry32): Boolean;
+  external 'Process32FirstW@kernel32.dll stdcall';
+function Process32Next(hSnapshot: Long; var lppe: TProcessEntry32): Boolean;
+  external 'Process32NextW@kernel32.dll stdcall';
+function CloseHandle(hObject: Long): Boolean;
+  external 'CloseHandle@kernel32.dll stdcall';
 function PostMessage(hWnd: Integer; Msg: DWORD; wParam: DWORD; lParam: Integer): Boolean;
   external 'PostMessageW@user32.dll stdcall';
 function GetTickCount: DWORD;
@@ -96,8 +120,24 @@ begin
 end;
 
 function IsAppRunning: Boolean;
+var
+  hSnap: Long;
+  pe: TProcessEntry32;
 begin
-  Result := FindWindowByWindowName('AltTaber') <> 0;
+  Result := False;
+  hSnap := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if hSnap = INVALID_HANDLE_VALUE then
+    Exit;
+  pe.dwSize := SizeOf(pe);
+  if Process32First(hSnap, pe) then begin
+    repeat
+      if CompareText(pe.szExeFile, 'AltTaber.exe') = 0 then begin
+        Result := True;
+        Break;
+      end;
+    until not Process32Next(hSnap, pe);
+  end;
+  CloseHandle(hSnap);
 end;
 
 function WaitForAppExit(TimeoutMs: Integer): Boolean;

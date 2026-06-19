@@ -13,6 +13,9 @@
 #include "utils/setWindowBlur.h"
 #include "lifecycle/IconOnlyDelegate.h"
 #include "lifecycle/QtWin.h"
+#include "core/QuitReason.h"
+#include <QApplication>
+#include <QCloseEvent>
 #include <QDebug>
 #include <QWindow>
 #include <QScreen>
@@ -206,6 +209,12 @@ void Widget::keyReleaseEvent(QKeyEvent* event) {
 void Widget::hideEvent(QHideEvent* event) {
     m_overlayCtrl->setStayOpenMode(false);
     QWidget::hideEvent(event);
+}
+
+void Widget::closeEvent(QCloseEvent* event) {
+    QuitReason::markIntentional();
+    QApplication::quit();
+    event->accept();
 }
 
 void Widget::paintEvent(QPaintEvent*) {
