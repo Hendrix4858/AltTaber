@@ -10,6 +10,7 @@
 #include <QJsonObject>
 #include <QFile>
 #include <QFileInfo>
+#include <algorithm>
 #include <windows.h>
 
 BlockedWindowManager::BlockedWindowManager(ConfigManager* config, QTableWidget* table,
@@ -62,8 +63,17 @@ void BlockedWindowManager::addFromDialog() {
 }
 
 void BlockedWindowManager::removeSelected() {
-    int row = m_table->currentRow();
-    if (row >= 0)
+    auto selected = m_table->selectionModel()->selectedRows();
+    if (selected.isEmpty())
+        return;
+
+    QList<int> rows;
+    for (const auto& idx : selected)
+        rows.append(idx.row());
+
+    std::sort(rows.begin(), rows.end(), std::greater<int>());
+
+    for (int row : rows)
         m_table->removeRow(row);
 }
 

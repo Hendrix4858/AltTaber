@@ -49,6 +49,7 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     ui->blockedTable->horizontalHeader()->setStretchLastSection(false);
     ui->blockedTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->blockedTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui->blockedTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     m_blockedMgr = new BlockedWindowManager(config, ui->blockedTable,
                                             ui->btnAddBlocked, ui->btnRemoveBlocked, this);
