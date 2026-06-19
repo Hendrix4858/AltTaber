@@ -11,7 +11,9 @@ WindowDescriptor WindowDescriptorBuilder::fromHwnd(HWND hwnd) {
     desc.processPath = Util::getWindowProcessPath(hwnd);
     desc.processName = QFileInfo(desc.processPath).fileName();
     desc.appUserModelId = PwaDetector::getAppUserModelId(hwnd);
-    if (PwaDetector::isPwaWindow(desc.processPath, desc.appUserModelId))
+    if (PwaDetector::isPwaWindow(desc.processPath, desc.appUserModelId)) {
         desc.windowKind = WindowKind::Pwa;
+        desc.pwaDisplayName = PwaDetector::getPwaDisplayName(desc.appUserModelId);
+    }
     return desc;
 }

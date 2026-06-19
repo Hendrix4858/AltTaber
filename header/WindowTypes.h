@@ -5,6 +5,7 @@
 #include <QString>
 #include <QIcon>
 #include <QList>
+#include <QSet>
 #include <QDebug>
 #include <QDateTime>
 #include <QMetaType>
@@ -20,6 +21,7 @@ struct WindowInfo {
     QString appUserModelId;
     HWND hwnd = nullptr;
     WindowKind windowKind = WindowKind::Normal;
+    QString pwaDisplayName;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowInfo& info) {
@@ -37,6 +39,7 @@ struct WindowDescriptor {
     QString appUserModelId;
     HWND hwnd = nullptr;
     WindowKind windowKind = WindowKind::Normal;
+    QString pwaDisplayName;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowDescriptor& desc) {
@@ -55,6 +58,14 @@ struct WindowGroup {
     QString exePath;
     QIcon icon;
     QList<WindowInfo> windows;
+
+    QString displayName;
+
+    QSet<QChar> fileDescriptionTokens;
+    QSet<QChar> pwaNameTokens;
+    QSet<QChar> titleTokens;
+    QSet<QChar> processNameTokens;
+    QSet<QChar> allJumpTokens;
 };
 
 Q_DECLARE_METATYPE(WindowGroup)

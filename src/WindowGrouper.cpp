@@ -7,6 +7,50 @@
 
 namespace WindowGrouper {
 
+    namespace {
+
+        void populateFileDescriptionTokens(WindowGroup& group) {
+            QString name = Util::getFileDescription(group.exePath);
+            if (name.isEmpty()) return;
+            QChar fl = Util::getDisplayFirstLetter(name);
+            if (!fl.isNull())
+                group.fileDescriptionTokens.insert(fl);
+        }
+
+        void populatePwaTokens(WindowGroup& group) {
+            for (const auto& win : group.windows) {
+                if (win.pwaDisplayName.isEmpty()) continue;
+                QChar fl = Util::getDisplayFirstLetter(win.pwaDisplayName);
+                if (!fl.isNull())
+                    group.pwaNameTokens.insert(fl);
+            }
+        }
+
+        void populateTitleTokens(WindowGroup& group) {
+            for (const auto& win : group.windows) {
+                if (win.title.isEmpty()) continue;
+                QChar fl = Util::getDisplayFirstLetter(win.title);
+                if (!fl.isNull())
+                    group.titleTokens.insert(fl);
+            }
+        }
+
+        void populateProcessNameTokens(WindowGroup&) {
+            // Reserved for future use
+        }
+
+        void populateJumpTokens(WindowGroup& group) {
+            populateFileDescriptionTokens(group);
+            populatePwaTokens(group);
+            populateTitleTokens(group);
+            populateProcessNameTokens(group);
+
+            group.allJumpTokens = group.fileDescriptionTokens
+                                | group.pwaNameTokens;
+        }
+
+    } // anonymous namespace
+
     QList<WindowGroup> groupWindows(const QList<WindowDescriptor>& windows,
                                     const ActivationHistory* history,
                                     HWND selfHwnd) {
@@ -24,19 +68,25 @@ namespace WindowGrouper {
             if (separateGroups && desc.windowKind == WindowKind::Pwa)
                 groupKey = desc.appUserModelId;
 
+            WindowInfo winInfo{desc.title, desc.className, desc.appUserModelId,
+                               desc.hwnd, desc.windowKind, desc.pwaDisplayName};
+
             if (auto it = indexMap.find(groupKey); it != indexMap.end()) {
-                result[it.value()].addWindow(
-                    {desc.title, desc.className, desc.appUserModelId, desc.hwnd, desc.windowKind});
+                result[it.value()].addWindow(winInfo);
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
                 if (desc.windowKind == WindowKind::Pwa && separateGroups) {
                     group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
+                    group.displayName = desc.pwaDisplayName;
                 } else {
                     group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
                 }
-                group.addWindow(
-                    {desc.title, desc.className, desc.appUserModelId, desc.hwnd, desc.windowKind});
+                if (group.displayName.isEmpty())
+                    group.displayName = Util::getFileDescription(desc.processPath);
+
+                group.addWindow(winInfo);
+                populateJumpTokens(group);
                 indexMap[groupKey] = result.size();
                 result.append(group);
             }

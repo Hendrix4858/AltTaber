@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <propsys.h>
 #include <propkey.h>
+#include <shobjidl.h>
 
 namespace PwaDetector {
 
@@ -269,6 +270,41 @@ namespace PwaDetector {
         }
 
         return Util::getCachedIcon(fallbackExePath, hwnd);
+    }
+
+    QString getPwaDisplayName(const QString& appUserModelId) {
+        if (appUserModelId.isEmpty())
+            return {};
+
+        // Resolve display name from Windows Shell AppsFolder
+        QString path = QStringLiteral("shell:AppsFolder\\") + appUserModelId;
+        IShellItem* pItem = nullptr;
+        HRESULT hr = SHCreateItemFromParsingName(
+            reinterpret_cast<LPCWSTR>(path.utf16()), nullptr,
+            IID_PPV_ARGS(&pItem));
+        if (SUCCEEDED(hr) && pItem) {
+            LPWSTR name = nullptr;
+            hr = pItem->GetDisplayName(SIGDN_NORMALDISPLAY, &name);
+            if (SUCCEEDED(hr) && name) {
+                QString result = QString::fromWCharArray(name);
+                CoTaskMemFree(name);
+                pItem->Release();
+                return result;
+            }
+            pItem->Release();
+        }
+
+        // Fallback: extract readable name from AUMID (WindowsAppModel type)
+        int bangPos = appUserModelId.lastIndexOf('!');
+        if (bangPos > 0) {
+            QString appPart = appUserModelId.left(bangPos);
+            int dotPos = appPart.lastIndexOf('.');
+            if (dotPos > 0)
+                return appPart.mid(dotPos + 1);
+            return appPart;
+        }
+
+        return {};
     }
 
 }

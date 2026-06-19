@@ -17,6 +17,7 @@ namespace PwaDetector {
     PwaType detectPwaType(const QString& processPath, const QString& appUserModelId);
     bool isPwaWindow(const QString& processPath, const QString& appUserModelId);
     QIcon getPwaIcon(HWND hwnd, const QString& appUserModelId, const QString& fallbackExePath);
+    QString getPwaDisplayName(const QString& appUserModelId);
 }
 
 #endif

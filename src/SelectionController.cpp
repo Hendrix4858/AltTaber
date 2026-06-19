@@ -34,8 +34,8 @@ void SelectionController::showLabelForItem(const QModelIndex& index) {
             text = group.windows.first().title;
     }
     if (text.isNull()) {
-        auto path = m_model->groupAt(index.row()).exePath;
-        text = Util::getFileDescription(path);
+        auto& group = m_model->groupAt(index.row());
+        text = group.displayName;
     }
     emit labelTextChanged(text);
 }
@@ -134,8 +134,7 @@ bool SelectionController::handleLetterJump(QChar pressedLetter) {
     QList<int> matchingIndices;
     for (int i = 0; i < m_model->groupCount(); ++i) {
         const auto& group = m_model->groupAt(i);
-        QString appName = Util::getFileDescription(group.exePath);
-        if (!appName.isEmpty() && Util::getDisplayFirstLetter(appName) == pressedLetter)
+        if (group.allJumpTokens.contains(pressedLetter))
             matchingIndices.append(i);
     }
 
@@ -220,11 +219,15 @@ void SelectionController::expandGroup() {
     for (const auto& win : group.windows) {
         WindowGroup g;
         g.exePath = group.exePath;
+        g.displayName = win.title;
         if (pwaTagMode && win.windowKind == WindowKind::Pwa)
             g.icon = PwaDetector::getPwaIcon(win.hwnd, win.appUserModelId, group.exePath);
         else
             g.icon = group.icon;
         g.addWindow(win);
+        g.fileDescriptionTokens = group.fileDescriptionTokens;
+        g.pwaNameTokens = group.pwaNameTokens;
+        g.allJumpTokens = group.allJumpTokens;
         filtered.append(g);
     }
 
