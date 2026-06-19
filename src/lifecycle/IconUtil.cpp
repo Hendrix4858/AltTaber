@@ -124,11 +124,36 @@ namespace Util {
     }
 
     namespace {
+        static QHash<QString, QIcon> g_pwaMemCache;
+
         struct CacheEntry {
-            QString exePath;
-            QString exeModified;
+            QString type;
+            QString key;
             QString iconFile;
+            QString exeModified;
         };
+
+        static QString legacyPwaPath(const QString& aumid) {
+            return cfg().getIconCacheDirectory() + "/icons/pwa_"
+                + QCryptographicHash::hash(aumid.toUtf8(), QCryptographicHash::Md5).toHex()
+                + ".png";
+        }
+
+        static QIcon loadLegacyPwaIcon(const QString& aumid) {
+            auto path = legacyPwaPath(aumid);
+            if (!QFile::exists(path))
+                return {};
+            QIcon icon(path);
+            if (icon.isNull()) {
+                QFile::remove(path);
+                return {};
+            }
+            return icon;
+        }
+
+        static void removeLegacyPwaIcon(const QString& aumid) {
+            QFile::remove(legacyPwaPath(aumid));
+        }
 
         class DiskCache {
         public:
@@ -142,14 +167,14 @@ namespace Util {
                 ensureLoaded();
 
                 for (const auto& e : m_entries) {
-                    if (e.exePath != exePath) continue;
+                    if (e.type != "exe" || e.key != exePath) continue;
 
                     QFileInfo fi(exePath);
                     if (!fi.exists()) return {};
                     if (fi.lastModified() != QDateTime::fromString(e.exeModified, Qt::ISODate)) {
                         QFile::remove(iconDir() + "/" + e.iconFile);
                         for (int i = 0; i < m_entries.size(); ++i) {
-                            if (m_entries[i].exePath == exePath) {
+                            if (m_entries[i].type == "exe" && m_entries[i].key == exePath) {
                                 m_entries.removeAt(i);
                                 break;
                             }
@@ -176,7 +201,7 @@ namespace Util {
                 auto filePath = iconDir() + "/" + fileName;
 
                 for (int i = 0; i < m_entries.size(); ++i) {
-                    if (m_entries[i].exePath == exePath) {
+                    if (m_entries[i].type == "exe" && m_entries[i].key == exePath) {
                         QFile::remove(iconDir() + "/" + m_entries[i].iconFile);
                         m_entries.removeAt(i);
                         break;
@@ -186,8 +211,50 @@ namespace Util {
                 icon.pixmap(64).save(filePath, "PNG");
 
                 CacheEntry entry;
-                entry.exePath = exePath;
+                entry.type = "exe";
+                entry.key = exePath;
                 entry.exeModified = QFileInfo(exePath).lastModified().toString(Qt::ISODate);
+                entry.iconFile = fileName;
+                m_entries.append(entry);
+
+                save();
+            }
+
+            QIcon loadPwa(const QString& aumid) {
+                if (!cfg().getIconCacheEnabled()) return {};
+                ensureLoaded();
+
+                for (const auto& e : m_entries) {
+                    if (e.type != "pwa" || e.key != aumid) continue;
+
+                    QPixmap pix;
+                    if (pix.load(iconDir() + "/" + e.iconFile))
+                        return QIcon(pix);
+                }
+                return {};
+            }
+
+            void savePwa(const QString& aumid, const QIcon& icon) {
+                if (!cfg().getIconCacheEnabled() || icon.isNull()) return;
+                ensureLoaded();
+
+                QDir().mkpath(iconDir());
+
+                for (int i = 0; i < m_entries.size(); ++i) {
+                    if (m_entries[i].type == "pwa" && m_entries[i].key == aumid) {
+                        QFile::remove(iconDir() + "/" + m_entries[i].iconFile);
+                        m_entries.removeAt(i);
+                        break;
+                    }
+                }
+
+                auto hash = QCryptographicHash::hash(aumid.toUtf8(), QCryptographicHash::Md5).toHex();
+                auto fileName = "pwa_" + hash + ".png";
+                icon.pixmap(64).save(iconDir() + "/" + fileName, "PNG");
+
+                CacheEntry entry;
+                entry.type = "pwa";
+                entry.key = aumid;
                 entry.iconFile = fileName;
                 m_entries.append(entry);
 
@@ -208,7 +275,18 @@ namespace Util {
                 auto arr = doc.object()["entries"].toArray();
                 for (const auto& val : arr) {
                     auto obj = val.toObject();
-                    m_entries.append({obj["exe"].toString(), obj["exeModified"].toString(), obj["iconFile"].toString()});
+                    CacheEntry e;
+                    e.type = obj["type"].toString();
+                    if (e.type.isEmpty())
+                        e.type = "exe";
+                    if (e.type == "exe") {
+                        e.key = obj["exe"].toString();
+                        e.exeModified = obj["exeModified"].toString();
+                    } else {
+                        e.key = obj["key"].toString();
+                    }
+                    e.iconFile = obj["iconFile"].toString();
+                    m_entries.append(e);
                 }
             }
 
@@ -217,9 +295,11 @@ namespace Util {
                 QJsonArray arr;
                 for (const auto& e : m_entries) {
                     QJsonObject obj;
-                    obj["exe"] = e.exePath;
-                    obj["exeModified"] = e.exeModified;
+                    obj["type"] = e.type;
+                    obj["key"] = e.key;
                     obj["iconFile"] = e.iconFile;
+                    if (e.type == "exe")
+                        obj["exeModified"] = e.exeModified;
                     arr.append(obj);
                 }
                 QJsonObject root;
@@ -262,6 +342,31 @@ namespace Util {
         IconCache.insert(path, icon);
         qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
         return icon;
+    }
+
+    QIcon getCachedPwaIcon(const QString& aumid) {
+        if (auto icon = g_pwaMemCache.value(aumid); !icon.isNull())
+            return icon;
+
+        if (auto icon = DiskCache::instance().loadPwa(aumid); !icon.isNull()) {
+            g_pwaMemCache.insert(aumid, icon);
+            return icon;
+        }
+
+        if (auto icon = loadLegacyPwaIcon(aumid); !icon.isNull()) {
+            DiskCache::instance().savePwa(aumid, icon);
+            removeLegacyPwaIcon(aumid);
+            g_pwaMemCache.insert(aumid, icon);
+            return icon;
+        }
+
+        return {};
+    }
+
+    void cachePwaIcon(const QString& aumid, const QIcon& icon) {
+        if (icon.isNull()) return;
+        DiskCache::instance().savePwa(aumid, icon);
+        g_pwaMemCache.insert(aumid, icon);
     }
 
     QPixmap getWindowIcon(HWND hwnd) {

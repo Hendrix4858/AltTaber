@@ -14,6 +14,8 @@ namespace Util {
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect);
     QString getUwpInstallDirFromHwnd(HWND hwnd);
     QPixmap getShellAppIcon(HWND hwnd);
+    QIcon getCachedPwaIcon(const QString& aumid);
+    void cachePwaIcon(const QString& aumid, const QIcon& icon);
 }
 
 #endif //WIN_SWITCHER_ICONUTIL_H
