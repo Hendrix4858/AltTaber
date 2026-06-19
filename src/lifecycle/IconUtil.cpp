@@ -32,20 +32,20 @@ namespace Util {
         SHFILEINFOW sfi = {nullptr};
         SHGetFileInfo(filePath.toStdWString().c_str(), 0, &sfi, sizeof(SHFILEINFOW), SHGFI_SYSICONINDEX);
 
-        IImageList* imageList;
+        IImageList* imageList = nullptr;
         HRESULT hResult = SHGetImageList(SHIL_JUMBO, IID_IImageList, (void**) &imageList);
 
         QIcon icon;
-        if (hResult == S_OK) {
+        if (hResult == S_OK && imageList) {
             HICON hIcon;
             hResult = imageList->GetIcon(sfi.iIcon, ILD_TRANSPARENT, &hIcon);
 
             if (hResult == S_OK) {
                 icon = QtWin::fromHICON(hIcon);
-                DestroyIcon(sfi.hIcon);
+                DestroyIcon(hIcon);
             }
         }
-        imageList->Release();
+        if (imageList) imageList->Release();
         return icon;
     }
 
@@ -268,6 +268,10 @@ namespace Util {
         auto hIcon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_BIG, 0));
         if (!hIcon)
             hIcon = reinterpret_cast<HICON>(GetClassLongPtr(hwnd, GCLP_HICON));
+        if (!hIcon) {
+            qWarning() << "getWindowIcon: no icon found for hwnd" << hwnd;
+            return {};
+        }
         return QtWin::fromHICON(hIcon);
     }
 
@@ -289,11 +293,32 @@ namespace Util {
         if (FAILED(hr) || !imgFactory) return {};
 
         HBITMAP hBitmap = nullptr;
-        SIZE sz = {256, 256};
+        SIZE sz = {128, 128};
         hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
         if (FAILED(hr) || !hBitmap) return {};
 
-        QImage img = QImage::fromHBITMAP(hBitmap);
+        QImage img;
+        {
+            BITMAP bm = {};
+            GetObject(hBitmap, sizeof(bm), &bm);
+            if (bm.bmBitsPixel == 32) {
+                img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32_Premultiplied);
+                BITMAPINFO bmi = {};
+                bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                bmi.bmiHeader.biWidth  = bm.bmWidth;
+                bmi.bmiHeader.biHeight = -bm.bmHeight;
+                bmi.bmiHeader.biPlanes = 1;
+                bmi.bmiHeader.biBitCount = 32;
+                bmi.bmiHeader.biCompression = BI_RGB;
+                HDC hdc = GetDC(nullptr);
+                if (hdc) {
+                    GetDIBits(hdc, hBitmap, 0, bm.bmHeight, img.bits(), &bmi, DIB_RGB_COLORS);
+                    ReleaseDC(nullptr, hdc);
+                }
+            } else {
+                img = QImage::fromHBITMAP(hBitmap);
+            }
+        }
         DeleteObject(hBitmap);
         return QPixmap::fromImage(img);
     }
