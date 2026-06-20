@@ -323,6 +323,16 @@ void OverlayController::warmupCache() {
     t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
+    if (m_model->groupCount() > 0) {
+        bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
+        auto screen = displayOnPrimary
+                          ? QGuiApplication::primaryScreen()
+                          : QGuiApplication::screenAt(QCursor::pos());
+        if (!screen && !displayOnPrimary)
+            screen = QApplication::primaryScreen();
+        if (screen)
+            recalculateGeometry(screen);
+    }
     m_listDirty = false;
     qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
 }
