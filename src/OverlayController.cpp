@@ -28,20 +28,34 @@ void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
 }
 
 bool OverlayController::forceShow() {
+    static int s_showCount = 0;
+    ++s_showCount;
     HWND hwnd = reinterpret_cast<HWND>(m_widget->winId());
     if (!m_widget->isVisible()) {
         m_widget->setWindowOpacity(0.005);
+
+        QElapsedTimer t;
+        t.start();
         m_widget->showMinimized();
+        auto t1 = t.restart();
+
         m_widget->showNormal();
+        auto t2 = t.restart();
+
         m_widget->setWindowOpacity(1);
+
+        qInfo() << "[Show] showMinimized" << t1 << "ms"
+                << "showNormal" << t2 << "ms"
+                << "showCount=" << s_showCount;
     }
+    QElapsedTimer t;
+    t.start();
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
+    auto tf = t.elapsed();
     bool ok = m_widget->isVisible();
-    qDebug().noquote() << "[forceShow]" << "visible=" << m_widget->isVisible()
-             << "isForeground=" << (GetForegroundWindow() == hwnd)
-             << "fgHwnd=" << Qt::hex << GetForegroundWindow() << Qt::dec
-             << "selfHwnd=" << Qt::hex << hwnd << Qt::dec;
+    qInfo() << "[Show] SetForeground+BringToTop" << tf << "ms"
+            << "visible=" << ok << "showCount=" << s_showCount;
     return ok;
 }
 
@@ -249,9 +263,12 @@ void OverlayController::showWindow() {
     qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
              << "endTrigger=" << (int)m_sessionInfo.endTrigger;
     Util::closeSystemWindows();
-    qDebug() << "[OverlayCtrl] State -> Visible, calling forceShow...";
+    QElapsedTimer t;
+    t.start();
     bool ok = forceShow();
-    qDebug() << "[OverlayCtrl] showWindow forceShow=" << ok;
+    qInfo() << "[Show] forceShow" << t.elapsed() << "ms"
+            << "groupCount=" << m_model->groupCount()
+            << "listDirty=" << m_listDirty;
     if (ok) {
         emit showRequested();
         auto* listView = qobject_cast<QListView*>(m_listView);
