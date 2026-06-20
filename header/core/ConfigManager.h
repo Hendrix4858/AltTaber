@@ -104,7 +104,7 @@ public:
     }
 
     bool getPwaEnabled() {
-        return get("PwaEnabled", true).toBool();
+        return get("PwaEnabled", false).toBool();
     }
 
     void setPwaEnabled(bool enabled) {
