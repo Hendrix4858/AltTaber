@@ -33,6 +33,9 @@ private:
     void filterPages(const QString& text);
     void loadSettings();
     void applySettings();
+    void refreshCacheSize();
+    void refreshLogSize();
+    void cleanLogFiles();
 
     ConfigManager* m_config;
     Ui::SettingsDialog* ui;

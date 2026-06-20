@@ -76,6 +76,8 @@ void applyTheme(QDialog* dialog, Ui::SettingsDialog* ui,
     ui->minIconSizeLabel->setStyleSheet(labelStyle);
     ui->logDirLabel->setStyleSheet(labelStyle);
     ui->cacheDirLabel->setStyleSheet(labelStyle);
+    ui->lblLogSize->setStyleSheet(labelStyle);
+    ui->lblCacheSize->setStyleSheet(labelStyle);
 
     const QString checkStyle = QString(
         "QCheckBox { color: %1; font-size: 13px; spacing: 8px; margin: 4px 0; }"

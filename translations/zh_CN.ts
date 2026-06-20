@@ -4,119 +4,118 @@
 <context>
     <name>AddBlockedDialog</name>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="11"/>
+        <location filename="../src/AddBlockedDialog.cpp" line="+11"/>
         <source>Add Blocked Rule</source>
         <translation>添加屏蔽规则</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="18"/>
+        <location line="+7"/>
         <source>Leave empty to match any title</source>
         <translation>留空则匹配任意标题</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="19"/>
+        <location line="+1"/>
         <source>Title:</source>
         <translation>标题:</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="22"/>
+        <location line="+3"/>
         <source>Leave empty to match any class</source>
         <translation>留空则匹配任意类名</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="23"/>
+        <location line="+1"/>
         <source>Class Name:</source>
         <translation>类名:</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="26"/>
+        <location line="+3"/>
         <source>e.g. chrome.exe</source>
         <translation>例如 chrome.exe</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="27"/>
+        <location line="+1"/>
         <source>Process Name:</source>
         <translation>进程名:</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="30"/>
+        <location line="+3"/>
         <source>e.g. C:/Program Files/Chrome</source>
         <translation>例如 C:/Program Files/Chrome</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="31"/>
+        <location line="+1"/>
         <source>Process Path:</source>
         <translation>进程路径:</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="34"/>
+        <location line="+3"/>
         <source>Optional description</source>
         <translation>可选描述</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="35"/>
+        <location line="+1"/>
         <source>Comment:</source>
         <translation>备注:</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="39"/>
+        <location line="+4"/>
         <source>Enabled</source>
         <translation>启用</translation>
     </message>
     <message>
-        <location filename="../src/AddBlockedDialog.cpp" line="44"/>
         <source>From Current Window</source>
-        <translation>从当前窗口</translation>
+        <translation type="vanished">从当前窗口</translation>
     </message>
 </context>
 <context>
     <name>BlockedWindowManager</name>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="76"/>
+        <location filename="../src/BlockedWindowManager.cpp" line="+104"/>
         <source>Edit</source>
-<translation>编辑</translation>
+        <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="82"/>
-        <location filename="../src/BlockedWindowManager.cpp" line="122"/>
+        <location line="+6"/>
+        <location line="+41"/>
         <source>Export</source>
         <translation>导出</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="86"/>
-        <location filename="../src/BlockedWindowManager.cpp" line="137"/>
-        <location filename="../src/BlockedWindowManager.cpp" line="158"/>
+        <location line="-35"/>
+        <location line="+50"/>
+        <location line="+21"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="104"/>
+        <location line="-54"/>
         <source>Export Blocked Rules</source>
         <translation>导出屏蔽规则</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="104"/>
-        <location filename="../src/BlockedWindowManager.cpp" line="130"/>
+        <location line="+0"/>
+        <location line="+26"/>
         <source>JSON Files (*.json)</source>
         <translation>JSON 文件 (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="122"/>
+        <location line="-8"/>
         <source>Exported %1 rules.</source>
         <translation>已导出 %1 条规则。</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="130"/>
+        <location line="+8"/>
         <source>Import Blocked Rules</source>
         <translation>导入屏蔽规则</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="137"/>
+        <location line="+7"/>
         <source>Invalid format.</source>
         <translation>无效的文件格式。</translation>
     </message>
     <message>
-        <location filename="../src/BlockedWindowManager.cpp" line="158"/>
+        <location line="+21"/>
         <source>Imported %1 rules.</source>
         <translation>已导入 %1 条规则。</translation>
     </message>
@@ -124,67 +123,67 @@
 <context>
     <name>HotkeyAction</name>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="130"/>
+        <location filename="../header/core/HotkeyActionTypes.h" line="+130"/>
         <source>Switch to Next Window</source>
         <translation>切换到下一个窗口</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="131"/>
+        <location line="+1"/>
         <source>Switch to Previous Window</source>
         <translation>切换到上一个窗口</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="132"/>
+        <location line="+1"/>
         <source>Show Process Window List</source>
         <translation>显示同进程窗口列表</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="133"/>
+        <location line="+1"/>
         <source>Switch Process Window</source>
         <translation>切换同进程窗口</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="134"/>
+        <location line="+1"/>
         <source>Expand Group</source>
         <translation>展开组</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="135"/>
+        <location line="+1"/>
         <source>Cycle Forward</source>
         <translation>前进选择</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="136"/>
+        <location line="+1"/>
         <source>Cycle Backward</source>
         <translation>后退选择</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="137"/>
+        <location line="+1"/>
         <source>Move Selection Up</source>
         <translation>向上移动</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="138"/>
+        <location line="+1"/>
         <source>Move Selection Down</source>
         <translation>向下移动</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="139"/>
+        <location line="+1"/>
         <source>Activate Selected</source>
         <translation>激活选中窗口</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="140"/>
+        <location line="+1"/>
         <source>Dismiss Switcher</source>
         <translation>关闭窗口列表</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="141"/>
+        <location line="+1"/>
         <source>Toggle Pause</source>
         <translation>切换暂停</translation>
     </message>
     <message>
-        <location filename="../header/core/HotkeyActionTypes.h" line="142"/>
+        <location line="+1"/>
         <source>Keep Window Displayed</source>
         <translation>保持窗口显示</translation>
     </message>
@@ -192,44 +191,44 @@
 <context>
     <name>HotkeyPageManager</name>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="86"/>
+        <location filename="../src/HotkeyPageManager.cpp" line="+87"/>
         <source>Global Hotkeys (always active)</source>
         <translation>全局快捷键（始终生效）</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="90"/>
+        <location line="+4"/>
         <source>Overlay Hotkeys (only when overlay is visible)</source>
         <translation>窗口列表快捷键（仅窗口列表可见时生效）</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="110"/>
+        <location line="+20"/>
         <source>Conflict</source>
         <translation>冲突</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="111"/>
+        <location line="+1"/>
         <source>Hotkey &quot;%1&quot; is already used by &quot;%2&quot;.
 Overwrite?</source>
         <translation>快捷键 &quot;%1&quot; 已被 &quot;%2&quot; 使用。
 是否覆盖？</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="137"/>
+        <location line="+26"/>
         <source>Warning: Switch to Next Window has no hotkey assigned, AltTaber cannot be activated</source>
         <translation>警告：切换到下一个窗口未绑定快捷键，AltTaber 将无法激活</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="144"/>
+        <location line="+7"/>
         <source>Reset to Defaults</source>
         <translation>重置为默认</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="146"/>
+        <location line="+2"/>
         <source>Reset Hotkeys</source>
         <translation>重置快捷键</translation>
     </message>
     <message>
-        <location filename="../src/HotkeyPageManager.cpp" line="147"/>
+        <location line="+1"/>
         <source>Reset all hotkeys to their default values?</source>
         <translation>将所有快捷键重置为默认值？</translation>
     </message>
@@ -237,7 +236,7 @@ Overwrite?</source>
 <context>
     <name>HotkeyRecorder</name>
     <message>
-        <location filename="../src/hook/HotkeyRecorder.cpp" line="62"/>
+        <location filename="../src/hook/HotkeyRecorder.cpp" line="+62"/>
         <source>+ Add</source>
         <translation>+ 添加</translation>
     </message>
@@ -245,164 +244,164 @@ Overwrite?</source>
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="20"/>
+        <location filename="../ui/SettingsDialog.ui" line="+20"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="56"/>
-        <location filename="../src/SettingsDialog.cpp" line="256"/>
+        <location line="+36"/>
+        <location filename="../src/SettingsDialog.cpp" line="+291"/>
         <source>Search...</source>
         <translation>搜索...</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="124"/>
-        <location filename="../src/SettingsDialog.cpp" line="268"/>
+        <location line="+68"/>
+        <location filename="../src/SettingsDialog.cpp" line="+12"/>
         <source>Language Settings</source>
         <translation>语言设置</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="130"/>
-        <location filename="../src/SettingsDialog.cpp" line="269"/>
+        <location line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Language:</source>
         <translation>语言:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="143"/>
-        <location filename="../src/SettingsDialog.cpp" line="337"/>
+        <location line="+13"/>
+        <location filename="../src/SettingsDialog.cpp" line="+69"/>
         <source>Letter Jump</source>
         <translation>字母跳转</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="149"/>
-        <location filename="../src/SettingsDialog.cpp" line="338"/>
+        <location line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Enable letter jump (A-Z)</source>
         <translation>启用字母跳转 (A-Z)</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="159"/>
-        <location filename="../src/SettingsDialog.cpp" line="279"/>
+        <location line="+10"/>
+        <location filename="../src/SettingsDialog.cpp" line="-60"/>
         <source>Start with Windows</source>
         <translation>开机自启</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="166"/>
-        <location filename="../src/SettingsDialog.cpp" line="280"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Always run as administrator</source>
         <translation>始终以管理员身份运行</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="173"/>
-        <location filename="../src/SettingsDialog.cpp" line="339"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+60"/>
         <source>Activate window on mouse click</source>
         <translation>点击图标激活窗口</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="180"/>
-        <location filename="../src/SettingsDialog.cpp" line="340"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Show window list for multi-window apps</source>
         <translation>多窗口程序显示窗口列表</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="219"/>
-        <location filename="../src/SettingsDialog.cpp" line="282"/>
+        <location line="+39"/>
+        <location filename="../src/SettingsDialog.cpp" line="-59"/>
         <source>Display Settings</source>
         <translation>显示设置</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="225"/>
-        <location filename="../src/SettingsDialog.cpp" line="283"/>
+        <location line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Display Monitor:</source>
         <translation>显示监视器:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="235"/>
-        <location filename="../src/SettingsDialog.cpp" line="300"/>
+        <location line="+10"/>
+        <location filename="../src/SettingsDialog.cpp" line="+17"/>
         <source>Theme:</source>
         <translation>主题:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="245"/>
-        <location filename="../src/SettingsDialog.cpp" line="301"/>
+        <location line="+10"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Min Icon Size:</source>
         <translation>窗口列表最小图标尺寸:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="252"/>
+        <location line="+7"/>
         <source> px</source>
         <translation> px</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="271"/>
+        <location line="+19"/>
         <source>PWA (Progressive Web Apps)</source>
         <translation>PWA（渐进式 Web 应用）</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="277"/>
+        <location line="+6"/>
         <source>Enable PWA detection</source>
         <translation>启用 PWA 检测</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="284"/>
+        <location line="+7"/>
         <source>Show as separate groups</source>
         <translation>显示为独立分组</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="291"/>
+        <location line="+7"/>
         <source>Mark within browser group</source>
         <translation>在浏览器分组内标记</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="300"/>
+        <location line="+39"/>
         <source>Hotkey settings coming soon...</source>
         <translation>快捷键设置即将推出...</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="339"/>
-        <location filename="../src/SettingsDialog.cpp" line="39"/>
-        <location filename="../src/SettingsDialog.cpp" line="262"/>
-        <location filename="../src/SettingsDialog.cpp" line="303"/>
+        <location line="+39"/>
+        <location filename="../src/SettingsDialog.cpp" line="-297"/>
+        <location line="+258"/>
+        <location line="+41"/>
         <source>Logging</source>
         <translation>日志</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="347"/>
-        <location filename="../src/SettingsDialog.cpp" line="304"/>
+        <location line="+8"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Debug</source>
         <translation>调试</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="354"/>
-        <location filename="../src/SettingsDialog.cpp" line="305"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="361"/>
-        <location filename="../src/SettingsDialog.cpp" line="306"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="368"/>
-        <location filename="../src/SettingsDialog.cpp" line="307"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="375"/>
-        <location filename="../src/SettingsDialog.cpp" line="308"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Fatal</source>
         <translation>严重</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="384"/>
-        <location filename="../src/SettingsDialog.cpp" line="309"/>
+        <location line="+9"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Log Directory:</source>
         <translation>日志目录:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="393"/>
+        <location line="+9"/>
         <source>Support relative directories,default is log</source>
         <translation>支持相对目录，默认为 log</translation>
     </message>
@@ -419,33 +418,39 @@ Examples: &quot;logs&quot; → &lt;appdir&gt;/logs, &quot;../logs&quot; → &lt;
         <translation type="vanished">留空则使用默认路径</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="400"/>
-        <location filename="../ui/SettingsDialog.ui" line="470"/>
-        <location filename="../src/SettingsDialog.cpp" line="310"/>
-        <location filename="../src/SettingsDialog.cpp" line="315"/>
+        <location line="+7"/>
+        <location line="+88"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <location line="+5"/>
         <source>Browse...</source>
         <translation>浏览...</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="441"/>
-        <location filename="../src/SettingsDialog.cpp" line="312"/>
+        <location line="-54"/>
+        <location filename="../src/SettingsDialog.cpp" line="+2"/>
+        <source>Clean Logs</source>
+        <translation>清理日志</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <location filename="../src/SettingsDialog.cpp" line="-5"/>
         <source>Icon Cache</source>
         <translation>图标缓存</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="447"/>
-        <location filename="../src/SettingsDialog.cpp" line="313"/>
+        <location line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Enable icon cache</source>
         <translation>启用图标缓存</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="454"/>
-        <location filename="../src/SettingsDialog.cpp" line="314"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Cache Directory:</source>
         <translation>缓存目录:</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="463"/>
+        <location line="+9"/>
         <source>Support relative directories,default is icon_cache</source>
         <translation>支持相对目录，默认为 icon_cache</translation>
     </message>
@@ -458,177 +463,213 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../cache&quot; → &
 示例：&quot;cache&quot; → &lt;appdir&gt;/cache，&quot;../cache&quot; → &lt;parent&gt;/cache</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="477"/>
-        <location filename="../src/SettingsDialog.cpp" line="95"/>
-        <location filename="../src/SettingsDialog.cpp" line="316"/>
+        <location line="+41"/>
+        <location filename="../src/SettingsDialog.cpp" line="-253"/>
+        <location line="+255"/>
         <source>Clear Cache</source>
         <translation>清除缓存</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="518"/>
-        <location filename="../src/SettingsDialog.cpp" line="41"/>
-        <location filename="../src/SettingsDialog.cpp" line="264"/>
-        <location filename="../src/SettingsDialog.cpp" line="318"/>
+        <location line="+25"/>
+        <location filename="../src/SettingsDialog.cpp" line="-310"/>
+        <location line="+258"/>
+        <location line="+55"/>
         <source>Blocked Windows</source>
         <translation>屏蔽窗口</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="534"/>
-        <location filename="../src/SettingsDialog.cpp" line="46"/>
-        <location filename="../src/SettingsDialog.cpp" line="324"/>
+        <location line="+16"/>
+        <location filename="../src/SettingsDialog.cpp" line="-308"/>
+        <location line="+314"/>
         <source>Window Title</source>
         <translation>窗口标题</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="539"/>
-        <location filename="../src/SettingsDialog.cpp" line="47"/>
-        <location filename="../src/SettingsDialog.cpp" line="326"/>
+        <location line="+5"/>
+        <location filename="../src/SettingsDialog.cpp" line="-313"/>
+        <location line="+315"/>
         <source>Class Name</source>
         <translation>类名</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="562"/>
-        <location filename="../src/SettingsDialog.cpp" line="331"/>
+        <location line="+23"/>
+        <location filename="../src/SettingsDialog.cpp" line="+5"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="569"/>
-        <location filename="../src/SettingsDialog.cpp" line="332"/>
+        <location line="+7"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Remove</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="653"/>
-        <location filename="../src/SettingsDialog.cpp" line="351"/>
+        <location line="+84"/>
+        <location filename="../src/SettingsDialog.cpp" line="+19"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="666"/>
-        <location filename="../src/SettingsDialog.cpp" line="352"/>
+        <location line="+13"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../ui/SettingsDialog.ui" line="679"/>
-        <location filename="../src/SettingsDialog.cpp" line="353"/>
+        <location line="+13"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="36"/>
-        <location filename="../src/SettingsDialog.cpp" line="259"/>
+        <location filename="../src/SettingsDialog.cpp" line="-353"/>
+        <location line="+258"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="37"/>
-        <location filename="../src/SettingsDialog.cpp" line="260"/>
+        <location line="-257"/>
+        <location line="+258"/>
         <source>Display</source>
         <translation>显示</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="38"/>
-        <location filename="../src/SettingsDialog.cpp" line="261"/>
+        <location line="-257"/>
+        <location line="+258"/>
         <source>Hotkeys</source>
         <translation>快捷键</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="40"/>
-        <location filename="../src/SettingsDialog.cpp" line="263"/>
+        <location line="-256"/>
+        <location line="+258"/>
         <source>Cache</source>
         <translation>缓存</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="42"/>
-        <location filename="../src/SettingsDialog.cpp" line="265"/>
+        <location line="-256"/>
+        <location line="+258"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="46"/>
-        <location filename="../src/SettingsDialog.cpp" line="320"/>
+        <location line="-254"/>
+        <location line="+310"/>
         <source>Enabled</source>
         <translation>启用</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="46"/>
-        <location filename="../src/SettingsDialog.cpp" line="322"/>
+        <location line="-310"/>
+        <location line="+312"/>
         <source>Comment</source>
         <translation>备注</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="47"/>
-        <location filename="../src/SettingsDialog.cpp" line="328"/>
+        <location line="-311"/>
+        <location line="+317"/>
         <source>Process Name</source>
         <translation>进程名</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="47"/>
-        <location filename="../src/SettingsDialog.cpp" line="330"/>
+        <location line="-317"/>
+        <location line="+319"/>
         <source>Process Path</source>
         <translation>进程路径</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="333"/>
+        <location line="+3"/>
         <source>Edit</source>
         <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="334"/>
+        <location line="+1"/>
         <source>Export</source>
         <translation>导出</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="335"/>
+        <location line="+1"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="66"/>
-        <location filename="../src/SettingsDialog.cpp" line="294"/>
+        <location line="+64"/>
+        <source>Cache Size: %1</source>
+        <translation>缓存大小: %1</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Log Size: %1</source>
+        <translation>日志大小: %1</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Clean Log Files</source>
+        <translation>清理日志文件</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Are you sure you want to delete all log files?</source>
+        <translation>确定要删除所有日志文件吗？</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+15"/>
+        <source>Logs Cleaned</source>
+        <translation>日志已清理</translation>
+    </message>
+    <message>
+        <location line="-15"/>
+        <source>No log files found.</source>
+        <translation>未找到日志文件。</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Deleted %1 log file(s).</source>
+        <translation>已删除 %1 个日志文件。</translation>
+    </message>
+    <message>
+        <location line="-406"/>
+        <location line="+262"/>
         <source>Dark</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="67"/>
-        <location filename="../src/SettingsDialog.cpp" line="295"/>
+        <location line="-261"/>
+        <location line="+262"/>
         <source>Light</source>
         <translation>浅色</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="68"/>
-        <location filename="../src/SettingsDialog.cpp" line="70"/>
-        <location filename="../src/SettingsDialog.cpp" line="273"/>
-        <location filename="../src/SettingsDialog.cpp" line="296"/>
+        <location line="-261"/>
+        <location line="+2"/>
+        <location line="+237"/>
+        <location line="+23"/>
         <source>Follow System</source>
         <translation>跟随系统</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="79"/>
+        <location line="-251"/>
         <source>Select Log Directory</source>
         <translation>选择日志目录</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="89"/>
+        <location line="+10"/>
         <source>Select Cache Directory</source>
         <translation>选择缓存目录</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="96"/>
+        <location line="+7"/>
         <source>Are you sure you want to clear the icon cache?
 Icons will be re-extracted on next use.</source>
         <translation>确定清除图标缓存吗？
 下次使用时将重新提取图标。</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="103"/>
+        <location line="+7"/>
         <source>Cache Cleared</source>
         <translation>缓存已清除</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="104"/>
+        <location line="+1"/>
         <source>Icon cache has been cleared.</source>
         <translation>图标缓存已清除。</translation>
     </message>
@@ -691,12 +732,12 @@ Icons will be re-extracted on next use.</source>
         <translation type="vanished">将所有快捷键重置为默认值？</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="287"/>
+        <location line="+217"/>
         <source>Primary Monitor</source>
         <translation>主显示器</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="288"/>
+        <location line="+1"/>
         <source>Mouse Monitor</source>
         <translation>跟随鼠标</translation>
     </message>
@@ -721,7 +762,7 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
         <translation type="vanished">留空使用默认目录（&lt;appdir&gt;/icon_cache）。\n相对路径将基于程序目录解析。\n示例：&quot;cache&quot; → &lt;appdir&gt;/cache，&quot;../icons&quot; → &lt;parent&gt;/icons</translation>
     </message>
     <message>
-        <location filename="../src/SettingsDialog.cpp" line="344"/>
+        <location line="+57"/>
         <source>AltTaber - Window Switcher&lt;br&gt;Version: %1&lt;br&gt;&lt;br&gt;A modern Alt+Tab replacement for Windows.&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</source>
         <translation>AltTaber - 窗口切换器&lt;br&gt;版本: %1&lt;br&gt;&lt;br&gt;一个现代化的 Windows Alt+Tab 增强工具。&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</translation>
     </message>
@@ -729,70 +770,70 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
 <context>
     <name>SystemTray</name>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="33"/>
+        <location filename="../src/lifecycle/SystemTray.cpp" line="+33"/>
         <source>Check for Updates</source>
         <translation>检查更新</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="34"/>
+        <location line="+1"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="35"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
+        <location line="+1"/>
+        <location line="+68"/>
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="36"/>
+        <location line="-67"/>
         <source>Restart</source>
         <translation>重新打开</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="37"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="117"/>
+        <location line="+1"/>
+        <location line="+80"/>
         <source>Running as Administrator</source>
         <translation>当前为管理员</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="37"/>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="117"/>
+        <location line="-80"/>
+        <location line="+80"/>
         <source>Restart as Administrator</source>
         <translation>以管理员身份重新启动</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="38"/>
+        <location line="-79"/>
         <source>Display Monitor</source>
         <translation>显示监视器</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="39"/>
+        <location line="+2"/>
         <source>Primary Monitor</source>
         <translation>主显示器</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="40"/>
+        <location line="+1"/>
         <source>Mouse Monitor</source>
         <translation>跟随鼠标</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="41"/>
+        <location line="+1"/>
         <source>Quit &gt;</source>
         <translation>退出 &gt;</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
+        <location line="+61"/>
         <source>ON ✓</source>
         <translation>已开 ✓</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="103"/>
+        <location line="+0"/>
         <source>OFF ×</source>
         <translation>已关 ×</translation>
     </message>
     <message>
-        <location filename="../src/lifecycle/SystemTray.cpp" line="144"/>
+        <location line="+41"/>
         <source>Display Monitor Changed</source>
         <translation>显示监视器已更改</translation>
     </message>
@@ -800,22 +841,22 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
 <context>
     <name>UpdateDialog</name>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="14"/>
+        <location filename="../ui/UpdateDialog.ui" line="+14"/>
         <source>UpdateDialog</source>
         <translation>AltTaber 更新</translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="29"/>
+        <location line="+15"/>
         <source>New Version:</source>
         <translation>新版本:</translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="45"/>
+        <location line="+16"/>
         <source>Current Version:</source>
         <translation>当前版本:</translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="74"/>
+        <location line="+29"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -825,140 +866,140 @@ p, li { white-space: pre-wrap; }
         <translation></translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="93"/>
-        <location filename="../src/UpdateDialog.cpp" line="295"/>
+        <location line="+19"/>
+        <location filename="../src/UpdateDialog.cpp" line="+327"/>
         <source>Include pre-releases</source>
         <translation>包含预发布版本</translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="124"/>
-        <location filename="../src/UpdateDialog.cpp" line="293"/>
+        <location line="+31"/>
+        <location filename="../src/UpdateDialog.cpp" line="-2"/>
         <source> Check again </source>
         <translation>重新检查</translation>
     </message>
     <message>
-        <location filename="../ui/UpdateDialog.ui" line="150"/>
-        <location filename="../src/UpdateDialog.cpp" line="294"/>
+        <location line="+26"/>
+        <location filename="../src/UpdateDialog.cpp" line="+1"/>
         <source>Update</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="52"/>
-        <location filename="../src/UpdateDialog.cpp" line="151"/>
+        <location filename="../src/UpdateDialog.cpp" line="-266"/>
+        <location line="+107"/>
         <source>No matching release found</source>
         <translation>未找到匹配的版本</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="68"/>
+        <location line="-90"/>
         <source>Asset type mismatch: expected installer, got `%1`.</source>
         <translation>资源类型不匹配：期望安装程序，实际为「%1」。</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="70"/>
-        <location filename="../src/UpdateDialog.cpp" line="231"/>
+        <location line="+2"/>
+        <location line="+184"/>
         <source>Download failed</source>
         <translation>下载失败</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="70"/>
+        <location line="-184"/>
         <source>Asset type mismatch: not an installer executable</source>
         <translation>资源类型不匹配：不是可执行安装程序</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="134"/>
+        <location line="+64"/>
         <source>Failed to fetch update info</source>
         <translation>获取更新信息失败</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="235"/>
+        <location line="+124"/>
         <source>Download Status</source>
         <translation>下载状态</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="235"/>
+        <location line="+0"/>
         <source>Success!</source>
         <translation>成功！</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="272"/>
-        <location filename="../src/UpdateDialog.cpp" line="275"/>
-        <location filename="../src/UpdateDialog.cpp" line="278"/>
+        <location line="+37"/>
+        <location line="+3"/>
+        <location line="+3"/>
         <source>Verify Update</source>
         <translation>验证更新</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="272"/>
+        <location line="-6"/>
         <source>Update Success to v%1</source>
         <translation>更新成功至 v%1</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="275"/>
+        <location line="+3"/>
         <source>Update failed, version not change</source>
         <translation>更新失败，版本未变更</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="278"/>
+        <location line="+3"/>
         <source>Update may failed, version changed but not to target</source>
         <translation>更新可能失败，版本已变更但未达到目标版本</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="292"/>
+        <location line="+14"/>
         <source>AltTaber Updater</source>
         <translation>AltTaber 更新</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="299"/>
+        <location line="+7"/>
         <source>## Fetching...</source>
         <translation>## 正在获取...</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="302"/>
+        <location line="+3"/>
         <source>## Fetching update...</source>
         <translation>## 正在获取更新...</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="305"/>
+        <location line="+3"/>
         <source>## Failed to fetch update info❎
 %1</source>
         <translation>## 获取更新信息失败❎
 %1</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="308"/>
-        <location filename="../src/UpdateDialog.cpp" line="313"/>
+        <location line="+3"/>
+        <location line="+5"/>
         <source>New Version: v%1 (%2)</source>
         <translation>新版本: v%1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="309"/>
-        <location filename="../src/UpdateDialog.cpp" line="314"/>
+        <location line="-4"/>
+        <location line="+5"/>
         <source>Current Version: v%1</source>
         <translation>当前版本: v%1</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="310"/>
+        <location line="-4"/>
         <source># ✅Everything is up-to-date</source>
         <translation># ✅已是最新版本</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="317"/>
+        <location line="+7"/>
         <source>No release notes available.</source>
         <translation>暂无发行说明。</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="321"/>
+        <location line="+4"/>
         <source>## Download failed❎
 %1</source>
         <translation>## 下载失败❎
 %1</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="324"/>
+        <location line="+3"/>
         <source>## Download success✅</source>
         <translation>## 下载成功✅</translation>
     </message>
     <message>
-        <location filename="../src/UpdateDialog.cpp" line="327"/>
+        <location line="+3"/>
         <source>## Installing...</source>
         <translation>## 正在安装...</translation>
     </message>
@@ -966,12 +1007,12 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>Widget</name>
     <message>
-        <location filename="../ui/widget.ui" line="14"/>
+        <location filename="../ui/widget.ui" line="+14"/>
         <source>Widget</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../ui/widget.ui" line="45"/>
+        <location line="+31"/>
         <source>TextLabel</source>
         <translation></translation>
     </message>

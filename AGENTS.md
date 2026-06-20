@@ -136,6 +136,7 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
    cmake --build build/ai --target Win_Switcher_lupdate
    ```
    This auto-generates `<message>` entries with correct `<location>` line numbers
+   (uses `-locations relative` in `CMakeLists.txt:141` for stable diffs across machines)
 3. Open `translations/zh_CN.ts`, find the new `<source>NewString</source>`, fill in `<translation>` with the Chinese translation
 4. Rebuild — `lrelease` runs automatically as a pre-build step
 
@@ -149,6 +150,7 @@ Configurable JSON under `[Hotkeys]` key. Defaults hardcoded in `main.cpp:64-83`:
 
 ## Gotchas
 
+- **Clean Logs**: `SettingsDialog::cleanLogFiles()` calls `Logger::closeLog()` before deletion and `Logger::reopenLog()` after to release the open log file handle on disk.
 - **README is wrong about config file**: it says `config.ini` but the code uses `config.json` via `ConfigManagerBase`. Trust the code.
 - **Config path**: `%APPDATA%\MrBeanCpp\AltTaber\config.json`. Uninstall preserves config unless user explicitly deletes it.
 - **Installer**: Inno Setup `setup.iss` builds `AltTaber-vX.Y.Z-{arch}-Setup.exe`. Update flow: download setup.exe → `/VERYSILENT` → replaces zip+bat chain.

@@ -264,39 +264,39 @@
             </item>
            </layout>
           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="pwaGroup">
-            <property name="title">
-             <string>PWA (Progressive Web Apps)</string>
-            </property>
-            <layout class="QVBoxLayout" name="pwaLayout">
-             <item>
-              <widget class="QCheckBox" name="pwaEnabledCheck">
-               <property name="text">
-                <string>Enable PWA detection</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="pwaSeparateRadio">
-               <property name="text">
-                <string>Show as separate groups</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="pwaTagRadio">
-               <property name="text">
-                <string>Mark within browser group</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <spacer name="displaySpacer">
+         </item>
+         <item>
+          <widget class="QGroupBox" name="pwaGroup">
+           <property name="title">
+            <string>PWA (Progressive Web Apps)</string>
+           </property>
+           <layout class="QVBoxLayout" name="pwaLayout">
+            <item>
+             <widget class="QCheckBox" name="pwaEnabledCheck">
+              <property name="text">
+               <string>Enable PWA detection</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="pwaSeparateRadio">
+              <property name="text">
+               <string>Show as separate groups</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="pwaTagRadio">
+              <property name="text">
+               <string>Mark within browser group</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="displaySpacer">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
            </property>
@@ -418,11 +418,11 @@
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="logDirLayout">
               <item>
-                 <widget class="QLineEdit" name="logDirEdit">
-                 <property name="placeholderText">
-                  <string>Support relative directories,default is log</string>
-                 </property>
-                </widget>
+               <widget class="QLineEdit" name="logDirEdit">
+                <property name="placeholderText">
+                 <string>Support relative directories,default is log</string>
+                </property>
+               </widget>
               </item>
               <item>
                <widget class="QPushButton" name="btnBrowseLogDir">
@@ -437,17 +437,35 @@
           </widget>
          </item>
          <item>
-          <spacer name="loggingSpacer">
-           <property name="orientation">
-            <enum>Qt::Orientation::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
+          <layout class="QHBoxLayout" name="logStatusLayout">
+           <item>
+            <widget class="QLabel" name="lblLogSize">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="logStatusSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnCleanLogs">
+             <property name="text">
+              <string>Clean Logs</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
@@ -488,23 +506,16 @@
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="cacheDirLayout">
               <item>
-                 <widget class="QLineEdit" name="cacheDirEdit">
-                 <property name="placeholderText">
-                  <string>Support relative directories,default is icon_cache</string>
-                 </property>
-                </widget>
+               <widget class="QLineEdit" name="cacheDirEdit">
+                <property name="placeholderText">
+                 <string>Support relative directories,default is icon_cache</string>
+                </property>
+               </widget>
               </item>
               <item>
                <widget class="QPushButton" name="btnBrowseCacheDir">
                 <property name="text">
                  <string>Browse...</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnClearCache">
-                <property name="text">
-                 <string>Clear Cache</string>
                 </property>
                </widget>
               </item>
@@ -514,17 +525,35 @@
           </widget>
          </item>
          <item>
-          <spacer name="cacheSpacer">
-           <property name="orientation">
-            <enum>Qt::Orientation::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
+          <layout class="QHBoxLayout" name="cacheStatusLayout">
+           <item>
+            <widget class="QLabel" name="lblCacheSize">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="cacheStatusSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnClearCache">
+             <property name="text">
+              <string>Clear Cache</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>

@@ -25,6 +25,8 @@ public:
     static void init();
     static void reconfigure();
     static void shutdown();
+    static void closeLog();
+    static void reopenLog();
 
     static void setActiveFlags(LogFlags flags);
     static LogFlags activeFlags();

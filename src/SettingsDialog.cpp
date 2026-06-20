@@ -105,7 +105,10 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
                                           tr("Icon cache has been cleared."));
             }
         }
+        refreshCacheSize();
     });
+
+    connect(ui->btnCleanLogs, &QPushButton::clicked, this, &SettingsDialog::cleanLogFiles);
 
     SettingsStyleHelper::applyTheme(this, ui,
         {m_btnEditBlocked, m_btnExportBlocked, m_btnImportBlocked});
@@ -114,6 +117,10 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     connect(ui->navList, &QListWidget::currentRowChanged, this, [this](int row) {
         if (row >= 0 && row < ui->stackedWidget->count())
             ui->stackedWidget->setCurrentIndex(row);
+        if (row == 3)
+            refreshLogSize();
+        else if (row == 4)
+            refreshCacheSize();
     });
     connect(ui->btnOk, &QPushButton::clicked, this, [this] {
         applySettings();
@@ -218,6 +225,9 @@ void SettingsDialog::loadSettings() {
     }
 
     m_blockedMgr->loadFromConfig();
+
+    refreshCacheSize();
+    refreshLogSize();
 
     m_loadingSettings = false;
     retranslateUi();
@@ -339,6 +349,7 @@ void SettingsDialog::retranslateUi() {
     ui->cacheDirLabel->setText(tr("Cache Directory:"));
     ui->btnBrowseCacheDir->setText(tr("Browse..."));
     ui->btnClearCache->setText(tr("Clear Cache"));
+    ui->btnCleanLogs->setText(tr("Clean Logs"));
 
     ui->blockedGroup->setTitle(tr("Blocked Windows"));
     if (ui->blockedTable->horizontalHeaderItem(0))
@@ -393,6 +404,74 @@ void SettingsDialog::filterPages(const QString& text) {
             }
         }
     }
+}
+
+namespace {
+qint64 calculateDirectorySize(const QString& dirPath) {
+    QDir dir(dirPath);
+    if (!dir.exists()) return 0;
+    qint64 total = 0;
+    const auto files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+    for (const auto& fi : files)
+        total += fi.size();
+    const auto subdirs = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const auto& sd : subdirs)
+        total += calculateDirectorySize(sd.absoluteFilePath());
+    return total;
+}
+
+QString formatSize(qint64 bytes) {
+    if (bytes < 1024)
+        return QString::number(bytes) + " B";
+    else if (bytes < 1024 * 1024)
+        return QString::number(bytes / 1024.0, 'f', 1) + " KB";
+    else
+        return QString::number(bytes / (1024.0 * 1024.0), 'f', 1) + " MB";
+}
+} // anonymous namespace
+
+void SettingsDialog::refreshCacheSize() {
+    qint64 size = calculateDirectorySize(m_config->getIconCacheDirectory());
+    ui->lblCacheSize->setText(tr("Cache Size: %1").arg(formatSize(size)));
+}
+
+void SettingsDialog::refreshLogSize() {
+    QString logDir = PathUtils::resolveAppRelativePath(
+        ui->logDirEdit->text().isEmpty() ? m_config->getLogDirectory() : ui->logDirEdit->text(),
+        "log");
+    qint64 size = calculateDirectorySize(logDir);
+    ui->lblLogSize->setText(tr("Log Size: %1").arg(formatSize(size)));
+}
+
+void SettingsDialog::cleanLogFiles() {
+    auto reply = QMessageBox::question(this, tr("Clean Log Files"),
+        tr("Are you sure you want to delete all log files?"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (reply != QMessageBox::Yes) return;
+
+    QString logDir = PathUtils::resolveAppRelativePath(
+        ui->logDirEdit->text().isEmpty() ? m_config->getLogDirectory() : ui->logDirEdit->text(),
+        "log");
+    QDir dir(logDir);
+    if (!dir.exists()) {
+        QMessageBox::information(this, tr("Logs Cleaned"), tr("No log files found."));
+        return;
+    }
+
+    Util::Logger::closeLog();
+
+    int count = 0;
+    const auto files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+    for (const auto& fi : files) {
+        if (QFile::remove(fi.absoluteFilePath()))
+            ++count;
+    }
+
+    Util::Logger::reopenLog();
+
+    QMessageBox::information(this, tr("Logs Cleaned"),
+        tr("Deleted %1 log file(s).").arg(count));
+    refreshLogSize();
 }
 
 void SettingsDialog::changeEvent(QEvent* event) {

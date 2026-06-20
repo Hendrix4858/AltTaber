@@ -83,6 +83,18 @@ void Logger::shutdown() {
     m_initialized = false;
 }
 
+void Logger::closeLog() {
+    if (!m_file) return;
+    QMutexLocker lock(m_mutex);
+    m_file->flush();
+    m_file->close();
+}
+
+void Logger::reopenLog() {
+    QMutexLocker lock(m_mutex);
+    openLogFile();
+}
+
 void Logger::setActiveFlags(LogFlags flags) {
     m_activeFlags = flags;
 }
