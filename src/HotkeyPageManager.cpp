@@ -48,12 +48,15 @@ void HotkeyPageManager::buildHotkeyPage(QStackedWidget* stackedWidget, QLabel* h
     scrollArea->setFrameShape(QFrame::NoFrame);
 
     auto* scrollContent = new QWidget();
+    scrollContent->setAutoFillBackground(true);
+    {
+        auto pal = scrollContent->palette();
+        pal.setColor(QPalette::Window, ThemeManager::current().bgColor);
+        scrollContent->setPalette(pal);
+    }
     auto* contentLayout = new QVBoxLayout(scrollContent);
     contentLayout->setSpacing(8);
     contentLayout->setContentsMargins(12, 12, 12, 12);
-
-    const auto& c = ThemeManager::current();
-    scrollContent->setStyleSheet(QString("color: %1;").arg(c.textColor.name()));
 
     static const HotkeyAction displayOrder[] = {
         HotkeyAction::SwitchToNextWindow,
@@ -75,7 +78,7 @@ void HotkeyPageManager::buildHotkeyPage(QStackedWidget* stackedWidget, QLabel* h
         auto* header = new QLabel(text, scrollContent);
         header->setStyleSheet(
             QString("color: %1; font-weight: bold; font-size: 13px; padding: 8px 0 2px 0;")
-                .arg(c.accentColor.name()));
+                .arg(ThemeManager::current().accentColor.name()));
         return header;
     };
 

@@ -110,8 +110,7 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
 
     connect(ui->btnCleanLogs, &QPushButton::clicked, this, &SettingsDialog::cleanLogFiles);
 
-    SettingsStyleHelper::applyTheme(this, ui,
-        {m_btnEditBlocked, m_btnExportBlocked, m_btnImportBlocked});
+    SettingsStyleHelper::applyTheme(this, ui);
 
     connect(ui->searchEdit, &QLineEdit::textChanged, this, &SettingsDialog::filterPages);
     connect(ui->navList, &QListWidget::currentRowChanged, this, [this](int row) {
@@ -251,8 +250,7 @@ void SettingsDialog::applySettings() {
     int theme = ui->themeCombo->currentData().toInt();
     if (theme != m_config->getTheme()) {
         m_config->setTheme(theme);
-        SettingsStyleHelper::applyTheme(this, ui,
-            {m_btnEditBlocked, m_btnExportBlocked, m_btnImportBlocked});
+        SettingsStyleHelper::applyTheme(this, ui);
         ThemeManager::applyTheme();
     }
 
