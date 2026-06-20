@@ -20,10 +20,19 @@ public:
     void wireSignals(Widget* widget);
     void reloadFromConfig();
 
+private slots:
+    void retryFallbackShow();
+
 private:
     ConfigManager* m_config;
     KeyboardHooker* m_keyboardHooker = nullptr;
     TaskbarWheelHooker* m_taskbarHooker = nullptr;
+
+    Widget* m_widget = nullptr;
+    QTimer* m_retryTimer = nullptr;
+    int m_retryCount = 0;
+    static constexpr int kMaxRetries = 5;
+    static constexpr int kRetryIntervalMs = 20;
 };
 
 #endif //WIN_SWITCHER_HOTKEYSERVICE_H

@@ -9,6 +9,7 @@
 #include "OverlayController.h"
 
 #include <QDebug>
+#include <QTimer>
 
 HotkeyService::HotkeyService(ConfigManager* config, QObject* parent)
     : QObject(parent), m_config(config) {}
@@ -18,6 +19,7 @@ HotkeyService::~HotkeyService() {
 }
 
 void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
+    m_widget = widget;
     m_keyboardHooker = new KeyboardHooker((HWND) widget->winId());
     m_keyboardHooker->updateBindings(bindings);
     m_keyboardHooker->setPaused(m_config->getPaused());
@@ -25,6 +27,10 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
 
     m_taskbarHooker = new TaskbarWheelHooker;
     m_taskbarHooker->setPaused(m_config->getPaused());
+
+    m_retryTimer = new QTimer(this);
+    m_retryTimer->setInterval(kRetryIntervalMs);
+    connect(m_retryTimer, &QTimer::timeout, this, &HotkeyService::retryFallbackShow);
 
     qInfo() << "[Main] Installing WinEvent hook for EVENT_SYSTEM_FOREGROUND";
     setWinEventHook([widget, this](DWORD event, HWND hwnd) {
@@ -52,6 +58,9 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
                 // auto-dismisses when user releases Alt.
                 if (Util::isKeyPressed(VK_MENU))
                     m_keyboardHooker->activateTrackingFromPhysicalState();
+                // Start retry timer to ensure overlay actually takes foreground
+                m_retryCount = 0;
+                m_retryTimer->start();
             }
         }
     });
@@ -80,6 +89,27 @@ void HotkeyService::wireSignals(Widget* widget) {
                      widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
 
     qInfo() << "[Main] Hotkey system initialized";
+}
+
+void HotkeyService::retryFallbackShow() {
+    auto* ctrl = m_widget->overlayController();
+    auto state = ctrl->overlayState();
+    if (state != OverlayController::OverlayState::Visible || ctrl->isForeground()) {
+        m_retryTimer->stop();
+        m_retryCount = 0;
+        return;
+    }
+    m_retryCount++;
+    if (m_retryCount >= kMaxRetries) {
+        qWarning() << "[WinEvent] Fallback retry exhausted, overlay may not be foreground";
+        m_retryTimer->stop();
+        m_retryCount = 0;
+        return;
+    }
+    qInfo() << "[WinEvent] Fallback retry" << m_retryCount;
+    m_widget->requestShow(OverlayIntent::FallbackShow);
+    if (Util::isKeyPressed(VK_MENU))
+        m_keyboardHooker->activateTrackingFromPhysicalState();
 }
 
 void HotkeyService::reloadFromConfig() {
