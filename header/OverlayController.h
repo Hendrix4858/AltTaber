@@ -57,6 +57,9 @@ public:
     void notifyForegroundChanged(HWND hwnd);
     void warmupCache();
 
+private:
+    void prewarmSurface();
+
 signals:
     void sessionFinished();
     void showRequested();
