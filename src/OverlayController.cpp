@@ -36,16 +36,11 @@ bool OverlayController::forceShow() {
 
         QElapsedTimer t;
         t.start();
-        m_widget->showMinimized();
-        auto t1 = t.restart();
-
         m_widget->showNormal();
-        auto t2 = t.restart();
-
+        auto t1 = t.restart();
         m_widget->setWindowOpacity(1);
 
-        qInfo() << "[Show] showMinimized" << t1 << "ms"
-                << "showNormal" << t2 << "ms"
+        qInfo() << "[Show] showNormal (direct)" << t1 << "ms"
                 << "showCount=" << s_showCount;
     }
     QElapsedTimer t;
