@@ -171,7 +171,7 @@ namespace Util {
 
                     QFileInfo fi(exePath);
                     if (!fi.exists()) return {};
-                    if (fi.lastModified() != QDateTime::fromString(e.exeModified, Qt::ISODate)) {
+                    if (fi.lastModified().toSecsSinceEpoch() != QDateTime::fromString(e.exeModified, Qt::ISODate).toSecsSinceEpoch()) {
                         QFile::remove(iconDir() + "/" + e.iconFile);
                         for (int i = 0; i < m_entries.size(); ++i) {
                             if (m_entries[i].type == "exe" && m_entries[i].key == exePath) {
@@ -280,7 +280,9 @@ namespace Util {
                     if (e.type.isEmpty())
                         e.type = "exe";
                     if (e.type == "exe") {
-                        e.key = obj["exe"].toString();
+                        e.key = obj["key"].toString();
+                        if (e.key.isEmpty())
+                            e.key = obj["exe"].toString();
                         e.exeModified = obj["exeModified"].toString();
                     } else {
                         e.key = obj["key"].toString();
