@@ -66,23 +66,10 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         }
 
         if (keyEvent->flags & LLKHF_INJECTED) {
-            qInfo() << "[RET] INJECTED vk=" << keyEvent->vkCode;
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
         }
 
         Qt::KeyboardModifiers mods = KeyboardHooker::toQtModifiers(inst->m_modState);
-
-        if (keyEvent->vkCode == VK_TAB)
-            qInfo() << "[TAB] msg=" << wParam
-                    << "alt=" << inst->m_modState.alt
-                    << "shift=" << inst->m_modState.shift
-                    << "ctrl=" << inst->m_modState.ctrl
-                    << "waiting=" << inst->m_waitingForModifierRelease;
-
-        if (keyEvent->vkCode == VK_LMENU || keyEvent->vkCode == VK_RMENU) {
-            if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
-                qInfo() << "[ALT] DOWN modState.alt=" << inst->m_modState.alt;
-        }
 
         // Recording pipeline: route key to recorder via PostMessage
         if (inst->m_recorderHwnd && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
@@ -92,12 +79,10 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             inst->m_keyRecord.modifiers = mods;
             inst->m_keyRecord.ready.store(true, std::memory_order_release);
             PostMessageW(inst->m_recorderHwnd, KeyboardHooker::RecordingMessageId, 0, 0);
-            qInfo() << "[RET] RECORDER vk=" << keyEvent->vkCode;
             return 1;
         }
 
         if (inst->m_recordingActive) {
-            qInfo() << "[RET] RECORDING_ACTIVE vk=" << keyEvent->vkCode;
             return CallNextHookEx(nullptr, nCode, wParam, lParam);
         }
 
@@ -134,9 +119,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                                           (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
                     qDebug() << "[KeyHook]   match=" << match;
                     if (match) {
-                        qInfo() << "[RET] GLOBAL_MATCH" << hotkeyActionName(it.key()) << "vk=" << keyEvent->vkCode;
-                        if (it.key() == HotkeyAction::SwitchToNextWindow && !inst->m_modState.alt)
-                            qCritical() << "[BUG] SwitchToNextWindow modState.alt=false";
+                        qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
                         emit inst->hotkeyTriggered(it.key(), mods);
                         return 1;
                     }
@@ -146,7 +129,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 qDebug() << "[KeyHook] No global actions have bindings registered";
             else
                 qDebug() << "[KeyHook] ⚠️ No global binding matched for" << keyName;
-            qInfo() << "[RET] NO_GLOBAL_MATCH vk=" << keyEvent->vkCode;
 
             // Overlay key routing: when overlay is visible, intercept overlay-scoped
             // keys and forward via dedicated signal to prevent Windows from processing
@@ -166,7 +148,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                         for (const auto& b : it.value()) {
                             if (b.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
                                                   (keyEvent->flags & LLKHF_EXTENDED) != 0, effectiveMods)) {
-                                qInfo() << "[RET] OVERLAY_MATCH" << hotkeyActionName(it.key()) << "vk=" << keyEvent->vkCode;
+                                qInfo() << "[KeyHook] overlay-key-routing ->"
+                                        << hotkeyActionName(it.key());
                                 emit inst->overlayKeyTriggered(it.key(), effectiveMods);
                                 return 1;
                             }
@@ -176,7 +159,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
             if (keyEvent->vkCode == VK_LMENU || keyEvent->vkCode == VK_RMENU) {
-                qInfo() << "[ALT] UP modState.alt=" << inst->m_modState.alt;
+                qDebug() << "[KeyHook] Alt UP";
                 emit inst->altReleased();
             }
 
@@ -200,7 +183,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         auto* keyEvent = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
         // if (wParam == WM_SYSKEYDOWN || wParam == WM_KEYDOWN)
     }
-    qInfo() << "[RET] DEFAULT nCode=" << nCode << "wParam=" << wParam;
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
@@ -283,6 +265,18 @@ void KeyboardHooker::notifyOverlayShown() {
         qInfo() << "[KeyHook] Overlay shown, tracking modifiers:" << currentMods;
     } else {
         qDebug() << "[KeyHook] Overlay shown but no modifiers held, nothing to track";
+    }
+}
+
+void KeyboardHooker::activateTrackingFromPhysicalState() {
+    snapshotModifiersFromOS(m_modState);
+    Qt::KeyboardModifiers currentMods = toQtModifiers(m_modState);
+    if (currentMods != Qt::NoModifier) {
+        m_activationModifiers = currentMods;
+        m_waitingForModifierRelease = true;
+        qInfo() << "[KeyHook] Physical tracking activated, modifiers:" << currentMods;
+    } else {
+        qDebug() << "[KeyHook] Physical tracking: no modifiers held";
     }
 }
 

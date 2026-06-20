@@ -24,6 +24,7 @@ public:
 
     void resetActivationModifiers();
     void notifyOverlayShown();
+    void activateTrackingFromPhysicalState();
 
 signals:
     void hotkeyTriggered(HotkeyAction action, Qt::KeyboardModifiers modifiers);

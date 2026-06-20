@@ -27,7 +27,7 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
     m_taskbarHooker->setPaused(m_config->getPaused());
 
     qInfo() << "[Main] Installing WinEvent hook for EVENT_SYSTEM_FOREGROUND";
-    setWinEventHook([widget](DWORD event, HWND hwnd) {
+    setWinEventHook([widget, this](DWORD event, HWND hwnd) {
         if (event == EVENT_SYSTEM_FOREGROUND) {
             widget->notifyForegroundChanged(hwnd);
 
@@ -47,6 +47,11 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
                     != OverlayController::OverlayState::Visible) {
                 qInfo() << "[WinEvent] Task switcher detected (fallback)" << className;
                 widget->requestShow(OverlayIntent::FallbackShow);
+                // UIPI fallback: hook couldn't block Tab from elevated window.
+                // Refresh modifier tracking from physical key state so overlay
+                // auto-dismisses when user releases Alt.
+                if (Util::isKeyPressed(VK_MENU))
+                    m_keyboardHooker->activateTrackingFromPhysicalState();
             }
         }
     });
