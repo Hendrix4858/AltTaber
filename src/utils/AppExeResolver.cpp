@@ -3,6 +3,7 @@
 #include "utils/StartMenuHelper.h"
 #include "utils/Util.h"
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 
@@ -11,12 +12,18 @@ namespace AppUtil {
         static QHash<QString, QString> appIdToExePath;
         static QHash<QString, QString> descriptionToExePath;
         static auto buildStartAppMaps = []() {
+            QElapsedTimer timer;
+            timer.start();
+            qInfo() << "[TaskbarWheel] buildStartAppMaps start";
             appIdToExePath.clear();
             const auto list = getStartAppList();
             for (const auto& [name, appId, exePath]: list) {
                 appIdToExePath.insert(appId, exePath);
                 appIdToExePath.insert(name, exePath);
             }
+            qInfo() << "[TaskbarWheel] buildStartAppMaps done"
+                     << timer.elapsed() << "ms"
+                     << "entries:" << list.size();
         };
         if (appIdToExePath.isEmpty())
             buildStartAppMaps();

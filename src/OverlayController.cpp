@@ -199,10 +199,8 @@ void OverlayController::transition(OverlayIntent intent) {
         if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
             intent == OverlayIntent::ShowSwitcherBackward) {
             m_wasInvokedBackward = (intent == OverlayIntent::ShowSwitcherBackward);
-            qDebug() << "[Transition] Hidden + Show = refreshing list + show (backward="
+            qDebug() << "[Transition] Hidden + Show = show (backward="
                      << m_wasInvokedBackward << ")";
-            m_listDirty = true;
-            refreshWindowList();
             showWindow();
         } else {
             qDebug() << "[Transition] Hidden +" << (int)intent << "→ no-op";
@@ -309,6 +307,10 @@ void OverlayController::notifyForegroundChanged(HWND hwnd) {
 }
 
 void OverlayController::warmupCache() {
+    QElapsedTimer t;
+    t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_model->setGroups(winGroupList);
+    m_listDirty = false;
+    qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
 }

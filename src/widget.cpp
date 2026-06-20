@@ -39,9 +39,6 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     QtWin::taskbarDeleteTab(this);
     setWindowTitle("AltTaber");
 
-    Util::setWindowRoundCorner(this->hWnd());
-    setWindowBlur(hWnd());
-
     setupLabelFont();
 
     m_listView->setViewMode(QListView::IconMode);
@@ -160,7 +157,22 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
         }
     });
 
+    QTimer::singleShot(0, this, &Widget::applyWindowEffects);
+
     qInfo() << "Widget initialized in" << t.elapsed() << "ms";
+}
+
+void Widget::applyWindowEffects() {
+    QElapsedTimer t;
+    t.start();
+    HWND hwnd = hWnd();
+    if (!hwnd) {
+        qWarning() << "[Widget] applyWindowEffects: no native window handle";
+        return;
+    }
+    Util::setWindowRoundCorner(hwnd);
+    setWindowBlur(hwnd);
+    qInfo() << "[Widget] applyWindowEffects" << t.elapsed() << "ms";
 }
 
 Widget::~Widget() {

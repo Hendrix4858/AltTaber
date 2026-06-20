@@ -62,6 +62,7 @@ signals:
 private:
     void setupLabelFont();
     void activateCurrentGroupWindow();
+    void applyWindowEffects();
 
     static void activateWindowWithVerification(HWND targetHwnd, const QString& exePath,
                                                const QString& title);

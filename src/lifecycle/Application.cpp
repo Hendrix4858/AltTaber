@@ -7,6 +7,7 @@
 #include <QProcess>
 #include <QDir>
 #include <QCoreApplication>
+#include <QElapsedTimer>
 
 #include "lifecycle/Application.h"
 #include "widget.h"
@@ -74,9 +75,17 @@ Application::Application(int argc, char* argv[])
     auto bindings = m_config->effectiveHotkeyBindings();
     qInfo() << "[Main] Loaded" << bindings.size() << "hotkey actions";
 
+    QElapsedTimer phaseTimer, totalTimer;
+    phaseTimer.start();
+    totalTimer.start();
     initControllers();
+    qInfo() << "[Startup] initControllers" << phaseTimer.restart() << "ms";
+
     initUI();
+    qInfo() << "[Startup] initUI" << phaseTimer.restart() << "ms";
+
     initHotkeys();
+    qInfo() << "[Startup] initHotkeys" << phaseTimer.restart() << "ms";
 
     QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
         m_hotkeyService->reloadFromConfig();
@@ -88,6 +97,7 @@ Application::Application(int argc, char* argv[])
     }
 
     m_updateService->cleanupUpdateMarkers();
+    qInfo() << "[Startup] Application constructor total" << totalTimer.elapsed() << "ms";
     qInfo() << "[Main] Entering event loop";
 }
 

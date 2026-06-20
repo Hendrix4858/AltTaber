@@ -47,7 +47,7 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
         return;
     }
     s_instance = this;
-    AppUtil::getExePathFromAppIdOrName(); // cache
+    qInfo() << "[TaskbarWheel] deferred AppUtil cache (lazy on first use)";
 
     auto* timer = new QTimer(this);
     timer->callOnTimeout(this, [this]() {
