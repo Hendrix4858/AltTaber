@@ -64,6 +64,7 @@ struct WindowGroup {
     QSet<QChar> fileDescriptionTokens;
     QSet<QChar> pwaNameTokens;
     QSet<QChar> titleTokens;
+    QSet<QChar> displayNameTokens;
     QSet<QChar> processNameTokens;
     QSet<QChar> allJumpTokens;
 };

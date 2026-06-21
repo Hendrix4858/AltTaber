@@ -35,6 +35,13 @@ namespace WindowGrouper {
             }
         }
 
+        void populateDisplayNameTokens(WindowGroup& group) {
+            if (group.displayName.isEmpty()) return;
+            QChar fl = Util::getDisplayFirstLetter(group.displayName);
+            if (!fl.isNull())
+                group.displayNameTokens.insert(fl);
+        }
+
         void populateProcessNameTokens(WindowGroup&) {
             // Reserved for future use
         }
@@ -43,10 +50,12 @@ namespace WindowGrouper {
             populateFileDescriptionTokens(group);
             populatePwaTokens(group);
             populateTitleTokens(group);
+            populateDisplayNameTokens(group);
             populateProcessNameTokens(group);
 
-            group.allJumpTokens = group.fileDescriptionTokens
-                                | group.pwaNameTokens;
+            group.allJumpTokens = group.displayNameTokens
+                                | group.pwaNameTokens
+                                | group.titleTokens;
         }
 
     } // anonymous namespace

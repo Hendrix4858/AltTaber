@@ -227,6 +227,7 @@ void SelectionController::expandGroup() {
         g.addWindow(win);
         g.fileDescriptionTokens = group.fileDescriptionTokens;
         g.pwaNameTokens = group.pwaNameTokens;
+        g.displayNameTokens = group.displayNameTokens;
         g.allJumpTokens = group.allJumpTokens;
         filtered.append(g);
     }
