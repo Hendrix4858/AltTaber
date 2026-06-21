@@ -294,6 +294,7 @@ void OverlayController::showWindow() {
 
     m_overlayState = OverlayState::Visible;
     emit stateChanged(m_overlayState);
+    emit showRequested();  // Start modifier tracking before show, prevent race with Alt release
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
     qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
              << "endTrigger=" << (int)m_sessionInfo.endTrigger;
@@ -305,10 +306,8 @@ void OverlayController::showWindow() {
         if (m_overlayState != OverlayState::Visible)
             return;
         bool ok = forceShow();
-        qInfo() << "[Show] forceShow" << "ok=" << ok
-                << "groupCount=" << m_model->groupCount();
+        qInfo() << "[Show] forceShow" << "ok=" << ok;
         if (ok) {
-            emit showRequested();
             auto* listView = qobject_cast<QListView*>(m_listView);
             if (listView) {
                 listView->setFocusPolicy(Qt::StrongFocus);
@@ -316,9 +315,7 @@ void OverlayController::showWindow() {
                 qDebug() << "[OverlayCtrl] QListView focus set";
             }
         } else {
-            m_overlayState = OverlayState::Hidden;
-            emit stateChanged(OverlayState::Hidden);
-            m_listDirty = true;
+            hideWindow();
         }
     });
 }

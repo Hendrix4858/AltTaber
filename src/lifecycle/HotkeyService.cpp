@@ -38,6 +38,16 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
             widget->notifyForegroundChanged(hwnd);
 
             auto oState = widget->overlayController()->overlayState();
+
+            // Visible + foreground changed + Alt not held → dismiss (click outside)
+            if (oState == OverlayController::OverlayState::Visible
+                && hwnd != (HWND)widget->winId()
+                && !Util::isKeyPressed(VK_MENU)) {
+                qInfo() << "[WinEvent] hiding overlay (clicked outside while Visible)";
+                widget->hideOverlay();
+                return;
+            }
+
             if (oState != OverlayController::OverlayState::Hidden
                 && hwnd != (HWND)widget->winId()
                 && !Util::isKeyPressed(VK_MENU)
