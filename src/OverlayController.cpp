@@ -32,16 +32,30 @@ bool OverlayController::forceShow() {
     ++s_showCount;
     HWND hwnd = reinterpret_cast<HWND>(m_widget->winId());
     if (!m_widget->isVisible()) {
-        m_widget->setWindowOpacity(0.005);
+        m_widget->setWindowOpacity(0.0);
 
-        QElapsedTimer t;
-        t.start();
+        // Complete view preparation before expose: force layout + sync paint
+        auto* listView = qobject_cast<QListView*>(m_listView);
+        if (listView) {
+            listView->setUpdatesEnabled(false);
+            listView->viewport()->update();
+            listView->doItemsLayout();
+            listView->viewport()->repaint();
+            listView->setUpdatesEnabled(true);
+        }
+
         m_widget->showNormal();
-        auto t1 = t.restart();
-        m_widget->setWindowOpacity(1);
+        SetForegroundWindow(hwnd);
+        BringWindowToTop(hwnd);
 
-        qInfo() << "[Show] showNormal (direct)" << t1 << "ms"
-                << "showCount=" << s_showCount;
+        // Defer opacity restore to next tick so DWM has a complete frame
+        QTimer::singleShot(0, this, [this]() {
+            if (m_overlayState == OverlayState::Visible)
+                m_widget->setWindowOpacity(1.0);
+        });
+
+        qInfo() << "[Show] showNormal (prepared)" << "showCount=" << s_showCount;
+        return true;
     }
     QElapsedTimer t;
     t.start();
@@ -268,13 +282,15 @@ void OverlayController::transition(OverlayIntent intent) {
 void OverlayController::showWindow() {
     qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState;
 
+    // Stage 1: Data Ready — refresh window list when stale
     if (m_listDirty) {
         qDebug() << "[OverlayCtrl] list dirty, refreshing...";
         if (!refreshWindowList())
             return;
-    } else {
-        updateCurrentIndexForShow();
     }
+
+    // Stage 2: Bind View — set current index (no paint yet)
+    updateCurrentIndexForShow();
 
     m_overlayState = OverlayState::Visible;
     emit stateChanged(m_overlayState);
@@ -282,25 +298,29 @@ void OverlayController::showWindow() {
     qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
              << "endTrigger=" << (int)m_sessionInfo.endTrigger;
     Util::closeSystemWindows();
-    QElapsedTimer t;
-    t.start();
-    bool ok = forceShow();
-    qInfo() << "[Show] forceShow" << t.elapsed() << "ms"
-            << "groupCount=" << m_model->groupCount()
-            << "listDirty=" << m_listDirty;
-    if (ok) {
-        emit showRequested();
-        auto* listView = qobject_cast<QListView*>(m_listView);
-        if (listView) {
-            listView->setFocusPolicy(Qt::StrongFocus);
-            listView->setFocus(Qt::OtherFocusReason);
-            qDebug() << "[OverlayCtrl] QListView focus set";
+
+    // Stage 3: Show Native — defer to next frame so Qt completes layout/paint
+    // before the window becomes visible (avoids incremental paint artifacts).
+    QTimer::singleShot(0, this, [this]() {
+        if (m_overlayState != OverlayState::Visible)
+            return;
+        bool ok = forceShow();
+        qInfo() << "[Show] forceShow" << "ok=" << ok
+                << "groupCount=" << m_model->groupCount();
+        if (ok) {
+            emit showRequested();
+            auto* listView = qobject_cast<QListView*>(m_listView);
+            if (listView) {
+                listView->setFocusPolicy(Qt::StrongFocus);
+                listView->setFocus(Qt::OtherFocusReason);
+                qDebug() << "[OverlayCtrl] QListView focus set";
+            }
+        } else {
+            m_overlayState = OverlayState::Hidden;
+            emit stateChanged(OverlayState::Hidden);
+            m_listDirty = true;
         }
-    } else {
-        m_overlayState = OverlayState::Hidden;
-        emit stateChanged(OverlayState::Hidden);
-        m_listDirty = true;
-    }
+    });
 }
 
 void OverlayController::hideWindow() {
