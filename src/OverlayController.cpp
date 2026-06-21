@@ -119,6 +119,45 @@ void OverlayController::recalculateGeometry(QScreen* screen) {
     listView->move(listViewRect.topLeft());
 }
 
+QModelIndex OverlayController::calculateInitialIndex() const {
+    int count = m_model->groupCount();
+    if (count == 0) return {};
+
+    if (m_wasInvokedBackward && count >= 2)
+        return m_model->index(count - 1);
+
+    if (count >= 2) {
+        HWND fg = GetForegroundWindow();
+        auto& firstGroup = m_model->groupAt(0);
+        bool isFirstItemFg = false;
+        for (auto& w : firstGroup.windows) {
+            if (w.hwnd == fg) { isFirstItemFg = true; break; }
+        }
+        return m_model->index(isFirstItemFg ? 1 : 0);
+    }
+
+    return m_model->index(0);
+}
+
+void OverlayController::updateCurrentIndexForShow() {
+    auto* listView = qobject_cast<QListView*>(m_listView);
+    if (!listView) return;
+
+    bool wasInvokedBackward = m_wasInvokedBackward;
+    m_wasInvokedBackward = false;
+
+    if (wasInvokedBackward) {
+        int count = m_model->groupCount();
+        if (count >= 2)
+            listView->setCurrentIndex(m_model->index(count - 1));
+        return;
+    }
+
+    QModelIndex idx = calculateInitialIndex();
+    if (idx.isValid())
+        listView->setCurrentIndex(idx);
+}
+
 bool OverlayController::prepareListWidget() {
     auto* listView = qobject_cast<QListView*>(m_listView);
     if (!listView) return false;
@@ -144,24 +183,7 @@ bool OverlayController::prepareListWidget() {
         return false;
     }
 
-    auto count = m_model->groupCount();
-
-    if (m_wasInvokedBackward && count >= 2) {
-        listView->setCurrentIndex(m_model->index(count - 1));
-        m_wasInvokedBackward = false;
-    } else if (count >= 2) {
-        auto foregroundHwnd = GetForegroundWindow();
-        bool isFirstItemForeground = false;
-        for (auto& info : winGroupList.at(0).windows) {
-            if (info.hwnd == foregroundHwnd) {
-                isFirstItemForeground = true;
-                break;
-            }
-        }
-        listView->setCurrentIndex(m_model->index(isFirstItemForeground ? 1 : 0));
-    } else if (count == 1) {
-        listView->setCurrentIndex(m_model->index(0));
-    }
+    updateCurrentIndexForShow();
 
     return true;
 }
@@ -250,6 +272,8 @@ void OverlayController::showWindow() {
         qDebug() << "[OverlayCtrl] list dirty, refreshing...";
         if (!refreshWindowList())
             return;
+    } else {
+        updateCurrentIndexForShow();
     }
 
     m_overlayState = OverlayState::Visible;
@@ -335,21 +359,4 @@ void OverlayController::warmupCache() {
     }
     m_listDirty = false;
     qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
-
-    prewarmSurface();
-}
-
-void OverlayController::prewarmSurface() {
-    // Pre-create native window and DWM surface during startup to reduce
-    // first Alt+Tab latency. Measured benefit on Windows 10 + Qt 6.8:
-    //   before: first showNormal ~31ms
-    //   after:  first showNormal ~17ms
-    // Do not remove without re-benchmarking.
-    QTimer::singleShot(0, this, [this] {
-        m_widget->setWindowOpacity(0.0);
-        m_widget->show();
-        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-        qInfo() << "[Prewarm] painted";
-        m_widget->hide();
-    });
 }

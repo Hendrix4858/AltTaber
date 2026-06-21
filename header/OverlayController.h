@@ -57,9 +57,6 @@ public:
     void notifyForegroundChanged(HWND hwnd);
     void warmupCache();
 
-private:
-    void prewarmSurface();
-
 signals:
     void sessionFinished();
     void showRequested();
@@ -76,6 +73,9 @@ private:
     void hideWindow();
     bool refreshWindowList();
     bool prepareListWidget();
+
+    QModelIndex calculateInitialIndex() const;
+    void updateCurrentIndexForShow();
 
     bool forceShow();
 
