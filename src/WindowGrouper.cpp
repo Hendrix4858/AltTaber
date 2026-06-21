@@ -47,15 +47,9 @@ namespace WindowGrouper {
         }
 
         void populateJumpTokens(WindowGroup& group) {
-            populateFileDescriptionTokens(group);
-            populatePwaTokens(group);
-            populateTitleTokens(group);
             populateDisplayNameTokens(group);
-            populateProcessNameTokens(group);
 
-            group.allJumpTokens = group.displayNameTokens
-                                | group.pwaNameTokens
-                                | group.titleTokens;
+            group.allJumpTokens = group.displayNameTokens;
         }
 
     } // anonymous namespace
