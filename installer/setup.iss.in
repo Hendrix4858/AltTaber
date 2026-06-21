@@ -88,18 +88,18 @@ type
     th32ModuleID: DWORD;
     cntThreads: DWORD;
     th32ParentProcessID: DWORD;
-    pcPriClassBase: Long;
+    pcPriClassBase: Integer;
     dwFlags: DWORD;
     szExeFile: array[0..259] of Char;
   end;
 
-function CreateToolhelp32Snapshot(dwFlags: DWORD; th32ProcessID: DWORD): Long;
+function CreateToolhelp32Snapshot(dwFlags: DWORD; th32ProcessID: DWORD): Integer;
   external 'CreateToolhelp32Snapshot@kernel32.dll stdcall';
-function Process32First(hSnapshot: Long; var lppe: TProcessEntry32): Boolean;
+function Process32First(hSnapshot: Integer; var lppe: TProcessEntry32): Boolean;
   external 'Process32FirstW@kernel32.dll stdcall';
-function Process32Next(hSnapshot: Long; var lppe: TProcessEntry32): Boolean;
+function Process32Next(hSnapshot: Integer; var lppe: TProcessEntry32): Boolean;
   external 'Process32NextW@kernel32.dll stdcall';
-function CloseHandle(hObject: Long): Boolean;
+function CloseHandle(hObject: Integer): Boolean;
   external 'CloseHandle@kernel32.dll stdcall';
 function PostMessage(hWnd: Integer; Msg: DWORD; wParam: DWORD; lParam: Integer): Boolean;
   external 'PostMessageW@user32.dll stdcall';
@@ -121,8 +121,10 @@ end;
 
 function IsAppRunning: Boolean;
 var
-  hSnap: Long;
+  hSnap: Integer;
   pe: TProcessEntry32;
+  exeFile: String;
+  i: Integer;
 begin
   Result := False;
   hSnap := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -131,7 +133,12 @@ begin
   pe.dwSize := SizeOf(pe);
   if Process32First(hSnap, pe) then begin
     repeat
-      if CompareText(pe.szExeFile, 'AltTaber.exe') = 0 then begin
+      exeFile := '';
+      for i := 0 to 259 do begin
+        if pe.szExeFile[i] = #0 then Break;
+        exeFile := exeFile + pe.szExeFile[i];
+      end;
+      if CompareText(exeFile, 'AltTaber.exe') = 0 then begin
         Result := True;
         Break;
       end;
