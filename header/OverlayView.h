@@ -3,8 +3,6 @@
 
 #include <Windows.h>
 #include <QRect>
-#include <QPoint>
-#include <QSize>
 #include "WindowTypes.h"
 
 struct OverlayLayout {

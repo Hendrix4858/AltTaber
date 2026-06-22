@@ -134,29 +134,38 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             // Overlay key routing: when overlay is visible, intercept overlay-scoped
             // keys and forward via dedicated signal to prevent Windows from processing
-            // them (e.g. Tab changing focus) before the widget receives them
-            // Strip activation modifiers (e.g. Alt held to show overlay) so that
-            // custom bindings like Left→CycleBackward work even while Alt is held.
-            {
-                bool overlayVisible = IsWindowVisible(inst->m_ownerHwnd);
-                if (overlayVisible) {
-                    Qt::KeyboardModifiers effectiveMods = mods;
-                    if (inst->m_waitingForModifierRelease)
-                        effectiveMods = mods & ~inst->m_activationModifiers;
+            // them (e.g. Tab changing focus) before the widget receives them.
+            //
+            // Strategy: try full modifiers first (for user bindings that include Alt,
+            // e.g. Alt+Right→CycleForward). If no match and activation modifiers are
+            // being tracked, strip them and retry (so default bindings like Tab→CycleForward
+            // work while Alt is held to keep the overlay open).
+            if (IsWindowVisible(inst->m_ownerHwnd)) {
+                auto tryMatch = [&](Qt::KeyboardModifiers tryMods) -> bool {
                     for (auto it = inst->m_bindings.begin();
                          it != inst->m_bindings.end(); ++it) {
                         if (hotkeyActionScope(it.key()) != HotkeyScope::Overlay)
                             continue;
                         for (const auto& b : it.value()) {
                             if (b.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
-                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, effectiveMods)) {
+                                                  (keyEvent->flags & LLKHF_EXTENDED) != 0, tryMods)) {
                                 qInfo() << "[KeyHook] overlay-key-routing ->"
                                         << hotkeyActionName(it.key());
-                                emit inst->overlayKeyTriggered(it.key(), effectiveMods);
-                                return 1;
+                                emit inst->overlayKeyTriggered(it.key(), tryMods);
+                                return true;
                             }
                         }
                     }
+                    return false;
+                };
+
+                if (tryMatch(mods))
+                    return 1;
+
+                if (inst->m_waitingForModifierRelease) {
+                    Qt::KeyboardModifiers stripped = mods & ~inst->m_activationModifiers;
+                    if (stripped != mods && tryMatch(stripped))
+                        return 1;
                 }
             }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
