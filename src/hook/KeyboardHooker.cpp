@@ -118,6 +118,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     bool match = binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
                                           (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
                     qDebug() << "[KeyHook]   match=" << match;
+                    if (!match)
+                        qDebug() << "[KeyHook]   mods=" << mods;
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
                         emit inst->hotkeyTriggered(it.key(), mods);
