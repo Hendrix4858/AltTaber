@@ -5,6 +5,7 @@
 #include "core/HotkeyAction.h"
 
 class Widget;
+class ActionRouter;
 class KeyboardHooker;
 class TaskbarWheelHooker;
 class ConfigManager;
@@ -16,15 +17,18 @@ public:
     explicit HotkeyService(ConfigManager* config, QObject* parent = nullptr);
     ~HotkeyService() override;
 
-    void init(Widget* widget, const HotkeyBindings& bindings);
+    void init(Widget* widget, ActionRouter* router, const HotkeyBindings& bindings);
     void wireSignals(Widget* widget);
     void reloadFromConfig();
+
+    KeyboardHooker* keyboardHooker() const { return m_keyboardHooker; }
 
 private slots:
     void retryFallbackShow();
 
 private:
     ConfigManager* m_config;
+    ActionRouter* m_router = nullptr;
     KeyboardHooker* m_keyboardHooker = nullptr;
     TaskbarWheelHooker* m_taskbarHooker = nullptr;
 

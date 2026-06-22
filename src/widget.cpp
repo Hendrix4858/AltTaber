@@ -63,7 +63,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
 
     // Create controllers
     m_groupCycler = new GroupWindowCycler(this);
-    m_overlayCtrl = new OverlayController(this, m_listView, ui->label, m_model, m_windowManager, this);
+    m_overlayCtrl = new OverlayController(*this, m_model, m_windowManager, this);
     m_selectCtrl = new SelectionController(m_listView, m_model, m_windowManager, m_groupCycler, this);
     m_selectCtrl->setLabelWidget(ui->label);
     m_taskbarCycler = new TaskbarWindowCycler(m_groupCycler, m_windowManager, this);
@@ -106,7 +106,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     });
 
     connect(m_selectCtrl, &SelectionController::geometryNeedsRecalc, this, [this]() {
-        m_overlayCtrl->recalculateGeometry();
+        m_overlayCtrl->calculateGeometry();
     });
 
     connect(m_selectCtrl, &SelectionController::activateAndHide, this, [this]() {
@@ -165,7 +165,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
 void Widget::applyWindowEffects() {
     QElapsedTimer t;
     t.start();
-    HWND hwnd = hWnd();
+    HWND hwnd = (HWND) winId();
     if (!hwnd) {
         qWarning() << "[Widget] applyWindowEffects: no native window handle";
         return;
@@ -179,6 +179,132 @@ Widget::~Widget() {
     delete ui;
 }
 
+// ── OverlayView implementation ──
+
+void Widget::showOverlay() {
+    HWND hwnd = (HWND) winId();
+    if (!isVisible()) {
+        setWindowOpacity(0.0);
+
+        m_listView->setUpdatesEnabled(false);
+        m_listView->viewport()->update();
+        m_listView->doItemsLayout();
+        m_listView->viewport()->repaint();
+        m_listView->setUpdatesEnabled(true);
+
+        showNormal();
+        SetForegroundWindow(hwnd);
+        BringWindowToTop(hwnd);
+
+        QTimer::singleShot(0, this, [this]() {
+            if (isVisible())
+                setWindowOpacity(1.0);
+        });
+    } else {
+        SetForegroundWindow(hwnd);
+        BringWindowToTop(hwnd);
+    }
+
+    m_listView->setFocusPolicy(Qt::StrongFocus);
+    m_listView->setFocus(Qt::OtherFocusReason);
+}
+
+void Widget::doHide() {
+    m_overlayCtrl->setStayOpenMode(false);
+    hide();
+}
+
+void Widget::hideOverlay() {
+    m_overlayCtrl->handleIntent(OverlayIntent::Dismiss);
+}
+
+void Widget::updateGroups(const QList<WindowGroup>& groups) {
+    m_model->setGroups(groups);
+}
+
+void Widget::applyIconLayout(int iconSize, int gridWidth, int gridHeight) {
+    m_listView->setIconSize({iconSize, iconSize});
+    m_listView->setGridSize({gridWidth, gridHeight});
+    m_listView->setFixedWidth(gridWidth * m_model->groupCount());
+    m_listView->setFixedHeight(gridHeight);
+}
+
+void Widget::applyLayout(const OverlayLayout& layout) {
+    setGeometry(layout.widgetRect);
+    m_listView->setGeometry(layout.listRect);
+}
+
+void Widget::setCurrentIndex(int index) {
+    m_listView->setCurrentIndex(m_model->index(index));
+}
+
+HWND Widget::hWnd() const {
+    return (HWND) winId();
+}
+
+// ── Public API ──
+
+void Widget::warmupCache() {
+    m_overlayCtrl->warmupCache();
+}
+
+bool Widget::requestShow(OverlayIntent why, HotkeyAction triggeringAction) {
+    qInfo() << "[Widget::requestShow] why=" << (int)why
+            << "action=" << hotkeyActionName(triggeringAction)
+            << "thread=" << QThread::currentThread();
+    m_selectCtrl->resetAll();
+
+    auto meta = getActionMetadata(triggeringAction);
+    if (meta.lifecycle == HotkeyLifecycle::OverlaySession) {
+        m_overlayCtrl->setSessionInfo({triggeringAction, meta.endTrigger});
+    }
+
+    m_overlayCtrl->handleIntent(why);
+    return m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
+}
+
+void Widget::notifyForegroundChanged(HWND hwnd) {
+    m_overlayCtrl->notifyForegroundChanged(hwnd);
+}
+
+bool Widget::eventFilter(QObject* watched, QEvent* event) {
+    if (m_selectCtrl->handleEventFilter(watched, event, m_overlayCtrl->stayOpenMode()))
+        return true;
+    return false;
+}
+
+void Widget::handleListItemClicked(const QModelIndex& index) {
+    m_selectCtrl->handleListItemClicked(index, m_overlayCtrl->stayOpenMode());
+}
+
+void Widget::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::KeyboardInput);
+}
+
+void Widget::handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::LowLevelHook);
+}
+
+void Widget::updateOverlayBindings(const HotkeyBindings& bindings) {
+    m_overlayCtrl->setOverlayBindings(bindings);
+}
+
+void Widget::onActivationModifiersReleased() {
+    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
+    qInfo() << "[ActivationRelease] forwarding to controller"
+            << "visible=" << visible
+            << "groupMode=" << m_selectCtrl->isInGroupMode();
+
+    m_groupCycler->clearGroupWindowOrder();
+    m_selectCtrl->resetState();
+
+    if (!visible) return;
+
+    m_overlayCtrl->handleIntent(OverlayIntent::SessionEndConditionMet);
+}
+
+// ── Event overrides ──
+
 void Widget::keyPressEvent(QKeyEvent* event) {
     auto key = event->key();
     auto modifiers = event->modifiers();
@@ -189,15 +315,11 @@ void Widget::keyPressEvent(QKeyEvent* event) {
              << "groupMode=" << m_selectCtrl->isInGroupMode()
              << "currentRow=" << m_listView->currentIndex().row();
 
-    // Check overlay bindings
     const auto& overlayBinds = m_overlayCtrl->overlayBindings();
     if (vk != 0) {
         for (auto it = overlayBinds.begin(); it != overlayBinds.end(); ++it) {
             for (const auto& b : it.value()) {
                 if (b.matches(vk, modifiers)) {
-                    qDebug() << "[Widget] Overlay binding match:"
-                             << hotkeyActionName(it.key())
-                             << "vk=" << vk << "mods=" << modifiers;
                     handleOverlayAction(it.key(), modifiers);
                     return;
                 }
@@ -205,7 +327,6 @@ void Widget::keyPressEvent(QKeyEvent* event) {
         }
     }
 
-    // Letter jump
     if (key >= Qt::Key_A && key <= Qt::Key_Z) {
         if (m_selectCtrl->jumpToLetter(QChar(key)))
             return;
@@ -237,145 +358,7 @@ void Widget::paintEvent(QPaintEvent*) {
     painter.drawRect(rect());
 }
 
-void Widget::notifyForegroundChanged(HWND hwnd) {
-    m_overlayCtrl->notifyForegroundChanged(hwnd);
-}
-
-void Widget::warmupCache() {
-    m_overlayCtrl->warmupCache();
-}
-
-bool Widget::requestShow(OverlayIntent why, HotkeyAction triggeringAction) {
-    qInfo() << "[Widget::requestShow] why=" << (int)why
-            << "action=" << hotkeyActionName(triggeringAction)
-            << "thread=" << QThread::currentThread();
-    m_selectCtrl->resetAll();
-
-    auto meta = getActionMetadata(triggeringAction);
-    qInfo() << "[requestShow] action=" << hotkeyActionName(triggeringAction)
-            << "lifecycle=" << (int)meta.lifecycle
-            << "endTrigger=" << (int)meta.endTrigger;
-    if (meta.lifecycle == HotkeyLifecycle::OverlaySession) {
-        m_overlayCtrl->setSessionInfo({triggeringAction, meta.endTrigger});
-        qInfo() << "[requestShow] sessionInfo set: endTrigger=" << (int)meta.endTrigger;
-    }
-
-    m_overlayCtrl->handleIntent(why);
-    return m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
-}
-
-void Widget::hideOverlay() {
-    qInfo() << "[Widget::hideOverlay]";
-    m_overlayCtrl->handleIntent(OverlayIntent::Dismiss);
-}
-
-bool Widget::eventFilter(QObject* watched, QEvent* event) {
-    if (m_selectCtrl->handleEventFilter(watched, event, m_overlayCtrl->stayOpenMode()))
-        return true;
-
-    return false;
-}
-
-void Widget::handleListItemClicked(const QModelIndex& index) {
-    m_selectCtrl->handleListItemClicked(index, m_overlayCtrl->stayOpenMode());
-}
-
-void Widget::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::KeyboardInput);
-}
-
-void Widget::handleHookOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    m_selectCtrl->handleOverlayAction(action, modifiers, InputSource::LowLevelHook);
-}
-
-void Widget::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
-    qInfo() << "[Widget::handleGlobalAction] ENTER action=" << hotkeyActionName(action)
-            << "modifiers=" << modifiers
-            << "visible=" << visible
-            << "thread=" << QThread::currentThread();
-
-    switch (action) {
-    case HotkeyAction::SwitchToNextWindow:
-        if (!visible) {
-            qInfo() << "[Action] SwitchToNextWindow -> requestShow";
-            requestShow(OverlayIntent::ShowSwitcher, action);
-        } else {
-            qInfo() << "[Action] SwitchToNextWindow -> overlay visible -> CycleForward";
-            m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
-        }
-        return;
-    case HotkeyAction::CycleProcessWindows:
-        if (!visible || isMinimized()) {
-            auto foregroundHwnd = GetForegroundWindow();
-            qInfo() << "[Action] CycleProcessWindows foregroundHwnd=" << Qt::hex << foregroundHwnd;
-            auto targetExePath = Util::getWindowProcessPath(foregroundHwnd);
-            auto hwnds = m_windowManager->filteredHwndsForExe(targetExePath);
-            qInfo() << "[Action] CycleProcessWindows hwnds=" << hwnds.size();
-            if (hwnds.size() >= 2) {
-                requestShow(OverlayIntent::ShowSwitcher, action);
-                m_selectCtrl->tryEnterGroupForWindow(foregroundHwnd);
-            }
-        }
-        return;
-    case HotkeyAction::SwitchProcessWindow:
-        if (!visible || isMinimized()) {
-            auto foregroundHwnd = GetForegroundWindow();
-            qInfo() << "[Action] SwitchProcessWindow foregroundHwnd=" << Qt::hex << foregroundHwnd;
-            auto& order = m_groupCycler->groupWindowOrder();
-            if (order.isEmpty()) {
-                auto targetExePath = Util::getWindowProcessPath(foregroundHwnd);
-                order = m_windowManager->filteredHwndsForExe(targetExePath);
-            }
-            bool forward = !(modifiers & Qt::ShiftModifier);
-            if (auto nextWin = GroupWindowCycler::rotateWindow(order, foregroundHwnd, forward)) {
-                Util::switchToWindow(nextWin, true);
-            }
-        }
-        return;
-    case HotkeyAction::ExpandGroup:
-        if (visible && !isMinimized()) {
-            qInfo() << "[Action] ExpandGroup -> overlay action";
-            m_selectCtrl->handleOverlayAction(HotkeyAction::ExpandGroup, modifiers);
-        }
-        return;
-    case HotkeyAction::TogglePause:
-        qInfo() << "[Action] TogglePause";
-        cfg().setPaused(!cfg().getPaused());
-        return;
-    case HotkeyAction::ShowSwitcherStayOpen:
-    {
-        auto meta = getActionMetadata(action);
-        qInfo() << "[Action] ShowSwitcherStayOpen"
-                << "visible=" << visible
-                << "lifecycle=" << (int)meta.lifecycle
-                << "endTrigger=" << (int)meta.endTrigger;
-        if (!visible) {
-            requestShow(OverlayIntent::ShowSwitcher, action);
-        } else {
-            m_overlayCtrl->setStayOpenMode(true);
-            m_selectCtrl->handleOverlayAction(HotkeyAction::CycleForward, modifiers);
-            qInfo() << "[Action] ShowSwitcherStayOpen -> stayOpen + CycleForward";
-        }
-        return;
-    }
-    case HotkeyAction::SwitchToPreviousWindow:
-        qInfo() << "[Action] SwitchToPreviousWindow"
-                << "visible=" << visible;
-        if (!visible) {
-            requestShow(OverlayIntent::ShowSwitcherBackward, action);
-        } else {
-            m_selectCtrl->handleOverlayAction(HotkeyAction::CycleBackward, modifiers);
-        }
-        return;
-    default:
-        return;
-    }
-}
-
-void Widget::updateOverlayBindings(const HotkeyBindings& bindings) {
-    m_overlayCtrl->setOverlayBindings(bindings);
-}
+// ── Helpers ──
 
 void Widget::setupLabelFont() {
     auto reloadLabelFontConfig = [this] {
@@ -387,7 +370,6 @@ void Widget::setupLabelFont() {
         ui->label->setFont(labelFont);
     };
     reloadLabelFontConfig();
-
     connect(&cfg(), &ConfigManager::configEdited, this, [reloadLabelFontConfig] {
         reloadLabelFontConfig();
     });
@@ -397,20 +379,6 @@ void Widget::activateCurrentGroupWindow() {
     if (auto index = m_listView->currentIndex(); index.isValid())
         if (auto& group = m_model->groupAt(index.row()); !group.windows.empty())
             activateWindowWithVerification(group.windows.first().hwnd, group.exePath, group.windows.first().title);
-}
-
-void Widget::onActivationModifiersReleased() {
-    bool visible = m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible;
-    qInfo() << "[ActivationRelease] forwarding to controller"
-            << "visible=" << visible
-            << "groupMode=" << m_selectCtrl->isInGroupMode();
-
-    m_groupCycler->clearGroupWindowOrder();
-    m_selectCtrl->resetState();
-
-    if (!visible) return;
-
-    m_overlayCtrl->handleIntent(OverlayIntent::SessionEndConditionMet);
 }
 
 void Widget::activateWindowWithVerification(HWND targetHwnd, const QString& exePath,

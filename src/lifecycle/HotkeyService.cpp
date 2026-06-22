@@ -1,6 +1,9 @@
 #include "lifecycle/HotkeyService.h"
+#include "ActionRouter.h"
 #include "widget.h"
+#include "SelectionController.h"
 #include "TaskbarWindowCycler.h"
+#include "GroupWindowCycler.h"
 #include "hook/winEventHook.h"
 #include "hook/TaskbarWheelHooker.h"
 #include "hook/KeyboardHooker.h"
@@ -18,9 +21,10 @@ HotkeyService::~HotkeyService() {
     unhookWinEvent();
 }
 
-void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
+void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindings& bindings) {
     m_widget = widget;
-    m_keyboardHooker = new KeyboardHooker((HWND) widget->winId());
+    m_router = router;
+    m_keyboardHooker = new KeyboardHooker(widget->hWnd());
     m_keyboardHooker->updateBindings(bindings);
     m_keyboardHooker->setPaused(m_config->getPaused());
     widget->updateOverlayBindings(bindings);
@@ -39,9 +43,8 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
 
             auto oState = widget->overlayController()->overlayState();
 
-            // Visible + foreground changed + Alt not held → dismiss (click outside)
             if (oState == OverlayController::OverlayState::Visible
-                && hwnd != (HWND)widget->winId()
+                && hwnd != widget->hWnd()
                 && !Util::isKeyPressed(VK_MENU)) {
                 qInfo() << "[WinEvent] hiding overlay (clicked outside while Visible)";
                 widget->hideOverlay();
@@ -49,7 +52,7 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
             }
 
             if (oState != OverlayController::OverlayState::Hidden
-                && hwnd != (HWND)widget->winId()
+                && hwnd != widget->hWnd()
                 && !Util::isKeyPressed(VK_MENU)
                 && oState != OverlayController::OverlayState::Visible) {
                 qInfo() << "[WinEvent] hiding overlay (fg changed while not Visible)";
@@ -63,12 +66,8 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
                     != OverlayController::OverlayState::Visible) {
                 qInfo() << "[WinEvent] Task switcher detected (fallback)" << className;
                 widget->requestShow(OverlayIntent::FallbackShow);
-                // UIPI fallback: hook couldn't block Tab from elevated window.
-                // Refresh modifier tracking from physical key state so overlay
-                // auto-dismisses when user releases Alt.
                 if (Util::isKeyPressed(VK_MENU))
                     m_keyboardHooker->activateTrackingFromPhysicalState();
-                // Start retry timer to ensure overlay actually takes foreground
                 m_retryCount = 0;
                 m_retryTimer->start();
             }
@@ -77,12 +76,21 @@ void HotkeyService::init(Widget* widget, const HotkeyBindings& bindings) {
 }
 
 void HotkeyService::wireSignals(Widget* widget) {
+    // Global hotkeys → ActionRouter
     QObject::connect(m_keyboardHooker, &KeyboardHooker::hotkeyTriggered,
-                     widget, &Widget::handleGlobalAction, Qt::QueuedConnection);
+                     m_router, &ActionRouter::routeGlobalAction, Qt::QueuedConnection);
 
+    // Overlay key events from hook → SelectionController
     QObject::connect(m_keyboardHooker, &KeyboardHooker::overlayKeyTriggered,
                      widget, &Widget::handleHookOverlayAction, Qt::QueuedConnection);
 
+    // Forwarded actions from OverlayController → SelectionController
+    QObject::connect(widget->overlayController(), &OverlayController::actionForwarded, widget,
+                     [selCtrl = widget->selectionController()](HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+                         selCtrl->handleOverlayAction(action, modifiers);
+                     });
+
+    // Modifier release → Widget coordination
     QObject::connect(m_keyboardHooker, &KeyboardHooker::activationModifiersReleased,
                      widget, &Widget::onActivationModifiersReleased, Qt::QueuedConnection);
 
@@ -92,6 +100,7 @@ void HotkeyService::wireSignals(Widget* widget) {
     QObject::connect(widget, &Widget::overlayShown,
                      m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
 
+    // Taskbar wheel → TaskbarWindowCycler
     QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
                      widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
 

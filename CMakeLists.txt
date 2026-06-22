@@ -95,6 +95,8 @@ target_sources(Win_Switcher PRIVATE
     src/SelectionController.cpp    header/SelectionController.h
     src/GroupWindowCycler.cpp      header/GroupWindowCycler.h
     src/TaskbarWindowCycler.cpp    header/TaskbarWindowCycler.h
+                                   header/OverlayView.h
+    src/ActionRouter.cpp           header/ActionRouter.h
 )
 
 # ── Hooks ──

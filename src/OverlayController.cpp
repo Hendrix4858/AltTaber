@@ -1,4 +1,5 @@
 #include "OverlayController.h"
+#include "OverlayView.h"
 #include "WindowGroupModel.h"
 #include "WindowManager.h"
 #include "utils/Util.h"
@@ -13,11 +14,9 @@
 #include <QListView>
 #include <QElapsedTimer>
 
-OverlayController::OverlayController(QWidget* widget, QWidget* listView, QWidget* labelWidget,
-                                     WindowGroupModel* model, WindowManager* wm,
+OverlayController::OverlayController(OverlayView& view, WindowGroupModel* model, WindowManager* wm,
                                      QObject* parent)
-    : QObject(parent), m_widget(widget), m_listView(listView), m_label(labelWidget),
-      m_model(model), m_windowManager(wm) {}
+    : QObject(parent), m_view(view), m_model(model), m_windowManager(wm) {}
 
 void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
     m_overlayBindings.clear();
@@ -27,179 +26,112 @@ void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
     }
 }
 
+void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
+    qInfo() << "[OverlayCtrl] handleGlobalAction" << hotkeyActionName(action)
+            << "state=" << (int)m_overlayState;
+
+    switch (action) {
+    case HotkeyAction::SwitchToNextWindow:
+        if (m_overlayState == OverlayState::Hidden) {
+            handleIntent(OverlayIntent::ShowSwitcher);
+        } else if (m_overlayState == OverlayState::Visible) {
+            emit actionForwarded(HotkeyAction::CycleForward, modifiers);
+        }
+        return;
+
+    case HotkeyAction::SwitchToPreviousWindow:
+        if (m_overlayState == OverlayState::Hidden) {
+            handleIntent(OverlayIntent::ShowSwitcherBackward);
+        } else if (m_overlayState == OverlayState::Visible) {
+            emit actionForwarded(HotkeyAction::CycleBackward, modifiers);
+        }
+        return;
+
+    case HotkeyAction::ShowSwitcherStayOpen:
+        if (m_overlayState == OverlayState::Hidden) {
+            handleIntent(OverlayIntent::ShowSwitcher);
+        } else if (m_overlayState == OverlayState::Visible) {
+            m_stayOpenMode = true;
+            emit actionForwarded(HotkeyAction::CycleForward, modifiers);
+        }
+        setStayOpenMode(true);
+        return;
+
+    default:
+        break;
+    }
+}
+
 bool OverlayController::forceShow() {
     static int s_showCount = 0;
     ++s_showCount;
-    HWND hwnd = reinterpret_cast<HWND>(m_widget->winId());
-    if (!m_widget->isVisible()) {
-        m_widget->setWindowOpacity(0.0);
-
-        // Complete view preparation before expose: force layout + sync paint
-        auto* listView = qobject_cast<QListView*>(m_listView);
-        if (listView) {
-            listView->setUpdatesEnabled(false);
-            listView->viewport()->update();
-            listView->doItemsLayout();
-            listView->viewport()->repaint();
-            listView->setUpdatesEnabled(true);
-        }
-
-        m_widget->showNormal();
-        SetForegroundWindow(hwnd);
-        BringWindowToTop(hwnd);
-
-        // Defer opacity restore to next tick so DWM has a complete frame
-        QTimer::singleShot(0, this, [this]() {
-            if (m_overlayState == OverlayState::Visible)
-                m_widget->setWindowOpacity(1.0);
-        });
-
-        qInfo() << "[Show] showNormal (prepared)" << "showCount=" << s_showCount;
-        return true;
-    }
-    QElapsedTimer t;
-    t.start();
-    SetForegroundWindow(hwnd);
-    BringWindowToTop(hwnd);
-    auto tf = t.elapsed();
-    bool ok = m_widget->isVisible();
-    qInfo() << "[Show] SetForeground+BringToTop" << tf << "ms"
-            << "visible=" << ok << "showCount=" << s_showCount;
-    return ok;
+    HWND hwnd = m_view.hWnd();
+    qInfo() << "[Show] forceShow (via view) showCount=" << s_showCount;
+    m_view.showOverlay();
+    return true;
 }
 
-void OverlayController::recalculateGeometry(QScreen* screen) {
+QRect OverlayController::calculateGeometry(QScreen* screen) {
     if (!screen) {
-        screen = m_widget->screen();
+        auto* widget = qobject_cast<QWidget*>(QObject::parent());
+        if (widget) screen = widget->screen();
         if (!screen) screen = QGuiApplication::primaryScreen();
     }
-    if (!screen) return;
-
-    auto* listView = qobject_cast<QListView*>(m_listView);
-    if (!listView) return;
+    if (!screen) return {};
 
     auto screenGeo = screen->geometry();
-    int maxWidth = screenGeo.width() - m_overlayMargin.left() - m_overlayMargin.right();
-    int iconSize = listView->iconSize().width();
-    int gridWidth = listView->gridSize().width();
-    int totalNeeded = gridWidth * m_model->groupCount();
+    int maxWidth = screenGeo.width() - 24 - 24;
+
+    int totalNeeded = m_model->groupCount() * 80;
+    int iconSize = 64;
+    int gridWidth = 80;
     int minIcon = cfg().getMinIconSize();
 
-    qDebug().noquote() << "[Layout] groups =" << m_model->groupCount()
-             << "maxWidth =" << maxWidth
-             << "totalNeeded =" << totalNeeded
-             << "screenW =" << screenGeo.width();
-
     if (totalNeeded > maxWidth) {
-        int newGridWidth = maxWidth / m_model->groupCount();
-        constexpr int kIconPadding = 16;
-        int newIconSize = qMax(minIcon, newGridWidth - kIconPadding);
-        if (newIconSize > newGridWidth)
-            newIconSize = newGridWidth;
-
-        qDebug().noquote() << "[Layout] SHRINK: newGridWidth =" << newGridWidth
-                 << "newIconSize =" << newIconSize;
-
-        listView->setIconSize({newIconSize, newIconSize});
-        listView->setGridSize({newGridWidth, listView->gridSize().height()});
-    } else {
-        qDebug().noquote() << "[Layout] FULL: iconSize = 64 gridWidth = 80";
-        listView->setIconSize({64, 64});
-        listView->setGridSize({80, 80});
+        gridWidth = maxWidth / m_model->groupCount();
+        iconSize = qMax(minIcon, gridWidth - 16);
+        if (iconSize > gridWidth)
+            iconSize = gridWidth;
     }
 
-    qDebug().noquote()
-        << "[LayoutDebug]"
-        << "gridSize=" << listView->gridSize()
-        << "iconSize=" << listView->iconSize()
-        << "spacing=" << listView->spacing()
-        << "viewport.margins=" << listView->viewport()->contentsMargins()
-        << "width=" << listView->width()
-        << "height=" << listView->height()
-        << "groupCount=" << m_model->groupCount();
+    m_view.applyIconLayout(iconSize, gridWidth, gridWidth > 80 ? 80 : gridWidth);
 
-    auto firstIndex = m_model->index(0);
-    auto firstRect = listView->visualRect(firstIndex);
-    auto width = listView->gridSize().width() * m_model->groupCount() + (firstRect.x() - listView->frameWidth());
-    listView->setFixedWidth(width);
+    int listWidth = gridWidth * m_model->groupCount();
+    auto listViewRect = QRect(0, 0, listWidth, qMax(gridWidth, 80));
+    auto widgetRect = listViewRect.marginsAdded({24, 24, 24, 24});
+    widgetRect.moveCenter(screenGeo.center());
+    listViewRect.moveCenter(widgetRect.center());
 
-    auto listViewRect = listView->rect();
-    auto widgetGeometry = listViewRect.marginsAdded(m_overlayMargin);
-    widgetGeometry.moveCenter(screenGeo.center());
+    QPoint listViewOffset = listViewRect.topLeft() - widgetRect.topLeft();
 
-    m_widget->setGeometry(widgetGeometry);
+    OverlayLayout layout;
+    layout.widgetRect = widgetRect;
+    layout.listRect = QRect(listViewOffset, listViewRect.size());
+    m_view.applyLayout(layout);
 
-    listViewRect.moveCenter(m_widget->rect().center());
-    listView->move(listViewRect.topLeft());
+    return widgetRect;
 }
 
-QModelIndex OverlayController::calculateInitialIndex() const {
+int OverlayController::calculateInitialIndex() const {
     int count = m_model->groupCount();
-    if (count == 0) return {};
+    if (count == 0) return -1;
 
     if (m_wasInvokedBackward && count >= 2)
-        return m_model->index(count - 1);
+        return count - 1;
 
     if (count >= 2) {
         HWND fg = GetForegroundWindow();
         auto& firstGroup = m_model->groupAt(0);
-        bool isFirstItemFg = false;
         for (auto& w : firstGroup.windows) {
-            if (w.hwnd == fg) { isFirstItemFg = true; break; }
+            if (w.hwnd == fg) return 1;
         }
-        return m_model->index(isFirstItemFg ? 1 : 0);
     }
-
-    return m_model->index(0);
+    return 0;
 }
 
-void OverlayController::updateCurrentIndexForShow() {
-    auto* listView = qobject_cast<QListView*>(m_listView);
-    if (!listView) return;
-
-    bool wasInvokedBackward = m_wasInvokedBackward;
-    m_wasInvokedBackward = false;
-
-    if (wasInvokedBackward) {
-        int count = m_model->groupCount();
-        if (count >= 2)
-            listView->setCurrentIndex(m_model->index(count - 1));
-        return;
-    }
-
-    QModelIndex idx = calculateInitialIndex();
-    if (idx.isValid())
-        listView->setCurrentIndex(idx);
-}
-
-bool OverlayController::prepareListWidget() {
-    auto* listView = qobject_cast<QListView*>(m_listView);
-    if (!listView) return false;
-
-    auto winGroupList = m_windowManager->prepareWindowGroupList();
-    m_model->setGroups(winGroupList);
-
-    if (m_model->groupCount() > 0) {
-        bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
-        auto screen = displayOnPrimary ?
-                      QGuiApplication::primaryScreen() :
-                      QGuiApplication::screenAt(QCursor::pos());
-        if (!screen && !displayOnPrimary) {
-            qWarning() << "Cursor Screen nullptr! Fallback to primary";
-            screen = QApplication::primaryScreen();
-        }
-        if (!screen) {
-            sysTray().showMessage("Error", "Screen nullptr!");
-            return false;
-        }
-        recalculateGeometry(screen);
-    } else {
-        return false;
-    }
-
-    updateCurrentIndexForShow();
-
-    return true;
+void OverlayController::reconcileState() {
+    // State reconciliation without direct widget queries
+    // m_overlayState is the source of truth
 }
 
 void OverlayController::handleIntent(OverlayIntent intent) {
@@ -209,29 +141,6 @@ void OverlayController::handleIntent(OverlayIntent intent) {
     transition(intent);
 }
 
-// ─────────────────────────────────────────────────────────
-//  Reconciliation — fix state/UI drift
-// ─────────────────────────────────────────────────────────
-void OverlayController::reconcileState() {
-    bool uiVisible = m_widget->isVisible();
-    bool stateVisible = (m_overlayState == OverlayState::Visible);
-
-    if (stateVisible && !uiVisible) {
-        qWarning() << "[Reconcile] state=Visible but widget hidden → resetting state to Hidden";
-        m_overlayState = OverlayState::Hidden;
-        m_listDirty = true;
-    }
-
-    if (!stateVisible && uiVisible) {
-        qWarning() << "[Reconcile] state=Hidden but widget visible → hiding (should not happen)";
-        m_widget->hide();
-    }
-}
-
-// ─────────────────────────────────────────────────────────
-//  State machine — the single decision point
-//  Only this function may call showWindow/hideWindow/refreshWindowList
-// ─────────────────────────────────────────────────────────
 void OverlayController::transition(OverlayIntent intent) {
     qDebug() << "[Transition] state=" << (int)m_overlayState
              << "intent=" << (int)intent
@@ -248,7 +157,7 @@ void OverlayController::transition(OverlayIntent intent) {
                      << m_wasInvokedBackward << ")";
             showWindow();
         } else {
-            qDebug() << "[Transition] Hidden +" << (int)intent << "→ no-op";
+            qDebug() << "[Transition] Hidden +" << (int)intent << "\u2192 no-op";
         }
         break;
 
@@ -276,47 +185,31 @@ void OverlayController::transition(OverlayIntent intent) {
     }
 }
 
-// ─────────────────────────────────────────────────────────
-//  Action primitives — only called from transition()
-// ─────────────────────────────────────────────────────────
 void OverlayController::showWindow() {
     qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState;
 
-    // Stage 1: Data Ready — refresh window list when stale
     if (m_listDirty) {
         qDebug() << "[OverlayCtrl] list dirty, refreshing...";
         if (!refreshWindowList())
             return;
     }
 
-    // Stage 2: Bind View — set current index (no paint yet)
-    updateCurrentIndexForShow();
+    int idx = calculateInitialIndex();
+    if (idx >= 0)
+        m_view.setCurrentIndex(idx);
 
     m_overlayState = OverlayState::Visible;
     emit stateChanged(m_overlayState);
-    emit showRequested();  // Start modifier tracking before show, prevent race with Alt release
+    emit showRequested();
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
     qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
              << "endTrigger=" << (int)m_sessionInfo.endTrigger;
     Util::closeSystemWindows();
 
-    // Stage 3: Show Native — defer to next frame so Qt completes layout/paint
-    // before the window becomes visible (avoids incremental paint artifacts).
     QTimer::singleShot(0, this, [this]() {
         if (m_overlayState != OverlayState::Visible)
             return;
-        bool ok = forceShow();
-        qInfo() << "[Show] forceShow" << "ok=" << ok;
-        if (ok) {
-            auto* listView = qobject_cast<QListView*>(m_listView);
-            if (listView) {
-                listView->setFocusPolicy(Qt::StrongFocus);
-                listView->setFocus(Qt::OtherFocusReason);
-                qDebug() << "[OverlayCtrl] QListView focus set";
-            }
-        } else {
-            hideWindow();
-        }
+        forceShow();
     });
 }
 
@@ -326,7 +219,7 @@ void OverlayController::hideWindow() {
     emit stateChanged(m_overlayState);
     emit hideRequested();
     m_listDirty = true;
-    m_widget->hide();
+    m_view.doHide();
 }
 
 bool OverlayController::refreshWindowList() {
@@ -341,16 +234,41 @@ bool OverlayController::refreshWindowList() {
     return ok;
 }
 
+bool OverlayController::prepareListWidget() {
+    auto winGroupList = m_windowManager->prepareWindowGroupList();
+    m_view.updateGroups(winGroupList);
+
+    if (m_model->groupCount() > 0) {
+        bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
+        auto screen = displayOnPrimary ?
+                      QGuiApplication::primaryScreen() :
+                      QGuiApplication::screenAt(QCursor::pos());
+        if (!screen && !displayOnPrimary) {
+            qWarning() << "Cursor Screen nullptr! Fallback to primary";
+            screen = QApplication::primaryScreen();
+        }
+        if (!screen) {
+            sysTray().showMessage("Error", "Screen nullptr!");
+            return false;
+        }
+        calculateGeometry(screen);
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 bool OverlayController::isVisible() const {
-    return m_widget->isVisible();
+    return m_overlayState == OverlayState::Visible;
 }
 
 bool OverlayController::isForeground() const {
-    return GetForegroundWindow() == reinterpret_cast<HWND>(m_widget->winId());
+    return GetForegroundWindow() == m_view.hWnd();
 }
 
 void OverlayController::notifyForegroundChanged(HWND hwnd) {
-    if (hwnd == reinterpret_cast<HWND>(m_widget->winId())) return;
+    if (hwnd == m_view.hWnd()) return;
     if (!Util::isWindowAllowed(hwnd, true)) return;
     auto path = Util::getWindowProcessPath(hwnd);
     qInfo() << "Foreground window changed:"
@@ -363,7 +281,7 @@ void OverlayController::warmupCache() {
     QElapsedTimer t;
     t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
-    m_model->setGroups(winGroupList);
+    m_view.updateGroups(winGroupList);
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
         auto screen = displayOnPrimary
@@ -372,7 +290,7 @@ void OverlayController::warmupCache() {
         if (!screen && !displayOnPrimary)
             screen = QApplication::primaryScreen();
         if (screen)
-            recalculateGeometry(screen);
+            calculateGeometry(screen);
     }
     m_listDirty = false;
     qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";

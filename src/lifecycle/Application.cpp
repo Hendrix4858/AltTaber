@@ -10,7 +10,10 @@
 #include <QElapsedTimer>
 
 #include "lifecycle/Application.h"
+#include "ActionRouter.h"
 #include "widget.h"
+#include "SelectionController.h"
+#include "GroupWindowCycler.h"
 #include "WindowManager.h"
 #include "hook/winEventHook.h"
 #include "utils/Util.h"
@@ -116,7 +119,7 @@ void Application::initControllers() {
 
     m_windowManager = new WindowManager(m_config);
     m_widget = new Widget(m_windowManager);
-    m_windowManager->setSelfHwnd((HWND) m_widget->winId());
+    m_windowManager->setSelfHwnd(m_widget->hWnd());
 }
 
 void Application::initUI() {
@@ -141,8 +144,14 @@ void Application::initUI() {
 void Application::initHotkeys() {
     auto bindings = m_config->effectiveHotkeyBindings();
 
+    auto* router = new ActionRouter(&m_app);
+    router->setOverlayController(m_widget->overlayController());
+    router->setSelectionController(m_widget->selectionController());
+    router->setGroupWindowCycler(m_widget->groupWindowCycler());
+    router->setWindowManager(m_windowManager);
+
     m_hotkeyService = new HotkeyService(m_config, &m_app);
-    m_hotkeyService->init(m_widget, bindings);
+    m_hotkeyService->init(m_widget, router, bindings);
     m_hotkeyService->wireSignals(m_widget);
 }
 

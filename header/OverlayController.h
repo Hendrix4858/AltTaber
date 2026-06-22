@@ -2,11 +2,11 @@
 #define WIN_SWITCHER_OVERLAYCONTROLLER_H
 
 #include <QObject>
-#include <QWidget>
 #include <QScreen>
 #include <Windows.h>
 #include "core/HotkeyAction.h"
 
+class OverlayView;
 class WindowGroupModel;
 class WindowManager;
 
@@ -34,12 +34,14 @@ public:
         Hiding,
     };
 
-    explicit OverlayController(QWidget* widget, QWidget* listView, QWidget* labelWidget,
-                               WindowGroupModel* model, WindowManager* wm,
+    explicit OverlayController(OverlayView& view, WindowGroupModel* model, WindowManager* wm,
                                QObject* parent = nullptr);
 
     // ── Single external entry point for all state changes ──
     Q_INVOKABLE void handleIntent(OverlayIntent intent);
+
+    // ── State-aware global action handler ──
+    void handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers);
 
     bool isVisible() const;
     bool isForeground() const;
@@ -47,7 +49,8 @@ public:
     bool stayOpenMode() const { return m_stayOpenMode; }
     void setStayOpenMode(bool v) { m_stayOpenMode = v; }
 
-    void recalculateGeometry(QScreen* screen = nullptr);
+    QRect calculateGeometry(QScreen* screen = nullptr);
+    int calculateInitialIndex() const;
 
     void setOverlayBindings(const HotkeyBindings& bindings);
     const HotkeyBindings& overlayBindings() const { return m_overlayBindings; }
@@ -62,6 +65,7 @@ signals:
     void showRequested();
     void hideRequested();
     void stateChanged(OverlayController::OverlayState state);
+    void actionForwarded(HotkeyAction action, Qt::KeyboardModifiers modifiers);
 
 private:
     // ── State machine ──
@@ -74,18 +78,11 @@ private:
     bool refreshWindowList();
     bool prepareListWidget();
 
-    QModelIndex calculateInitialIndex() const;
-    void updateCurrentIndexForShow();
-
     bool forceShow();
 
-    QWidget* m_widget;
-    QWidget* m_listView;
-    QWidget* m_label;
+    OverlayView& m_view;
     WindowGroupModel* m_model;
     WindowManager* m_windowManager;
-
-    const QMargins m_overlayMargin{24, 24, 24, 24};
 
     OverlayState m_overlayState = OverlayState::Hidden;
     bool m_stayOpenMode = false;
