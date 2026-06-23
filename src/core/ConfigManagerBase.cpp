@@ -1,6 +1,7 @@
 #include "core/ConfigManagerBase.h"
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QSaveFile>
 
 ConfigManagerBase::ConfigManagerBase(const QString& filepath)
     : m_filePath(filepath) {
@@ -41,14 +42,15 @@ void ConfigManagerBase::load() {
 }
 
 void ConfigManagerBase::save() const {
-    QFile file(m_filePath);
+    QSaveFile file(m_filePath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning() << "Failed to write config file:" << m_filePath;
         return;
     }
     QJsonDocument doc(m_root);
     file.write(doc.toJson(QJsonDocument::Indented));
-    file.close();
+    if (!file.commit())
+        qWarning() << "Failed to atomically save config file:" << m_filePath;
 }
 
 void ConfigManagerBase::sync() {
@@ -95,10 +97,10 @@ void ConfigManagerBase::editConfigFile() {
     // Ensure file exists
     sync();
     if (!QFile::exists(m_filePath)) {
-        QFile file(m_filePath);
+        QSaveFile file(m_filePath);
         file.open(QIODevice::WriteOnly);
         file.write("{}");
-        file.close();
+        file.commit();
     }
 
     qDebug() << "#Editing config file" << m_filePath;

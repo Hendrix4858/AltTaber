@@ -15,7 +15,7 @@ public:
     explicit WindowManager(ConfigManager* config, HWND selfHwnd = nullptr, QObject* parent = nullptr);
     void setSelfHwnd(HWND hwnd);
 
-    QList<WindowGroup> prepareWindowGroupList();
+    virtual QList<WindowGroup> prepareWindowGroupList();
 
     void recordWindowActivation(HWND hwnd);
     ActivationHistory& activationHistory() { return m_activationHistory; }

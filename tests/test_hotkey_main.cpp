@@ -14,6 +14,13 @@ private slots:
     void testNoConflictWhenSameAction();
     void testHasSingleLetter();
     void testNoSingleLetter();
+
+    void testMatchesPhysicalVkOnly();
+    void testMatchesPhysicalScanAndExt();
+    void testMatchesPhysicalScanMismatch();
+    void testMatchesPhysicalExtMismatch();
+    void testMatchesPhysicalModsMismatch();
+    void testMatchesPhysicalLogicalFallback();
 };
 
 void TestHotkey::testNoConflictWithEmpty() {
@@ -74,6 +81,38 @@ void TestHotkey::testNoSingleLetter() {
     bindings[HotkeyAction::SwitchToNextWindow].append(HotkeyBinding::fromString("Alt+Tab"));
     bindings[HotkeyAction::CycleForward].append(HotkeyBinding::fromString("Tab"));
     QVERIFY(!HotkeyConflictResolver::hasSingleLetterBinding(bindings));
+}
+
+void TestHotkey::testMatchesPhysicalVkOnly() {
+    auto b = makePhysicalBinding(Qt::NoModifier, VK_UP, 0x48, true);
+    QVERIFY(b.matchesPhysical(VK_UP, 0x48, true, Qt::NoModifier));
+}
+
+void TestHotkey::testMatchesPhysicalScanAndExt() {
+    auto b = makePhysicalBinding(Qt::NoModifier, VK_UP, 0x48, true);
+    QVERIFY(b.matchesPhysical(VK_UP, 0x48, true, Qt::NoModifier));
+}
+
+void TestHotkey::testMatchesPhysicalScanMismatch() {
+    auto b = makePhysicalBinding(Qt::NoModifier, VK_UP, 0x48, true);
+    QVERIFY(!b.matchesPhysical(VK_UP, 0x50, true, Qt::NoModifier));
+}
+
+void TestHotkey::testMatchesPhysicalExtMismatch() {
+    auto b = makePhysicalBinding(Qt::NoModifier, VK_UP, 0x48, true);
+    QVERIFY(!b.matchesPhysical(VK_UP, 0x48, false, Qt::NoModifier));
+}
+
+void TestHotkey::testMatchesPhysicalModsMismatch() {
+    auto b = makePhysicalBinding(Qt::NoModifier, VK_UP, 0x48, true);
+    QVERIFY(!b.matchesPhysical(VK_UP, 0x48, true, Qt::AltModifier));
+}
+
+void TestHotkey::testMatchesPhysicalLogicalFallback() {
+    auto b = HotkeyBinding::fromString("Alt+Tab");
+    QCOMPARE(b.matchesPhysical(VK_TAB, 0x0F, false, Qt::AltModifier),
+             b.matches(VK_TAB, Qt::AltModifier));
+    QVERIFY(b.matchesPhysical(VK_TAB, 0x0F, false, Qt::AltModifier));
 }
 
 QTEST_APPLESS_MAIN(TestHotkey)
