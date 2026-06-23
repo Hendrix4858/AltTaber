@@ -58,23 +58,30 @@ namespace PwaDetector {
 
     QIcon getPwaIcon(HWND hwnd, const QString& appUserModelId, const QString& fallbackExePath) {
         if (!appUserModelId.isEmpty()) {
-            if (auto icon = Util::getCachedPwaIcon(appUserModelId); !icon.isNull())
+            if (auto icon = Util::getCachedPwaIcon(appUserModelId); !icon.isNull()) {
+                qDebug() << "[PwaDetector::getPwaIcon] path=cached" << appUserModelId;
                 return icon;
+            }
 
             {
                 QPixmap shellPix = Util::getShellAppIcon(hwnd);
                 if (!shellPix.isNull()) {
+                    qDebug() << "[PwaDetector::getPwaIcon] path=shell icon" << appUserModelId;
                     QIcon icon(shellPix);
                     Util::cachePwaIcon(appUserModelId, icon);
                     return icon;
                 }
             }
 
+            qDebug() << "[PwaDetector::getPwaIcon] shell FAILED for" << appUserModelId;
         }
 
-        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel)
+        if (detectPwaType(fallbackExePath, appUserModelId) == PwaType::WindowsAppModel) {
+            qDebug() << "[PwaDetector::getPwaIcon] path=WindowsAppModel fallback" << appUserModelId;
             return Util::getCachedIcon(fallbackExePath, hwnd);
+        }
 
+        qDebug() << "[PwaDetector::getPwaIcon] path=window icon" << appUserModelId;
         QPixmap pix = Util::getWindowIcon(hwnd);
         if (!pix.isNull()) {
             QIcon icon(pix);
@@ -83,6 +90,7 @@ namespace PwaDetector {
             return icon;
         }
 
+        qDebug() << "[PwaDetector::getPwaIcon] path=final exe fallback" << fallbackExePath;
         return Util::getCachedIcon(fallbackExePath, hwnd);
     }
 

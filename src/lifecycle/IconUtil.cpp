@@ -208,6 +208,7 @@ namespace Util {
                     }
                 }
 
+                qDebug().nospace() << "[DiskCache::save] path=" << exePath << " availableSizes=" << icon.availableSizes() << " actualSize(64,64)=" << icon.actualSize(QSize(64, 64)) << " pixmap(64).size=" << icon.pixmap(64).size();
                 icon.pixmap(64).save(filePath, "PNG");
 
                 CacheEntry entry;
@@ -250,6 +251,7 @@ namespace Util {
 
                 auto hash = QCryptographicHash::hash(aumid.toUtf8(), QCryptographicHash::Md5).toHex();
                 auto fileName = "pwa_" + hash + ".png";
+                qDebug().nospace() << "[DiskCache::savePwa] aumid=" << aumid << " availableSizes=" << icon.availableSizes() << " actualSize(64,64)=" << icon.actualSize(QSize(64, 64)) << " pixmap(64).size=" << icon.pixmap(64).size();
                 icon.pixmap(64).save(iconDir() + "/" + fileName, "PNG");
 
                 CacheEntry entry;
@@ -405,9 +407,11 @@ namespace Util {
         if (FAILED(hr) || !hBitmap) return {};
 
         QImage img;
+        QImage::Format imgFormat = QImage::Format_Invalid;
         {
             BITMAP bm = {};
             GetObject(hBitmap, sizeof(bm), &bm);
+            qDebug().nospace() << "[IconUtil::getShellAppIcon] HBITMAP size=" << bm.bmWidth << "x" << bm.bmHeight << " bpp=" << bm.bmBitsPixel;
             if (bm.bmBitsPixel == 32) {
                 img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32_Premultiplied);
                 BITMAPINFO bmi = {};
@@ -422,12 +426,17 @@ namespace Util {
                     GetDIBits(hdc, hBitmap, 0, bm.bmHeight, img.bits(), &bmi, DIB_RGB_COLORS);
                     ReleaseDC(nullptr, hdc);
                 }
+                imgFormat = QImage::Format_ARGB32_Premultiplied;
             } else {
                 img = QImage::fromHBITMAP(hBitmap);
+                imgFormat = img.format();
             }
         }
         DeleteObject(hBitmap);
-        return QPixmap::fromImage(img);
+        qDebug().nospace() << "[IconUtil::getShellAppIcon] QImage format=" << imgFormat << " hasAlpha=" << img.hasAlphaChannel() << " size=" << img.width() << "x" << img.height();
+        QPixmap pix = QPixmap::fromImage(img);
+        qDebug().nospace() << "[IconUtil::getShellAppIcon] result QPixmap size=" << pix.size() << " dpr=" << pix.devicePixelRatio();
+        return pix;
     }
 
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {

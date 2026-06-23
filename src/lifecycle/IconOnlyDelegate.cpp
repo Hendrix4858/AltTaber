@@ -7,6 +7,7 @@
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();
     painter->setRenderHint(QPainter::Antialiasing);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setPen(Qt::NoPen);
     if (option.state & QStyle::State_Selected) {
         painter->setBrush(colors.delegateSelected);
@@ -24,6 +25,10 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
             option.decorationSize,
             option.rect
         );
+        qDebug().nospace() << "[IconOnlyDelegate] decorationSize=" << option.decorationSize
+                           << " aligned=" << aligned
+                           << " icon.actualSize=" << icon.actualSize(option.decorationSize)
+                           << " availableSizes=" << icon.availableSizes();
         icon.paint(painter, aligned);
     }
 
