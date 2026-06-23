@@ -5,16 +5,15 @@
 #include <propkey.h>
 #include <atlbase.h>
 #include <dwmapi.h>
+#include <string>
 
 namespace Util {
     QString getWindowTitle(HWND hwnd) {
         const int len = GetWindowTextLength(hwnd) + 1;
         if (len <= 1) return {};
-        auto* title = new wchar_t[len];
-        GetWindowText(hwnd, title, len);
-        QString result = QString::fromWCharArray(title);
-        delete[] title;
-        return result;
+        std::wstring title(len, L'\0');
+        GetWindowText(hwnd, title.data(), len);
+        return QString::fromWCharArray(title.c_str());
     }
 
     QString getClassName(HWND hwnd) {

@@ -56,7 +56,7 @@ namespace Util {
             hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
 
         if (hProcess) {
-            TCHAR processName[MAX_PATH];
+            WCHAR processName[MAX_PATH];
             if (GetModuleFileNameEx(hProcess, nullptr, processName, MAX_PATH))
                 path = QString::fromWCharArray(processName);
             CloseHandle(hProcess);

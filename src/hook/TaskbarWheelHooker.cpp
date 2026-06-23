@@ -28,8 +28,7 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 int windows = 0;
                 const auto kWindowCountDelimiter = QStringLiteral(" - ");
                 if (auto dashIdx = name.lastIndexOf(kWindowCountDelimiter); dashIdx != -1) {
-                    std::stringstream ss(name.mid(dashIdx + kWindowCountDelimiter.size()).toStdString());
-                    ss >> windows;
+                    windows = name.mid(dashIdx + kWindowCountDelimiter.size()).toInt();
                     name = name.left(dashIdx);
                 }
                 auto exePath = AppUtil::getExePathFromAppIdOrName(appid, name);
