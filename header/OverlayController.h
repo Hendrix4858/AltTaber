@@ -69,7 +69,6 @@ signals:
 
 private:
     // ── State machine ──
-    void reconcileState();
     void transition(OverlayIntent intent);
 
     // ── Action primitives (only called from transition) ──

@@ -8,16 +8,6 @@
 #include <appmodel.h>
 
 namespace AppUtil {
-    HWND getAppFrameWindow(HWND hwnd) {
-        auto className = Util::getClassName(hwnd);
-        if (className == AppFrameWindowClass) return hwnd;
-        auto title = Util::getWindowTitle(hwnd);
-        if (auto res = FindWindowW(LPCWSTR(AppFrameWindowClass.utf16()), LPCWSTR(title.utf16())))
-            return res;
-        qWarning() << "Failed to find ApplicationFrameWindow of " << title << hwnd;
-        return nullptr;
-    }
-
     HWND getAppCoreWindow(HWND hwnd) {
         auto className = Util::getClassName(hwnd);
         if (className == AppCoreWindowClass) return hwnd;

@@ -62,13 +62,13 @@ Application::Application(int argc, char* argv[])
 
     m_com = new ComInitializer;
 
-    qDebug() << "isUserAdmin" << IsUserAnAdmin();
+    qDebug() << "isUserAdmin" << Util::isUserAdmin();
     qDebug() << "System Version" << QOperatingSystemVersion::current().version();
     sysTray().show();
     UpdateDialog::verifyUpdate(m_app);
     initLanguage();
 
-    if (m_config->getAlwaysRunAsAdmin() && !IsUserAnAdmin()) {
+    if (m_config->getAlwaysRunAsAdmin() && !Util::isUserAdmin()) {
         QString appPath = QApplication::applicationFilePath();
         ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
         QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);

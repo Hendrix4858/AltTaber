@@ -57,22 +57,14 @@ namespace PwaDetector {
     }
 
     QIcon getPwaIcon(HWND hwnd, const QString& appUserModelId, const QString& fallbackExePath) {
-        static QHash<QString, QIcon> memCache;
-
         if (!appUserModelId.isEmpty()) {
-            if (auto icon = memCache.value(appUserModelId); !icon.isNull())
+            if (auto icon = Util::getCachedPwaIcon(appUserModelId); !icon.isNull())
                 return icon;
-
-            if (auto icon = Util::getCachedPwaIcon(appUserModelId); !icon.isNull()) {
-                memCache.insert(appUserModelId, icon);
-                return icon;
-            }
 
             {
                 QPixmap shellPix = Util::getShellAppIcon(hwnd);
                 if (!shellPix.isNull()) {
                     QIcon icon(shellPix);
-                    memCache.insert(appUserModelId, icon);
                     Util::cachePwaIcon(appUserModelId, icon);
                     return icon;
                 }
@@ -86,10 +78,8 @@ namespace PwaDetector {
         QPixmap pix = Util::getWindowIcon(hwnd);
         if (!pix.isNull()) {
             QIcon icon(pix);
-            if (!appUserModelId.isEmpty()) {
-                memCache.insert(appUserModelId, icon);
+            if (!appUserModelId.isEmpty())
                 Util::cachePwaIcon(appUserModelId, icon);
-            }
             return icon;
         }
 

@@ -1,4 +1,5 @@
 #include "WindowFilter.h"
+#include "core/ConfigManager.h"
 #include <QFileInfo>
 
 WindowFilterRule WindowFilter::builtinRules() {
@@ -44,6 +45,21 @@ WindowFilterRule WindowFilter::builtinRules() {
         rule.rules.append(e);
     }
 
+    return rule;
+}
+
+WindowFilterRule WindowFilter::buildRuleFromConfig(ConfigManager& cfg) {
+    auto rule = builtinRules();
+    auto blocked = cfg.getBlockedWindows();
+    for (const auto& entry : blocked) {
+        if (!entry.enabled) continue;
+        WindowBlockRule blockRule;
+        blockRule.title = entry.title;
+        blockRule.className = entry.className;
+        blockRule.processName = entry.processName;
+        blockRule.processPath = entry.processPath;
+        rule.rules.append(blockRule);
+    }
     return rule;
 }
 

@@ -3,7 +3,7 @@
 #include "utils/Util.h"
 #include <QDebug>
 #include <QFileInfo>
-#include <shlobj_core.h>
+
 
 namespace WindowEnumerator {
 
@@ -43,7 +43,7 @@ namespace WindowEnumerator {
 
     QList<WindowDescriptor> enumValidWindows() {
         qDebug() << "List valid windows";
-        static const bool isUserAdmin = IsUserAnAdmin();
+        static const bool isUserAdmin = Util::isUserAdmin();
         const auto descriptors = enumAllWindows();
         QList<WindowDescriptor> result;
         result.reserve(descriptors.size());

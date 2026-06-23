@@ -16,29 +16,9 @@ namespace Util {
             return false;
         // System + user filter via WindowFilter
         WindowFilter filter;
-        WindowFilterRule rule = WindowFilter::builtinRules();
-        auto blocked = cfg().getBlockedWindows();
-        for (const auto& entry : blocked) {
-            if (!entry.enabled) continue;
-            WindowBlockRule blockRule;
-            blockRule.title = entry.title;
-            blockRule.className = entry.className;
-            blockRule.processName = entry.processName;
-            blockRule.processPath = entry.processPath;
-            rule.rules.append(blockRule);
-        }
-        filter.setRules(rule);
+        filter.setRules(WindowFilter::buildRuleFromConfig(cfg()));
         WindowDescriptor desc = WindowDescriptorBuilder::fromHwnd(hwnd);
         return filter.isAllowed(desc);
-    }
-
-    QList<HWND> enumWindows() {
-        auto descriptors = WindowEnumerator::enumAllWindows();
-        QList<HWND> hwnds;
-        hwnds.reserve(descriptors.size());
-        for (const auto& d : descriptors)
-            hwnds.append(d.hwnd);
-        return hwnds;
     }
 
     BOOL CALLBACK EnumChildWindowsProc(HWND hwnd, LPARAM lParam) {
@@ -76,15 +56,6 @@ namespace Util {
 
     QList<HWND> listValidWindows() {
         auto descriptors = WindowEnumerator::enumValidWindows();
-        QList<HWND> hwnds;
-        hwnds.reserve(descriptors.size());
-        for (const auto& d : descriptors)
-            hwnds.append(d.hwnd);
-        return hwnds;
-    }
-
-    QList<HWND> listValidWindows(const QString& exePath) {
-        auto descriptors = WindowEnumerator::enumValidWindows(exePath);
         QList<HWND> hwnds;
         hwnds.reserve(descriptors.size());
         for (const auto& d : descriptors)

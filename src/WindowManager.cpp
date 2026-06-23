@@ -22,17 +22,7 @@ void WindowManager::recordWindowActivation(HWND hwnd) {
 }
 
 void WindowManager::reloadFilterRules() {
-    WindowFilterRule rule = WindowFilter::builtinRules();
-    auto blocked = m_config->getBlockedWindows();
-    for (const auto& entry : blocked) {
-        if (!entry.enabled) continue;
-        WindowBlockRule blockRule;
-        blockRule.title = entry.title;
-        blockRule.className = entry.className;
-        blockRule.processName = entry.processName;
-        blockRule.processPath = entry.processPath;
-        rule.rules.append(blockRule);
-    }
+    auto rule = WindowFilter::buildRuleFromConfig(*m_config);
     m_filter.setRules(rule);
     qInfo() << "[Filter] reloaded" << rule.rules.size() << "rules"
             << "(builtin:" << WindowFilter::builtinRules().rules.size() << ")";

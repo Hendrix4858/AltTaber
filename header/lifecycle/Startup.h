@@ -7,7 +7,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QMessageBox>
-#include <shlobj_core.h>
+#include "utils/MiscUtil.h"
 
 // ScheduledTask.h 可选，作为一个插件，用以支持以[管理员权限]自启动
 #if __has_include("ScheduledTask.h")
@@ -25,7 +25,7 @@ public:
     static void enable() {
 #ifdef HAS_SCHTASK
         // MS doc: 此函数是 CheckTokenMembership 的包装器, 建议直接调用该函数来确定管理员组状态; 而不是调用 IsUserAnAdmin
-        if (IsUserAnAdmin()) {
+        if (Util::isUserAdmin()) {
             disableRegistryEntry();
             if (!ScheduledTask::createTask(SCHTASK_NAME))
                 QMessageBox::warning(nullptr, "Failed to create ScheduledTask", "maybe check log?(if any)");
@@ -48,7 +48,7 @@ public:
 #ifdef HAS_SCHTASK
         if (ScheduledTask::queryTask(SCHTASK_NAME)) {
             if (!ScheduledTask::deleteTask(SCHTASK_NAME)) {
-                bool isAdmin = IsUserAnAdmin();
+                bool isAdmin = Util::isUserAdmin();
                 qWarning() << "Failed to delete ScheduledTask:" << SCHTASK_NAME << isAdmin;
                 QMessageBox::warning(nullptr, QString("Failed to delete ScheduledTask: %1").arg(SCHTASK_NAME),
                                      isAdmin ?

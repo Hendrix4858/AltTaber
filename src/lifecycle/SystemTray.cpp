@@ -1,4 +1,5 @@
 #include "lifecycle/SystemTray.h"
+#include "utils/Util.h"
 #include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
@@ -10,7 +11,6 @@
 #include <QApplication>
 #include <windows.h>
 #include <shellapi.h>
-#include <shlobj_core.h>
 
 SystemTray& SystemTray::instance() {
     static SystemTray instance;
@@ -21,7 +21,7 @@ SystemTray::SystemTray(QWidget* parent)
     : QSystemTrayIcon(parent) {
     setIcon(QIcon(":/img/icon.ico"));
     setMenu(parent);
-    setToolTip(IsUserAnAdmin() ? "AltTaber (admin)" : "AltTaber");
+    setToolTip(Util::isUserAdmin() ? "AltTaber (admin)" : "AltTaber");
 
     connect(this, &QSystemTrayIcon::activated, this, [this](ActivationReason reason) {
         if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
@@ -34,7 +34,7 @@ void SystemTray::retranslateMenu() {
     m_settingsAction->setText(tr("Settings"));
     m_pauseAction->setText(tr("Pause"));
     m_restartAction->setText(tr("Restart"));
-    m_restartAdminAction->setText(IsUserAnAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
+    m_restartAdminAction->setText(Util::isUserAdmin() ? tr("Running as Administrator") : tr("Restart as Administrator"));
     m_monitorMenu->setTitle(tr("Display Monitor"));
     auto actions = m_monitorGroup->actions();
     actions[PrimaryMonitor]->setText(tr("Primary Monitor"));
@@ -113,7 +113,7 @@ void SystemTray::setMenu(QWidget* parent) {
     connect(m_menu, &QMenu::aboutToShow, this, [this] {
         applyMenuTheme();
         m_pauseAction->setChecked(cfg().getPaused());
-        bool isAdmin = IsUserAnAdmin();
+        bool isAdmin = Util::isUserAdmin();
         m_restartAdminAction->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));
         m_restartAdminAction->setEnabled(!isAdmin);
     });

@@ -129,13 +129,7 @@ int OverlayController::calculateInitialIndex() const {
     return 0;
 }
 
-void OverlayController::reconcileState() {
-    // State reconciliation without direct widget queries
-    // m_overlayState is the source of truth
-}
-
 void OverlayController::handleIntent(OverlayIntent intent) {
-    reconcileState();
     LOG_TRACE(QString("[OverlayCtrl] handleIntent intent=%1 state=%2")
                  .arg((int)intent).arg((int)m_overlayState));
     transition(intent);

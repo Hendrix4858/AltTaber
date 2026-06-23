@@ -5,6 +5,8 @@
 #include <QList>
 #include "WindowTypes.h"
 
+class ConfigManager;
+
 struct WindowBlockRule {
     QString title;
     QString className;
@@ -23,6 +25,7 @@ public:
     const WindowFilterRule& rules() const { return m_rule; }
 
     static WindowFilterRule builtinRules();
+    static WindowFilterRule buildRuleFromConfig(ConfigManager& cfg);
     bool isAllowed(const WindowDescriptor& desc) const;
 
 private:
