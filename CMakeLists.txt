@@ -16,6 +16,8 @@ if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "A
         set(QT_BASE_DIR "$ENV{QT_DIR_ARM64}")
     elseif(DEFINED ENV{QT_DIR} AND NOT "$ENV{QT_DIR}" STREQUAL "")
         string(REPLACE "msvc2022_64" "msvc2022_arm64" QT_BASE_DIR "$ENV{QT_DIR}")
+    elseif(DEFINED ENV{QT_ROOT_DIR} AND NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
+        set(QT_BASE_DIR "$ENV{QT_ROOT_DIR}")
     else()
         # Fallback: hardcoded path derived from known x64 install location
         set(QT_BASE_DIR "E:/CodePath/Compiler/QT/6.8.2/msvc2022_arm64")
@@ -30,6 +32,9 @@ if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "A
 else()
     if(DEFINED ENV{QT_DIR} AND NOT "$ENV{QT_DIR}" STREQUAL "")
         set(QT_BASE_DIR "$ENV{QT_DIR}")
+        set(CMAKE_PREFIX_PATH "${QT_BASE_DIR}/lib/cmake")
+    elseif(DEFINED ENV{QT_ROOT_DIR} AND NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
+        set(QT_BASE_DIR "$ENV{QT_ROOT_DIR}")
         set(CMAKE_PREFIX_PATH "${QT_BASE_DIR}/lib/cmake")
     endif()
 endif()

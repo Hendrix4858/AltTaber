@@ -43,7 +43,7 @@ jobs:
       - name: Set Qt env for CMake preset
         shell: pwsh
         run: |
-          echo "${{ matrix.qt_env_var }}=$env:QT_DIR" >> $env:GITHUB_ENV
+          echo "${{ matrix.qt_env_var }}=$env:QT_ROOT_DIR" >> $env:GITHUB_ENV
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -80,7 +80,7 @@ jobs:
       - name: Set Qt env for CMake preset
         shell: pwsh
         run: |
-          echo "${{ matrix.qt_env_var }}=$env:QT_DIR" >> $env:GITHUB_ENV
+          echo "${{ matrix.qt_env_var }}=$env:QT_ROOT_DIR" >> $env:GITHUB_ENV
 
       - name: Install Inno Setup
         shell: pwsh
@@ -89,14 +89,16 @@ jobs:
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
 
-      - name: Check windeployqt (ARM64)
+      - name: Debug Qt environment (ARM64)
         if: matrix.arch == 'arm64'
         shell: pwsh
         run: |
+          Write-Host "=== Qt env vars ==="
+          Get-ChildItem Env: | Where-Object { $_.Name -match "^QT" } | Sort-Object Name
+          Write-Host "=== windeployqt ==="
+          Get-Command windeployqt.exe -ErrorAction SilentlyContinue
           Write-Host "=== windeployqt version ==="
-          & "$env:QT_DIR_ARM64/bin/windeployqt.exe" --version
-          Write-Host "=== Get-Command ==="
-          Get-Command windeployqt.exe
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --version
 
       - name: Build portable zip
         run: cmake --build build/${{ matrix.arch }} --config Release --target zip
