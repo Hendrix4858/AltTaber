@@ -231,7 +231,7 @@ find_program(ISCC iscc
 
 if (WINDEPLOYQT)
     add_custom_target(deploy
-        COMMAND ${WINDEPLOYQT} --release --no-translations --no-opengl-sw "$<TARGET_FILE:Win_Switcher>"
+        COMMAND ${WINDEPLOYQT} --release --no-translations --no-opengl-sw --verbose 2 "$<TARGET_FILE:Win_Switcher>"
         COMMENT "Deploying Qt runtime DLLs ..."
         DEPENDS Win_Switcher
     )

@@ -89,8 +89,24 @@ jobs:
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
 
+      - name: Check windeployqt (ARM64)
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          Write-Host "=== windeployqt version ==="
+          & "$env:QT_DIR_ARM64/bin/windeployqt.exe" --version
+          Write-Host "=== Get-Command ==="
+          Get-Command windeployqt.exe
+
       - name: Build portable zip
         run: cmake --build build/${{ matrix.arch }} --config Release --target zip
+
+      - name: Verify deployment (ARM64)
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          Write-Host "=== Release dir after deploy ==="
+          Get-ChildItem build/arm64/Release -Recurse
 
       - name: Build installer
         run: cmake --build build/${{ matrix.arch }} --config Release --target installer
