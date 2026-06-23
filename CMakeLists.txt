@@ -225,6 +225,7 @@ find_program(WINDEPLOYQT windeployqt
         "${QT_BASE_DIR}/bin"
     DOC "Qt deployment tool (windeployqt)"
 )
+message(STATUS "QT_BASE_DIR=${QT_BASE_DIR}")
 message(STATUS "WINDEPLOYQT=${WINDEPLOYQT}")
 
 find_program(ISCC iscc

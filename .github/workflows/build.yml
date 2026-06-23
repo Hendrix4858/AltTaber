@@ -16,17 +16,18 @@ jobs:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
-        arch: [x64, arm64]
+        arch: [arm64, x64]
         include:
-          - arch: x64
-            qt_arch: win64_msvc2022_64
-            preset: release-x64
-            qt_env_var: QT_DIR_X64
           - arch: arm64
             qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
+          - arch: x64
+            qt_arch: win64_msvc2022_64
+            preset: release-x64
+            qt_env_var: QT_DIR_X64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -56,17 +57,18 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
-        arch: [x64, arm64]
+        arch: [arm64, x64]
         include:
-          - arch: x64
-            qt_arch: win64_msvc2022_64
-            preset: release-x64
-            qt_env_var: QT_DIR_X64
           - arch: arm64
             qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
+          - arch: x64
+            qt_arch: win64_msvc2022_64
+            preset: release-x64
+            qt_env_var: QT_DIR_X64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -95,10 +97,10 @@ jobs:
         run: |
           Write-Host "=== Qt env vars ==="
           Get-ChildItem Env: | Where-Object { $_.Name -match "^QT" } | Sort-Object Name
-          Write-Host "=== windeployqt ==="
-          Get-Command windeployqt.exe -ErrorAction SilentlyContinue
-          Write-Host "=== windeployqt version ==="
-          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --version
+          Write-Host "=== QT_HOST_PATH bin ==="
+          Get-ChildItem "$env:QT_HOST_PATH\bin" -Filter "windeployqt*" -ErrorAction Continue
+          Write-Host "=== host windeployqt version ==="
+          & "$env:QT_HOST_PATH\bin\windeployqt.exe" --version
 
       - name: Build portable zip
         run: cmake --build build/${{ matrix.arch }} --config Release --target zip
