@@ -1,4 +1,5 @@
 #include "hook/KeyboardHooker.h"
+#include "lifecycle/Logger.h"
 #include <QDebug>
 #include "utils/Util.h"
 
@@ -98,28 +99,26 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 if (hotkeyActionScope(it.key()) != HotkeyScope::Global) continue;
 
                 if (it.key() == HotkeyAction::CycleProcessWindows && overlayVisible) {
-                    qDebug() << "[KeyHook] skip CycleProcessWindows (overlay visible)";
+                    LOG_TRACE("[KeyHook] skip CycleProcessWindows (overlay visible)");
                     continue;
                 }
 
                 if (it.key() == HotkeyAction::SwitchProcessWindow && overlayVisible) {
-                    qDebug() << "[KeyHook] skip SwitchProcessWindow (overlay visible)";
+                    LOG_TRACE("[KeyHook] skip SwitchProcessWindow (overlay visible)");
                     continue;
                 }
 
                 for (const auto& binding : it.value()) {
                     ++checkedCount;
-                    qDebug() << "[KeyHook]   binding: mode="
-                             << (binding.mode == HotkeyBinding::KeyMode::Physical ? "Physical" : "Logical")
-                             << "vk=" << binding.vkCode
-                             << "sc=" << binding.scanCode
-                             << "ext=" << binding.extended
-                             << "mods=" << binding.modifiers;
+                    LOG_TRACE(QString("[KeyHook]   binding: mode=%1 vk=%2 sc=%3 ext=%4 mods=%5")
+                                 .arg(binding.mode == HotkeyBinding::KeyMode::Physical ? "Physical" : "Logical")
+                                 .arg(binding.vkCode).arg(binding.scanCode)
+                                 .arg(binding.extended).arg(binding.modifiers));
                     bool match = binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
                                           (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
-                    qDebug() << "[KeyHook]   match=" << match;
+                    LOG_TRACE("[KeyHook]   match=" + QString::number(match));
                     if (!match)
-                        qDebug() << "[KeyHook]   mods=" << mods;
+                        LOG_TRACE("[KeyHook]   mods=" + QString::number(mods));
                     if (match) {
                         qInfo() << "[KeyHook] emit" << hotkeyActionName(it.key());
                         emit inst->hotkeyTriggered(it.key(), mods);
@@ -128,9 +127,9 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 }
             }
             if (checkedCount == 0)
-                qDebug() << "[KeyHook] No global actions have bindings registered";
+                LOG_TRACE("[KeyHook] No global actions have bindings registered");
             else
-                qDebug() << "[KeyHook] ⚠️ No global binding matched for" << keyName;
+                LOG_TRACE("[KeyHook] ⚠️ No global binding matched for " + keyName);
 
             // Overlay key routing: when overlay is visible, intercept overlay-scoped
             // keys and forward via dedicated signal to prevent Windows from processing
@@ -170,17 +169,17 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             }
         } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
             if (keyEvent->vkCode == VK_LMENU || keyEvent->vkCode == VK_RMENU) {
-                qDebug() << "[KeyHook] Alt UP";
+                LOG_TRACE("[KeyHook] Alt UP");
                 emit inst->altReleased();
             }
 
             if (inst->m_waitingForModifierRelease) {
                 Qt::KeyboardModifiers currentMods = KeyboardHooker::toQtModifiers(inst->m_modState);
                 bool allReleased = (inst->m_activationModifiers & currentMods) == 0;
-                qDebug() << "[KeyHook] Activation check: target="
-                         << inst->m_activationModifiers
-                         << "current=" << currentMods
-                         << "allReleased=" << allReleased;
+                LOG_TRACE(QString("[KeyHook] Activation check: target=%1 current=%2 allReleased=%3")
+                             .arg(inst->m_activationModifiers)
+                             .arg(currentMods)
+                             .arg(allReleased));
                 if (allReleased) {
                     qInfo() << "[KeyHook] All activation modifiers released";
                     emit inst->activationModifiersReleased();
@@ -220,7 +219,7 @@ KeyboardHooker::~KeyboardHooker() {
     if (!m_keyboardHook) return;
     UnhookWindowsHookEx(m_keyboardHook);
     s_instance = nullptr;
-    qDebug() << "KeyboardHooker uninstalled";
+    LOG_TRACE("KeyboardHooker uninstalled");
 }
 
 void KeyboardHooker::setRecordingActive(bool active) {
@@ -265,7 +264,7 @@ void KeyboardHooker::setPaused(bool paused) {
 void KeyboardHooker::resetActivationModifiers() {
     m_waitingForModifierRelease = false;
     m_activationModifiers = Qt::NoModifier;
-    qDebug() << "[KeyHook] Activation modifiers reset";
+    LOG_TRACE("[KeyHook] Activation modifiers reset");
 }
 
 void KeyboardHooker::notifyOverlayShown() {
@@ -275,7 +274,7 @@ void KeyboardHooker::notifyOverlayShown() {
         m_waitingForModifierRelease = true;
         qInfo() << "[KeyHook] Overlay shown, tracking modifiers:" << currentMods;
     } else {
-        qDebug() << "[KeyHook] Overlay shown but no modifiers held, nothing to track";
+        LOG_TRACE("[KeyHook] Overlay shown but no modifiers held, nothing to track");
     }
 }
 
@@ -287,18 +286,20 @@ void KeyboardHooker::activateTrackingFromPhysicalState() {
         m_waitingForModifierRelease = true;
         qInfo() << "[KeyHook] Physical tracking activated, modifiers:" << currentMods;
     } else {
-        qDebug() << "[KeyHook] Physical tracking: no modifiers held";
+        LOG_TRACE("[KeyHook] Physical tracking: no modifiers held");
     }
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {
     m_bindings = bindings;
-    qDebug() << "[KeyHook] Bindings updated,"
-             << m_bindings.size() << "actions registered";
+    LOG_TRACE(QString("[KeyHook] Bindings updated, %1 actions registered").arg(m_bindings.size()));
     for (auto it = m_bindings.begin(); it != m_bindings.end(); ++it) {
         QStringList strs;
         for (const auto& b : it.value())
             strs << b.toString();
-        qDebug() << "[KeyHook]  " << hotkeyActionName(it.key()) << ":" << it.value().size() << "binding(s) -" << strs.join(", ");
+        LOG_TRACE(QString("[KeyHook]   %1: %2 binding(s) - %3")
+                     .arg(hotkeyActionName(it.key()))
+                     .arg(it.value().size())
+                     .arg(strs.join(", ")));
     }
 }

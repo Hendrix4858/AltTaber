@@ -136,16 +136,15 @@ void OverlayController::reconcileState() {
 
 void OverlayController::handleIntent(OverlayIntent intent) {
     reconcileState();
-    qDebug() << "[OverlayCtrl] handleIntent intent=" << (int)intent
-             << "state=" << (int)m_overlayState;
+    LOG_TRACE(QString("[OverlayCtrl] handleIntent intent=%1 state=%2")
+                 .arg((int)intent).arg((int)m_overlayState));
     transition(intent);
 }
 
 void OverlayController::transition(OverlayIntent intent) {
-    qDebug() << "[Transition] state=" << (int)m_overlayState
-             << "intent=" << (int)intent
-             << "stayOpen=" << m_stayOpenMode
-             << "listDirty=" << m_listDirty;
+    LOG_TRACE(QString("[Transition] state=%1 intent=%2 stayOpen=%3 listDirty=%4")
+                 .arg((int)m_overlayState).arg((int)intent)
+                 .arg(m_stayOpenMode).arg(m_listDirty));
 
     switch (m_overlayState) {
 
@@ -153,11 +152,10 @@ void OverlayController::transition(OverlayIntent intent) {
         if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
             intent == OverlayIntent::ShowSwitcherBackward) {
             m_wasInvokedBackward = (intent == OverlayIntent::ShowSwitcherBackward);
-            qDebug() << "[Transition] Hidden + Show = show (backward="
-                     << m_wasInvokedBackward << ")";
+            LOG_TRACE(QStringLiteral("[Transition] Hidden + Show = show (backward=%1)").arg(m_wasInvokedBackward));
             showWindow();
         } else {
-            qDebug() << "[Transition] Hidden +" << (int)intent << "\u2192 no-op";
+            LOG_TRACE(QStringLiteral("[Transition] Hidden + %1 \u2192 no-op").arg((int)intent));
         }
         break;
 
@@ -174,13 +172,13 @@ void OverlayController::transition(OverlayIntent intent) {
             qInfo() << "[Transition] Dismiss → hide";
             hideWindow();
         } else {
-            qDebug() << "[Transition] Visible +" << (int)intent << "→ no-op";
+            LOG_TRACE(QStringLiteral("[Transition] Visible + %1 → no-op").arg((int)intent));
         }
         break;
 
     default:
-        qDebug() << "[Transition] state=" << (int)m_overlayState
-                 << "intent=" << (int)intent << "→ no-op (unused state)";
+        LOG_TRACE(QStringLiteral("[Transition] state=%1 intent=%2 → no-op (unused state)")
+                     .arg((int)m_overlayState).arg((int)intent));
         break;
     }
 }
@@ -189,7 +187,7 @@ void OverlayController::showWindow() {
     qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState;
 
     if (m_listDirty) {
-        qDebug() << "[OverlayCtrl] list dirty, refreshing...";
+        LOG_TRACE("[OverlayCtrl] list dirty, refreshing...");
         if (!refreshWindowList())
             return;
     }
@@ -202,8 +200,8 @@ void OverlayController::showWindow() {
     emit stateChanged(m_overlayState);
     emit showRequested();
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
-    qDebug() << "[OverlayCtrl] stayOpenMode=" << m_stayOpenMode
-             << "endTrigger=" << (int)m_sessionInfo.endTrigger;
+    LOG_TRACE(QStringLiteral("[OverlayCtrl] stayOpenMode=%1 endTrigger=%2")
+                 .arg(m_stayOpenMode).arg((int)m_sessionInfo.endTrigger));
     Util::closeSystemWindows();
 
     QTimer::singleShot(0, this, [this]() {
@@ -223,11 +221,11 @@ void OverlayController::hideWindow() {
 }
 
 bool OverlayController::refreshWindowList() {
-    qDebug() << "[OverlayCtrl] refreshWindowList";
+    LOG_TRACE("[OverlayCtrl] refreshWindowList");
     bool ok = prepareListWidget();
     if (ok) {
         m_listDirty = false;
-        qDebug() << "[OverlayCtrl] refreshWindowList ok, groupCount=" << m_model->groupCount();
+        LOG_TRACE(QStringLiteral("[OverlayCtrl] refreshWindowList ok, groupCount=%1").arg(m_model->groupCount()));
     } else {
         qWarning() << "[OverlayCtrl] refreshWindowList failed";
     }

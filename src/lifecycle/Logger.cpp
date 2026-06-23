@@ -111,6 +111,10 @@ QString Logger::logDirectory() {
     return m_logDir;
 }
 
+void Logger::trace(const char* file, int line, const QString& msg) {
+    writeLog(LogLevel::Trace, file, line, msg);
+}
+
 QString Logger::logFilePath() {
     auto dir = PathUtils::resolveAppRelativePath(m_logDir, "log");
     auto now = QDateTime::currentDateTime().toString("yyyy-MM-dd");
@@ -143,29 +147,43 @@ void Logger::checkDateRollover() {
     }
 }
 
-bool Logger::shouldLog(QtMsgType type) {
-    LogFlag flag;
-    switch (type) {
-        case QtDebugMsg:    flag = LogDebug; break;
-        case QtInfoMsg:     flag = LogInfo; break;
-        case QtWarningMsg:  flag = LogWarn; break;
-        case QtCriticalMsg: flag = LogError; break;
-        case QtFatalMsg:    flag = LogFatal; break;
-        default:            return false;
-    }
-    return (m_activeFlags & flag) != 0;
+bool Logger::shouldLog(LogLevel level) {
+    return (m_activeFlags & logLevelToFlag(level)) != 0;
 }
 
-void Logger::messageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {
-    if (!shouldLog(type)) return;
+LogFlag Logger::logLevelToFlag(LogLevel level) {
+    switch (level) {
+        case LogLevel::Trace: return LogTrace;
+        case LogLevel::Debug: return LogDebug;
+        case LogLevel::Info:  return LogInfo;
+        case LogLevel::Warn:  return LogWarn;
+        case LogLevel::Error: return LogError;
+        case LogLevel::Fatal: return LogFatal;
+    }
+    return LogFatal;
+}
+
+QString Logger::levelString(LogLevel level) {
+    switch (level) {
+        case LogLevel::Trace: return "TRACE";
+        case LogLevel::Debug: return "DEBUG";
+        case LogLevel::Info:  return "INFO";
+        case LogLevel::Warn:  return "WARN";
+        case LogLevel::Error: return "ERROR";
+        case LogLevel::Fatal: return "FATAL";
+    }
+    return "UNKNOWN";
+}
+
+void Logger::writeLog(LogLevel level, const char* file, int line, const QString& msg) {
+    if (!shouldLog(level)) return;
 
     auto timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-    auto level = levelString(type);
-    auto file = ctx.file ? QFileInfo(ctx.file).fileName() : "unknown";
-    auto line = ctx.line;
+    auto levelStr = levelString(level);
+    auto fileName = file ? QFileInfo(file).fileName() : "unknown";
 
     auto logLine = QString("[%1] [%2] %3 (%4:%5)\n")
-                       .arg(timestamp, level, msg, file)
+                       .arg(timestamp, levelStr, msg, fileName)
                        .arg(line);
 
     OutputDebugStringW(logLine.toStdWString().c_str());
@@ -180,15 +198,17 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext& ctx, const
     }
 }
 
-QString Logger::levelString(QtMsgType type) {
+void Logger::messageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {
+    LogLevel level;
     switch (type) {
-        case QtDebugMsg:    return "DEBUG";
-        case QtInfoMsg:     return "INFO";
-        case QtWarningMsg:  return "WARN";
-        case QtCriticalMsg: return "ERROR";
-        case QtFatalMsg:    return "FATAL";
+        case QtDebugMsg:    level = LogLevel::Debug; break;
+        case QtInfoMsg:     level = LogLevel::Info;  break;
+        case QtWarningMsg:  level = LogLevel::Warn;  break;
+        case QtCriticalMsg: level = LogLevel::Error; break;
+        case QtFatalMsg:    level = LogLevel::Fatal; break;
+        default:            return;
     }
-    return "UNKNOWN";
+    writeLog(level, ctx.file, ctx.line, msg);
 }
 
 } // namespace Util

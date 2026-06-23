@@ -367,6 +367,12 @@ Overwrite?</source>
     <message>
         <location line="+8"/>
         <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <source>Trace</source>
+        <translation>追踪</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Debug</source>
         <translation>调试</translation>
     </message>

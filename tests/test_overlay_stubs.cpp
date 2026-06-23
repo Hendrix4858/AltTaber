@@ -11,6 +11,7 @@
 #define private public
 #include "lifecycle/SystemTray.h"
 #undef private
+#include "lifecycle/Logger.h"
 #include "utils/Util.h"
 #include <QApplication>
 
@@ -23,6 +24,7 @@ namespace Util {
     QString getWindowProcessPath(HWND) { return {}; }
     bool isWindowAllowed(HWND, bool) { return true; }
     void closeSystemWindows() {}
+    void Logger::trace(const char*, int, const QString&) {}
 }
 
 // ── SystemTray stub ──

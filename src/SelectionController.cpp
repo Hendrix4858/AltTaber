@@ -198,13 +198,13 @@ bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, boo
 void SelectionController::expandGroup() {
     auto index = m_listView->currentIndex();
     if (!index.isValid()) {
-        qDebug() << "[GroupMode] expandGroup called but currentIndex invalid";
+        LOG_TRACE("[GroupMode] expandGroup called but currentIndex invalid");
         return;
     }
 
     auto group = m_model->groupAt(index.row());
     if (group.windows.size() <= 1) {
-        qDebug() << "[GroupMode] expandGroup called but only 1 window";
+        LOG_TRACE("[GroupMode] expandGroup called but only 1 window");
         return;
     }
 
@@ -243,7 +243,7 @@ void SelectionController::expandGroup() {
 
 void SelectionController::collapseGroup(bool activateSelected) {
     if (!m_isGroupExpanded) {
-        qDebug() << "[GroupMode] collapseGroup called but NOT in group mode";
+        LOG_TRACE("[GroupMode] collapseGroup called but NOT in group mode");
         return;
     }
     qInfo() << "[GroupMode] collapseGroup activateSelected=" << activateSelected
@@ -320,7 +320,7 @@ void SelectionController::handleListItemClicked(const QModelIndex& index, bool s
              << "stayOpen=" << stayOpenMode << "mouseClickActivate=" << cfg().getMouseClickActivateEnabled();
 
     if (!cfg().getMouseClickActivateEnabled() && !stayOpenMode) {
-        qDebug() << "[Click] ignored (mouseClickActivate disabled, not stay-open)";
+        LOG_TRACE("[Click] ignored (mouseClickActivate disabled, not stay-open)");
         return;
     }
 
@@ -331,8 +331,9 @@ void SelectionController::handleListItemClicked(const QModelIndex& index, bool s
     }
 
     auto& group = m_model->groupAt(index.row());
-    qDebug() << "[Click] group windows=" << group.windows.size()
-             << "clickShowGroup=" << cfg().getClickShowGroupForMultiWindow();
+    LOG_TRACE(QStringLiteral("[Click] group windows=%1 clickShowGroup=%2")
+                 .arg(group.windows.size())
+                 .arg(cfg().getClickShowGroupForMultiWindow()));
     if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
         qInfo() << "[Click] expandGroup";
         expandGroup();

@@ -8,12 +8,22 @@
 
 namespace Util {
 
+enum class LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Fatal,
+};
+
 enum LogFlag : uint32_t {
-    LogDebug = 1 << 0,
-    LogInfo  = 1 << 1,
-    LogWarn  = 1 << 2,
-    LogError = 1 << 3,
-    LogFatal = 1 << 4,
+    LogTrace = 1 << 0,
+    LogDebug = 1 << 1,
+    LogInfo  = 1 << 2,
+    LogWarn  = 1 << 3,
+    LogError = 1 << 4,
+    LogFatal = 1 << 5,
 };
 
 using LogFlags = uint32_t;
@@ -33,13 +43,17 @@ public:
     static void setLogDirectory(const QString& path);
     static QString logDirectory();
 
+    static void trace(const char* file, int line, const QString& msg);
+
 private:
     static void messageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg);
+    static void writeLog(LogLevel level, const char* file, int line, const QString& msg);
     static QString logFilePath();
     static void openLogFile();
     static void checkDateRollover();
-    static bool shouldLog(QtMsgType type);
-    static QString levelString(QtMsgType type);
+    static bool shouldLog(LogLevel level);
+    static QString levelString(LogLevel level);
+    static LogFlag logLevelToFlag(LogLevel level);
 
     static QFile* m_file;
     static QMutex* m_mutex;
@@ -47,6 +61,8 @@ private:
     static LogFlags m_activeFlags;
     static QString m_logDir;
 };
+
+#define LOG_TRACE(msg) ::Util::Logger::trace(__FILE__, __LINE__, msg)
 
 } // namespace Util
 

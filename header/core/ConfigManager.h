@@ -153,7 +153,8 @@ public:
         Util::LogFlags flags = 0;
         for (const auto& v : arr) {
             auto name = v.toString();
-            if (name == u"Debug")   flags |= Util::LogDebug;
+            if (name == u"Trace")   flags |= Util::LogTrace;
+            else if (name == u"Debug")   flags |= Util::LogDebug;
             else if (name == u"Info")    flags |= Util::LogInfo;
             else if (name == u"Warning") flags |= Util::LogWarn;
             else if (name == u"Error")   flags |= Util::LogError;
@@ -164,6 +165,7 @@ public:
 
     void setLogFlags(Util::LogFlags flags) {
         QJsonArray arr;
+        if (flags & Util::LogTrace) arr.append("Trace");
         if (flags & Util::LogDebug) arr.append("Debug");
         if (flags & Util::LogInfo)  arr.append("Info");
         if (flags & Util::LogWarn)  arr.append("Warning");

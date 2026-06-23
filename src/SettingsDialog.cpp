@@ -203,6 +203,7 @@ void SettingsDialog::loadSettings() {
 
     {
         auto flags = m_config->getLogFlags();
+        ui->chkLogTrace->setChecked(flags & Util::LogTrace);
         ui->chkLogDebug->setChecked(flags & Util::LogDebug);
         ui->chkLogInfo->setChecked(flags & Util::LogInfo);
         ui->chkLogWarn->setChecked(flags & Util::LogWarn);
@@ -261,6 +262,7 @@ void SettingsDialog::applySettings() {
 
     {
         Util::LogFlags flags = 0;
+        if (ui->chkLogTrace->isChecked()) flags |= Util::LogTrace;
         if (ui->chkLogDebug->isChecked()) flags |= Util::LogDebug;
         if (ui->chkLogInfo->isChecked())  flags |= Util::LogInfo;
         if (ui->chkLogWarn->isChecked())  flags |= Util::LogWarn;
@@ -334,6 +336,7 @@ void SettingsDialog::retranslateUi() {
     ui->minIconSizeLabel->setText(tr("Min Icon Size:"));
 
     ui->logGroup->setTitle(tr("Logging"));
+    ui->chkLogTrace->setText(tr("Trace"));
     ui->chkLogDebug->setText(tr("Debug"));
     ui->chkLogInfo->setText(tr("Info"));
     ui->chkLogWarn->setText(tr("Warning"));

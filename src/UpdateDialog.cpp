@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QElapsedTimer>
 
+#include "lifecycle/Logger.h"
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include "core/QuitReason.h"
@@ -241,7 +242,7 @@ void UpdateDialog::download(const QString& url, const QString& savePath) {
     });
 
     connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 bytesReceived, qint64 bytesTotal) {
-        qDebug() << "Download progress" << bytesReceived << bytesTotal;
+        LOG_TRACE(QStringLiteral("Download progress %1 %2").arg(bytesReceived).arg(bytesTotal));
         if (bytesReceived == bytesTotal)
             downloadStatus.success = true;
 
