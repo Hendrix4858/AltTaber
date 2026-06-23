@@ -220,9 +220,12 @@ endif ()
 # --- Deploy & Installer targets ---
 
 find_program(WINDEPLOYQT windeployqt
-    PATHS "${QT_BASE_DIR}/bin"
+    HINTS
+        "$ENV{QT_HOST_PATH}/bin"
+        "${QT_BASE_DIR}/bin"
     DOC "Qt deployment tool (windeployqt)"
 )
+message(STATUS "WINDEPLOYQT=${WINDEPLOYQT}")
 
 find_program(ISCC iscc
     PATHS
