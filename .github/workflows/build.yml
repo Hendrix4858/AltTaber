@@ -32,9 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: List available Qt architectures
-        run: python -m aqt list-qt windows desktop --arch ${{ env.QT_VERSION }}
-
       - name: Install Qt ${{ env.QT_VERSION }} (${{ matrix.qt_arch }})
         uses: jurplel/install-qt-action@v4
         with:
