@@ -2,117 +2,114 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MrBeanCpp/AltTaber)
 ![Github Release Downloads](https://img.shields.io/github/downloads/MrBeanCpp/AltTaber/total)
-![Language](https://img.shields.io/badge/language-C++-239120)
-![OS](https://img.shields.io/badge/OS-Windows-0078D4)
+![Language](https://img.shields.io/badge/language-C++20-239120)
+![OS](https://img.shields.io/badge/OS-Windows%20x64%20|%20ARM64-0078D4)
+![Qt](https://img.shields.io/badge/Qt-6.8-41CD52)
+![license](https://img.shields.io/github/license/MrBeanCpp/AltTaber)
+![CI](https://img.shields.io/github/actions/workflow/status/MrBeanCpp/AltTaber/build.yml?branch=main)
 
-一款 MacOS 风格的 `Alt-Tab` 窗口/应用切换器，专为`Windows`💻️开发:
+一款 macOS 风格的 `Alt+Tab` 窗口/应用切换器，专为 `Windows` 💻 打造。
 
 ![ui](img/ui.png)
 
-## ⚡主要功能
+[中文](README.md) [en](docs/README.en.md)
 
-### 1. ``` Alt+Tab ```: 在应用程序📦间切换
+---
+## ✨ 主要功能
 
-- 按住`Shift`反向切换
-- 松开`Alt`后，切换到指定应用
-- **最近使用**的应用优先排在左侧
+### 1. `Alt+Tab` — 应用快速切换
+
+按住 `Alt` 键并按 `Tab` 键，浏览所有正在运行的应用，松开 `Alt` 切换到目标应用。**MRU（最近使用优先）排序**让高频应用总是排在最前面，减少查找时间。按住 `Shift` 可反向切换。
 
 ![switch apps](img/Alt_tab.gif)
 
-### 2. ``` Alt+` ```: 在同一应用的不同**窗口**🪟间轮换
+### 2. `Alt+\`` — 同一应用的多窗口轮换
 
-- 按住`Shift`反向切换
-- **最近活动**的窗口优先访问
-- 可用于隐藏`AltTaber`窗口（若可见）
+当你打开了多个 Chrome 窗口、多个 VS Code 项目或多个资源管理器时，`Alt+Tab` 只能定位到应用级别。`Alt+\`` 可以直接在该应用的所有打开窗口中轮换，比反复按 `Alt+Tab` 快得多。**最近活动**窗口优先访问。
 
 ![switch windows](img/Alt_`.gif)
 
-### 3. `Alt+Tab` 呼出窗口切换器后，可用`🖱️鼠标滚轮`切换指定应用的窗口
+### 3. 🖱️ 鼠标滚轮切换窗口
 
-- 向上滚轮：切换到上一个窗口（不改变焦点）
-- 向下滚轮：**最小化**上一个窗口
+切换器可见时，鼠标悬停在某个应用上，滚动滚轮即可在该应用的多个窗口中切换：
+- **向上滚动**：切换到上一个窗口（不改变焦点位置）
+- **向下滚动**：最小化当前窗口
 
-#### ⌨️支持键盘操作
-
-- 方向键:
-    - ⬅️ ➡️: 切换当前选中的应用
-    - ⬆️ ⬇️: 映射到滚轮上下，切换/最小化窗口
-- 支持`Vim`风格的快捷键:
-    - `h` `l`: 切换当前选中的应用
-    - `j` `k`: 切换/最小化窗口
+无需额外按键，操作直观连贯。
 
 ![wheel](img/Alt_Wheel.gif)
 
-### 4. 在`任务栏`的应用图标上使用`🖱️鼠标滚轮`切换窗口. 🚧`[Beta]`🚧
+### 4. 🖱️ 任务栏滚轮切换 🚧[Beta]🚧
 
-> [!CAUTION]
-> 实验性功能，仍在测试中，可能会遇到一些问题
->
-> 例如：对某些应用程序失效
+无需呼出切换器，直接在任务栏的应用图标上滚动滚轮即可切换该应用的窗口。适合快速翻阅多个同应用窗口的场景。
 
-- 向上滚轮：切换到上一个窗口
-- 向下滚轮：**最小化**上一个窗口
+- **向上滚动**：切换到上一个窗口
+- **向下滚动**：最小化当前窗口
+
+> **注意**：实验性功能，可能对部分应用程序失效。
 
 ![taskbar wheel](img/Taskbar_Wheel.gif)
 
-## 🌟更多特色
+---
+
+## 🌟 更多特色
 
 - 窗口背景**毛玻璃**特效
-    - ![bg blur](img/bg-blur.png)
-- 适配`Win11`的窗口圆角效果
+  - ![bg blur](img/bg-blur.png)
+- 适配 `Win11` 的窗口圆角
 - 在应用图标右上角显示**窗口数量**（Badge）
-    - ![app badge](img/app%20badge.png)
-- 在`QQ`🐧图标右下角显示当前聊天好友`头像`
-    - ![qq avatar](img/app%20qq%20avatar.png)
-- 支持在更高权限窗口上使用`Alt+Tab`切换
-- 更合理的窗口过滤规则
-- 支持高DPI缩放、多屏幕显示
-- 可切换显示屏幕：跟随鼠标所在屏幕 / 主屏幕
+  - ![app badge](img/app%20badge.png)
+- 在 `QQ` 🐧 图标右下角显示当前聊天好友`头像`
+  - ![qq avatar](img/app%20qq%20avatar.png)
+- 可切换跟随鼠标所在屏幕或固定主屏幕
+- 自定义快捷键.
+- 按字母跳转功能.
+- 支持 PWA 应用窗口.
 
-## ✒️TO-DO
+---
+## 🔑 以管理员身份运行（可选）
 
-- [x] 单例模式
-- [ ] 自适应app太多的情况
-- [x] 支持配置开启启动项
-- [x] 支持管理管理员权限窗口
-- [ ] 自定义配置
-- [ ] ...
+普通用户权限下无法查看有管理员权限的窗口.
 
-## 🔑以管理员身份运行（可选）
+## 🤖 从源码构建
 
-`AltTaber`可以在普通用户权限下运行，但有一定的局限性：
+### 前置要求
 
-只有以**管理员身份**运行，`AltTaber`才能管理拥有更高权限的窗口，例如：
+| 依赖 | 版本 |
+|------|------|
+| CMake | ≥ 3.29 |
+| MSVC | 2022 |
+| Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
+| Windows SDK | 10.0+ |
+| INNO setup | Inno Setup 6+ |
 
-- 系统窗口：如任务管理器
-- 管理员权限窗口：如游戏加速器
+### 调试构建
+构建安装包需要使用 INNO setup 来打包.
+```shell
+# 只构建
+cmake --preset "release-x64"
+cmake --build "build/x64"
 
-### 开机自启动
+# 打包应用
+cmake --preset "release-x64"
+cmake --build "build/x64" --target installer
 
-在托盘菜单中点击`Start with Windows`即可设置开机自启动，自启动时的权限与当前程序权限一致
-
-- 若当前程序以**管理员**权限运行，则开机自启动也会以管理员权限运行（计划任务）🔑
-- 若当前程序以**普通**权限运行，则开机自启动也会以普通权限运行（注册表）
-
-## ⚙配置
-
-配置保存在`config.ini`文件中，有两种方式可以修改配置：
-
-1. 直接修改程序目录下的`config.ini`文件，并重启程序
-2. 🌟\[推荐\] 使用托盘菜单（右键托盘图标）中的`Settings`选项，此时会自动用`notepad`打开配置文件；
-   修改后，保存并**关闭文件**，程序会自动重载配置
-
-### 配置项
-
-#### 字体
-
-```ini
-[label]
-font_family = "Microsoft YaHei UI"
-font_size = 10
+# 构建便携版
+cmake --preset "release-x64"
+cmake --build "build/x64" --target zip
 ```
 
-## 🧐Reference
+
+---
+
+## 📦 下载
+
+从 [GitHub Releases](https://github.com/Hendrix4858/AltTaber/releases) 获取最新版本
+
+---
+
+## 🧐 参考
 
 - [window-switcher](https://github.com/sigoden/window-switcher)
 - [cmdtab](https://github.com/stianhoiland/cmdtab)
+- [Inno-Setup-Chinese-Simplified-Translation](https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation)
