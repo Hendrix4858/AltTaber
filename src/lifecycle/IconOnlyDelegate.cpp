@@ -25,11 +25,8 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
             option.decorationSize,
             option.rect
         );
-        qDebug().nospace() << "[IconOnlyDelegate] decorationSize=" << option.decorationSize
-                           << " aligned=" << aligned
-                           << " icon.actualSize=" << icon.actualSize(option.decorationSize)
-                           << " availableSizes=" << icon.availableSizes();
-        icon.paint(painter, aligned);
+        QPixmap pixmap = icon.pixmap(option.decorationSize);
+        painter->drawPixmap(aligned.topLeft(), pixmap);
     }
 
     auto windowCount = qvariant_cast<WindowGroup>(index.data(Qt::UserRole)).windows.size();

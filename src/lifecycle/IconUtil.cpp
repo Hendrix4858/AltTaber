@@ -252,6 +252,13 @@ namespace Util {
                 auto hash = QCryptographicHash::hash(aumid.toUtf8(), QCryptographicHash::Md5).toHex();
                 auto fileName = "pwa_" + hash + ".png";
                 qDebug().nospace() << "[DiskCache::savePwa] aumid=" << aumid << " availableSizes=" << icon.availableSizes() << " actualSize(64,64)=" << icon.actualSize(QSize(64, 64)) << " pixmap(64).size=" << icon.pixmap(64).size();
+                // Save original-size version for QIcon scaling comparison
+                auto sizes = icon.availableSizes();
+                if (!sizes.isEmpty()) {
+                    auto maxSize = *std::max_element(sizes.begin(), sizes.end(), [](const QSize& a, const QSize& b) { return a.width() < b.width(); });
+                    icon.pixmap(maxSize).save(iconDir() + "/orig_" + fileName, "PNG");
+                    qDebug().nospace() << "[DiskCache::savePwa] saved orig size " << maxSize << " as orig_" << fileName;
+                }
                 icon.pixmap(64).save(iconDir() + "/" + fileName, "PNG");
 
                 CacheEntry entry;
@@ -413,7 +420,10 @@ namespace Util {
             GetObject(hBitmap, sizeof(bm), &bm);
             qDebug().nospace() << "[IconUtil::getShellAppIcon] HBITMAP size=" << bm.bmWidth << "x" << bm.bmHeight << " bpp=" << bm.bmBitsPixel;
             if (bm.bmBitsPixel == 32) {
-                img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32_Premultiplied);
+                // Read GDI raw data as straight alpha (Format_ARGB32), NOT premultiplied.
+                // GDI's GetDIBits returns straight alpha BGRA pixels.
+                // Qt's QImage::Format_ARGB32_Premultiplied would misinterpret them.
+                img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32);
                 BITMAPINFO bmi = {};
                 bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
                 bmi.bmiHeader.biWidth  = bm.bmWidth;
@@ -426,6 +436,9 @@ namespace Util {
                     GetDIBits(hdc, hBitmap, 0, bm.bmHeight, img.bits(), &bmi, DIB_RGB_COLORS);
                     ReleaseDC(nullptr, hdc);
                 }
+
+                // Convert straight alpha to premultiplied alpha via Qt's correct conversion
+                img = img.convertToFormat(QImage::Format_ARGB32_Premultiplied);
                 imgFormat = QImage::Format_ARGB32_Premultiplied;
             } else {
                 img = QImage::fromHBITMAP(hBitmap);
