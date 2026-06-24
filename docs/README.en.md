@@ -8,41 +8,40 @@
 ![license](https://img.shields.io/github/license/MrBeanCpp/AltTaber)
 ![CI](https://img.shields.io/github/actions/workflow/status/MrBeanCpp/AltTaber/build.yml?branch=main)
 
-**AltTaber** — A macOS-style Alt+Tab window/app switcher for Windows, built with Qt 6 / C++20.
+**AltTaber** — A macOS-style Alt+Tab window switcher for Windows 💻.
 
 ![ui](../img/ui.png)
 
 [中文](../README.md) [en](README.en.md)
 
 ---
-
 ## ✨ Features
 
 ### 1. `Alt+Tab` — Quick App Switching
 
-Hold `Alt` and press `Tab` to browse all running applications. Release `Alt` to switch to the selected app. **MRU (Most Recently Used)** ordering keeps frequently used apps at the front, so you spend less time hunting. Hold `Shift` to reverse direction.
+Hold `Alt` and press `Tab` to browse all running applications. Release `Alt` to switch to the selected app. Uses Windows Z-order sorting.
 
 ![switch apps](../img/Alt_tab.gif)
 
-### 2. `Alt+\`` — Cycle Windows Within the Same App
+### 2. `Alt+\`` — Cycle windows within the same app
 
-Have multiple Chrome windows, VS Code projects, or File Explorer windows open? `Alt+Tab` only gets you to the app level — `Alt+\`` cycles directly through all open windows of the current app, saving you repeated `Alt+Tab` presses. The **most recently active** window comes first.
+Open multiple windows in one app? Use `Alt+\`` to switch between windows of the same process.
 
 ![switch windows](../img/Alt_`.gif)
 
-### 3. 🖱️ Mouse Wheel Window Switching
+### 3. 🖱️ Mouse wheel window switching
 
 With the switcher visible, hover over an app and scroll the mouse wheel to cycle its windows:
-- **Scroll up**: Switch to previous window (without changing focus position)
-- **Scroll down**: Minimize the current window
+- **Scroll up**: Switch to previous window (no focus change)
+- **Scroll down**: Minimize current window
 
 No extra keys needed — smooth and intuitive.
 
 ![wheel](../img/Alt_Wheel.gif)
 
-### 4. 🖱️ Taskbar Wheel Cycling 🚧[Beta]🚧
+### 4. 🖱️ Taskbar wheel cycling 🚧[Beta]🚧
 
-No need to open the switcher — just scroll on any taskbar app icon to cycle through its windows. Great for quickly flipping through multiple windows of the same app.
+No need to open the switcher — just scroll on a taskbar app icon to cycle its windows. Great for quick multitasking.
 
 - **Scroll up**: Switch to previous window
 - **Scroll down**: Minimize current window
@@ -55,7 +54,7 @@ No need to open the switcher — just scroll on any taskbar app icon to cycle th
 
 ## 🌟 Highlights
 
-- **Acrylic blur** background effect
+- **Acrylic blur** background
   - ![bg blur](../img/bg-blur.png)
 - **Win11 rounded corners**
 - **Window badge** — shows window count per app
@@ -63,17 +62,14 @@ No need to open the switcher — just scroll on any taskbar app icon to cycle th
 - **QQ avatar** — shows current chat friend's avatar on QQ icon
   - ![qq avatar](../img/app%20qq%20avatar.png)
 - Configurable display monitor — follow mouse or fixed to primary screen
-- Fully customizable hotkeys
-- Letter Jump — jump to an app by typing its name's first letter
-- PWA (Progressive Web App) window support
+- Customizable hotkeys
+- Letter Jump (A-Z)
+- PWA (Progressive Web App) support
 
 ---
-
 ## 🔑 Run as Administrator (Optional)
 
-Without admin rights, AltTaber cannot see elevated windows (e.g. Task Manager, game boosters).
-
----
+Without admin rights, AltTaber cannot see elevated windows.
 
 ## 🤖 Build from Source
 
@@ -85,27 +81,24 @@ Without admin rights, AltTaber cannot see elevated windows (e.g. Task Manager, g
 | MSVC | 2022 |
 | Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
 | Windows SDK | 10.0+ |
-| Inno Setup | 6+ (required for installer packaging) |
+| Inno Setup | 6+ |
 
-### Debug build
-
-Build only the executable:
-```bash
+### Build
+Inno Setup is required for installer packaging.
+```shell
+# Build only
 cmake --preset "release-x64"
 cmake --build "build/x64"
-```
 
-Package portable zip:
-```bash
+# Package installer
+cmake --preset "release-x64"
+cmake --build "build/x64" --target installer
+
+# Package portable zip
 cmake --preset "release-x64"
 cmake --build "build/x64" --target zip
 ```
 
-Package installer (requires Inno Setup 6+):
-```bash
-cmake --preset "release-x64"
-cmake --build "build/x64" --target installer
-```
 
 ---
 
