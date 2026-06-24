@@ -41,10 +41,11 @@ namespace PwaDetector {
         if (appUserModelId.contains("_crx_"))
             return PwaType::ChromiumCrx;
 
-        // Edge Windows AppModel PWA: gemini.google.com-D0A8E439_vn3jms8s81tkg!App
+        // Edge Windows AppModel PWA: gemini.google.com-D0A8E439_vn3jms8s81tkg!App / localhost-xxxx!App
         if (processName == "msedge.exe"
             && appUserModelId.endsWith("!App")
-            && appUserModelId.contains('.'))
+            && (appUserModelId.contains('.')
+                || appUserModelId.startsWith("localhost-")))
         {
             return PwaType::WindowsAppModel;
         }
