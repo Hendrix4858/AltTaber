@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.7.0
+    VERSION 0.7.2
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -11,7 +11,10 @@ set(CMAKE_AUTOUIC ON)
 # --- Auto-detect Qt path based on target architecture ---
 # ARM64: use QT_DIR_ARM64 env var, or derive from QT_DIR by replacing msvc2022_64 → msvc2022_arm64
 # x64:   use QT_DIR env var (or fall back to default CMake search)
-if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+string(TOUPPER "${CMAKE_SYSTEM_PROCESSOR}" system_processor_upper)
+if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64"
+   OR system_processor_upper STREQUAL "ARM64"
+   OR system_processor_upper STREQUAL "AARCH64")
     if(DEFINED ENV{QT_DIR_ARM64} AND NOT "$ENV{QT_DIR_ARM64}" STREQUAL "")
         set(QT_BASE_DIR "$ENV{QT_DIR_ARM64}")
     elseif(DEFINED ENV{QT_DIR} AND NOT "$ENV{QT_DIR}" STREQUAL "")
@@ -199,7 +202,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE true)
 
 # --- Architecture suffix for package naming ---
 
-if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR system_processor_upper STREQUAL "ARM64" OR system_processor_upper STREQUAL "AARCH64")
     set(ARCH_SUFFIX "arm64")
 else()
     set(ARCH_SUFFIX "win64")
@@ -271,7 +274,7 @@ if (ISCC)
     endif ()
     add_custom_target(installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
-        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "/DMyAppSourceDir=${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
+        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppTargetDir=$<TARGET_FILE_DIR:Win_Switcher>" "/DMyAppSourceDir=${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
         COMMENT "Compiling AltTaber installer (${ARCH_SUFFIX}) ..."
         DEPENDS ${installer_deps}
     )

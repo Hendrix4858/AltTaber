@@ -6,8 +6,8 @@
 #ifndef MyAppArch
   #define MyAppArch "win64"
 #endif
-#ifndef MyAppBuildDir
-  #define MyAppBuildDir "..\build"
+#ifndef MyAppTargetDir
+  #define MyAppTargetDir "..\build\Release"
 #endif
 #define MyAppPublisher "MrBeanCpp"
 #define MyAppURL "https://github.com/Hendrix4858/AltTaber"
@@ -59,7 +59,7 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
+Source: "{#MyAppTargetDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
