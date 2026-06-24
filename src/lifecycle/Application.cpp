@@ -42,10 +42,11 @@ bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* messag
 }
 
 Application::Application(int argc, char* argv[])
-    : m_app(argc, argv), m_config(&cfg()) {
+    : m_app(argc, argv) {
     m_app.setOrganizationName("MrBeanCpp");
     m_app.setApplicationName("AltTaber");
     m_app.setApplicationVersion(APP_VERSION);
+    m_config = &cfg();
     Util::Logger::init();
 
     m_updateService = new UpdateService;
