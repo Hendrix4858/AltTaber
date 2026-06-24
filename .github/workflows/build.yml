@@ -24,12 +24,10 @@ jobs:
             qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
-            config_flag: "--config Release"
           - arch: x64
             qt_arch: win64_msvc2022_64
-            preset: release-x64-ninja
+            preset: release-x64
             qt_env_var: QT_DIR_X64
-            config_flag: ""
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +50,7 @@ jobs:
         run: cmake --preset ${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build build/${{ matrix.arch }} ${{ matrix.config_flag }}
+        run: cmake --build build/${{ matrix.arch }} --config Release
 
   # ─── Job 2: 正式发布 (仅 tag push) ───
   release:
@@ -67,12 +65,10 @@ jobs:
             qt_arch: win64_msvc2022_arm64_cross_compiled
             preset: release-arm64
             qt_env_var: QT_DIR_ARM64
-            config_flag: "--config Release"
           - arch: x64
             qt_arch: win64_msvc2022_64
-            preset: release-x64-ninja
+            preset: release-x64
             qt_env_var: QT_DIR_X64
-            config_flag: ""
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +103,7 @@ jobs:
           & "$env:QT_HOST_PATH\bin\windeployqt.exe" --version
 
       - name: Build portable zip
-        run: cmake --build build/${{ matrix.arch }} ${{ matrix.config_flag }} --target zip
+        run: cmake --build build/${{ matrix.arch }} --config Release --target zip
 
       - name: Verify deployment (ARM64)
         if: matrix.arch == 'arm64'
@@ -117,7 +113,7 @@ jobs:
           Get-ChildItem build/arm64/Release -Recurse
 
       - name: Build installer
-        run: cmake --build build/${{ matrix.arch }} ${{ matrix.config_flag }} --target installer
+        run: cmake --build build/${{ matrix.arch }} --config Release --target installer
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
