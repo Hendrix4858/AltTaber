@@ -1,6 +1,7 @@
 #include "WindowDescriptorBuilder.h"
 #include "utils/Util.h"
 #include "utils/PwaDetector.h"
+#include "utils/WindowUtil.h"
 #include <QFileInfo>
 
 WindowDescriptor WindowDescriptorBuilder::fromHwnd(HWND hwnd) {
@@ -15,5 +16,6 @@ WindowDescriptor WindowDescriptorBuilder::fromHwnd(HWND hwnd) {
         desc.windowKind = WindowKind::Pwa;
         desc.pwaDisplayName = PwaDetector::getPwaDisplayName(desc.appUserModelId);
     }
+    desc.identity = Util::resolveIdentity(hwnd, desc.appUserModelId);
     return desc;
 }

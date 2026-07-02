@@ -1,6 +1,7 @@
 #include "WindowEnumerator.h"
 #include "WindowDescriptorBuilder.h"
 #include "utils/Util.h"
+#include "utils/WindowUtil.h"
 #include <QDebug>
 #include <QFileInfo>
 
@@ -30,6 +31,7 @@ namespace WindowEnumerator {
     }
 
     QList<WindowDescriptor> enumAllWindows() {
+        Util::clearIdentityCache();
         QList<HWND> hwnds;
         EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&hwnds));
 

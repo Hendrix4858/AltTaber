@@ -15,6 +15,28 @@ enum class WindowKind {
     Pwa,
 };
 
+struct AppIdentity {
+    QString host;
+    QString instance;
+    QString iconKey;
+
+    QString groupKey() const {
+        return instance.isEmpty() ? host : host + QStringLiteral("::") + instance;
+    }
+
+    bool operator==(const AppIdentity& o) const {
+        return host == o.host && instance == o.instance;
+    }
+    bool operator!=(const AppIdentity& o) const {
+        return !(*this == o);
+    }
+};
+
+inline QDebug operator<<(QDebug dbg, const AppIdentity& id) {
+    dbg.nospace() << "AppIdentity(" << id.host << "::" << id.instance << ")";
+    return dbg.space();
+}
+
 struct WindowInfo {
     QString title;
     QString className;
@@ -22,6 +44,7 @@ struct WindowInfo {
     HWND hwnd = nullptr;
     WindowKind windowKind = WindowKind::Normal;
     QString pwaDisplayName;
+    AppIdentity identity;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowInfo& info) {
@@ -40,6 +63,7 @@ struct WindowDescriptor {
     HWND hwnd = nullptr;
     WindowKind windowKind = WindowKind::Normal;
     QString pwaDisplayName;
+    AppIdentity identity;
 };
 
 inline QDebug operator<<(QDebug dbg, const WindowDescriptor& desc) {

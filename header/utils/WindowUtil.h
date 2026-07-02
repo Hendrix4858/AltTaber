@@ -5,6 +5,7 @@
 #include <QString>
 #include <QList>
 #include "WindowEnumerator.h"
+#include "WindowTypes.h"
 
 namespace Util {
     bool isWindowAllowed(HWND hwnd, bool skipVisibleCheck = false);
@@ -15,6 +16,8 @@ namespace Util {
     HWND topWindowFromPoint(const POINT& pos);
     HWND getCurrentTaskListThumbnailWnd();
     bool isTaskbarWindow(HWND hwnd);
+    AppIdentity resolveIdentity(HWND hwnd, const QString& knownAumid = {});
+    void clearIdentityCache();
 }
 
 #endif //WIN_SWITCHER_WINDOWUTIL_H

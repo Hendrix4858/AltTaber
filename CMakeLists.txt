@@ -192,6 +192,7 @@ target_link_libraries(${PROJECT_NAME}
         Dwmapi
         Propsys
         windowsapp
+        shlwapi
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "AltTaber") # 设置输出文件名

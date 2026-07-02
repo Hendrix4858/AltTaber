@@ -4,6 +4,7 @@
 #include "utils/PwaDetector.h"
 #include "core/ConfigManager.h"
 #include <algorithm>
+#include <shellapi.h>
 
 namespace WindowGrouper {
 
@@ -67,24 +68,52 @@ namespace WindowGrouper {
             if (desc.hwnd == selfHwnd) continue;
             if (desc.processPath.isEmpty()) continue;
 
-            QString groupKey = desc.processPath;
+            QString groupKey = desc.identity.groupKey();
             if (separateGroups && desc.windowKind == WindowKind::Pwa)
                 groupKey = desc.appUserModelId;
 
             WindowInfo winInfo{desc.title, desc.className, desc.appUserModelId,
-                               desc.hwnd, desc.windowKind, desc.pwaDisplayName};
+                               desc.hwnd, desc.windowKind, desc.pwaDisplayName,
+                               desc.identity};
 
             if (auto it = indexMap.find(groupKey); it != indexMap.end()) {
                 result[it.value()].addWindow(winInfo);
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
+
                 if (desc.windowKind == WindowKind::Pwa && separateGroups) {
                     group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
                     group.displayName = desc.pwaDisplayName;
                 } else {
-                    group.icon = Util::getCachedIcon(desc.processPath, desc.hwnd);
+                    // Resolve icon via identity.iconKey
+                    QString iconKey = desc.identity.iconKey;
+                    if (iconKey == QStringLiteral("SIID_CONTROL_PANEL")) {
+                        SHSTOCKICONINFO sii = {};
+                        sii.cbSize = sizeof(sii);
+                        if (SUCCEEDED(SHGetStockIconInfo(
+                                        static_cast<SHSTOCKICONID>(42),
+                                        SHGFI_ICON | SHGSI_LARGEICON, &sii)) && sii.hIcon) {
+                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sii.hIcon)));
+                            DestroyIcon(sii.hIcon);
+                        }
+                    } else if (iconKey.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
+                        SHFILEINFOW sfi = {};
+                        if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(iconKey.utf16()),
+                                           SHGFI_ICON | SHGFI_LARGEICON, &sfi, sizeof(sfi), 0)
+                            && sfi.hIcon) {
+                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sfi.hIcon)));
+                            DestroyIcon(sfi.hIcon);
+                        }
+                    }
+
+                    if (group.icon.isNull())
+                        group.icon = Util::getCachedIcon(
+                            iconKey.isEmpty() ? desc.processPath : iconKey, desc.hwnd);
+
+                    group.displayName = desc.identity.instance;
                 }
+
                 if (group.displayName.isEmpty())
                     group.displayName = Util::getFileDescription(desc.processPath);
 
