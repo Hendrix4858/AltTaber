@@ -26,6 +26,21 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
             option.rect
         );
         QPixmap pixmap = icon.pixmap(option.decorationSize);
+
+        if (pixmap.devicePixelRatio() != 1.0) {
+            pixmap = QPixmap::fromImage(pixmap.toImage());
+        }
+
+        if (pixmap.size() != option.decorationSize) {
+            pixmap = pixmap.scaled(
+                option.decorationSize,
+                Qt::KeepAspectRatio,
+                Qt::SmoothTransformation
+            );
+        }
+
+        pixmap.setDevicePixelRatio(1.0);
+
         painter->drawPixmap(aligned.topLeft(), pixmap);
     }
 
