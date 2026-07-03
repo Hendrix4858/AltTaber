@@ -452,6 +452,76 @@ namespace Util {
         return pix;
     }
 
+    QPixmap getIconFromAumid(const QString& aumid) {
+        if (aumid.isEmpty()) return {};
+
+        QString path = QStringLiteral("shell:AppsFolder\\") + aumid;
+        CComPtr<IShellItem> shellItem;
+        HRESULT hr = SHCreateItemFromParsingName(
+            reinterpret_cast<const wchar_t*>(path.utf16()),
+            nullptr,
+            IID_PPV_ARGS(&shellItem));
+        if (FAILED(hr) || !shellItem) return {};
+
+        CComPtr<IShellItemImageFactory> imgFactory;
+        hr = shellItem->QueryInterface(IID_PPV_ARGS(&imgFactory));
+        if (FAILED(hr) || !imgFactory) return {};
+
+        HBITMAP hBitmap = nullptr;
+        SIZE sz = {128, 128};
+        hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
+        if (FAILED(hr) || !hBitmap) return {};
+
+        QImage img;
+        {
+            BITMAP bm = {};
+            GetObject(hBitmap, sizeof(bm), &bm);
+            if (bm.bmBitsPixel == 32) {
+                img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32);
+                BITMAPINFO bmi = {};
+                bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                bmi.bmiHeader.biWidth  = bm.bmWidth;
+                bmi.bmiHeader.biHeight = -bm.bmHeight;
+                bmi.bmiHeader.biPlanes = 1;
+                bmi.bmiHeader.biBitCount = 32;
+                bmi.bmiHeader.biCompression = BI_RGB;
+                HDC hdc = GetDC(nullptr);
+                if (hdc) {
+                    GetDIBits(hdc, hBitmap, 0, bm.bmHeight, img.bits(), &bmi, DIB_RGB_COLORS);
+                    ReleaseDC(nullptr, hdc);
+                }
+                img = img.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            } else {
+                img = QImage::fromHBITMAP(hBitmap);
+            }
+        }
+        DeleteObject(hBitmap);
+        return QPixmap::fromImage(img);
+    }
+
+    QIcon resolveIdentityIcon(const AppIdentity& identity, HWND hwnd, const QString& fallbackExePath) {
+        if (!identity.appUserModelId.isEmpty()) {
+            QPixmap pix = getIconFromAumid(identity.appUserModelId);
+            if (!pix.isNull())
+                return QIcon(pix);
+        }
+
+        if (!identity.instance.isEmpty()
+            && identity.instance.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
+            SHFILEINFOW sfi = {};
+            if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(identity.instance.utf16()),
+                               SHGFI_ICON | SHGFI_LARGEICON, &sfi, sizeof(sfi), 0)
+                && sfi.hIcon) {
+                QIcon icon(QPixmap::fromImage(QImage::fromHICON(sfi.hIcon)));
+                DestroyIcon(sfi.hIcon);
+                return icon;
+            }
+        }
+
+        QString exePath = identity.host.isEmpty() ? fallbackExePath : identity.host;
+        return Util::getCachedIcon(exePath, hwnd);
+    }
+
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {
         QPixmap bg = icon;
         QPainter painter(&bg);

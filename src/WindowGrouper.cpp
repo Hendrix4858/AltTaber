@@ -4,7 +4,6 @@
 #include "utils/PwaDetector.h"
 #include "core/ConfigManager.h"
 #include <algorithm>
-#include <shellapi.h>
 
 namespace WindowGrouper {
 
@@ -86,32 +85,10 @@ namespace WindowGrouper {
                     group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
                     group.displayName = desc.pwaDisplayName;
                 } else {
-                    // Resolve icon via identity.iconKey
-                    QString iconKey = desc.identity.iconKey;
-                    if (iconKey == QStringLiteral("SIID_CONTROL_PANEL")) {
-                        SHSTOCKICONINFO sii = {};
-                        sii.cbSize = sizeof(sii);
-                        if (SUCCEEDED(SHGetStockIconInfo(
-                                        static_cast<SHSTOCKICONID>(42),
-                                        SHGFI_ICON | SHGSI_LARGEICON, &sii)) && sii.hIcon) {
-                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sii.hIcon)));
-                            DestroyIcon(sii.hIcon);
-                        }
-                    } else if (iconKey.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
-                        SHFILEINFOW sfi = {};
-                        if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(iconKey.utf16()),
-                                           SHGFI_ICON | SHGFI_LARGEICON, &sfi, sizeof(sfi), 0)
-                            && sfi.hIcon) {
-                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sfi.hIcon)));
-                            DestroyIcon(sfi.hIcon);
-                        }
-                    }
+                    group.icon = Util::resolveIdentityIcon(desc.identity, desc.hwnd, desc.processPath);
 
-                    if (group.icon.isNull())
-                        group.icon = Util::getCachedIcon(
-                            iconKey.isEmpty() ? desc.processPath : iconKey, desc.hwnd);
-
-                    group.displayName = desc.identity.instance;
+                    if (!desc.identity.instance.isEmpty())
+                        group.displayName = QFileInfo(desc.identity.instance).fileName();
                 }
 
                 if (group.displayName.isEmpty())

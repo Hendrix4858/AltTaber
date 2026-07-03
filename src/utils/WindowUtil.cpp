@@ -299,7 +299,7 @@ namespace Util {
             AppIdentity id;
             id.host = QStringLiteral("explorer.exe");
             id.instance = QStringLiteral("ControlPanel");
-            id.iconKey = QStringLiteral("SIID_CONTROL_PANEL");
+            id.appUserModelId = knownAumid;
             cache[hwnd] = id;
             return id;
         }
@@ -320,8 +320,7 @@ namespace Util {
             QString mscPath = extractMscName(hwnd);
             AppIdentity id;
             id.host = processPath;
-            id.instance = QFileInfo(mscPath).fileName();
-            id.iconKey = mscPath; // full .msc path for icon
+            id.instance = mscPath; // full path for icon resolution
             cache[hwnd] = id;
             return id;
         }
@@ -333,7 +332,6 @@ namespace Util {
             AppIdentity id;
             id.host = processPath;
             id.instance = folderPath;
-            id.iconKey = processPath; // explorer.exe icon
             cache[hwnd] = id;
             return id;
         }
@@ -341,7 +339,6 @@ namespace Util {
         // Layer 4: Default — use process path as identity
         AppIdentity id;
         id.host = processPath;
-        id.iconKey = processPath;
         cache[hwnd] = id;
         return id;
     }

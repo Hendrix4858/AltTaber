@@ -7,6 +7,8 @@
 #include <QPixmap>
 #include <QRect>
 
+#include "WindowTypes.h"
+
 namespace Util {
     QIcon getJumboIcon(const QString& filePath);
     QIcon getCachedIcon(const QString& path, HWND hwnd);
@@ -16,6 +18,8 @@ namespace Util {
     QPixmap getShellAppIcon(HWND hwnd);
     QIcon getCachedPwaIcon(const QString& aumid);
     void cachePwaIcon(const QString& aumid, const QIcon& icon);
+    QPixmap getIconFromAumid(const QString& aumid);
+    QIcon resolveIdentityIcon(const AppIdentity& identity, HWND hwnd, const QString& fallbackExePath);
 }
 
 #endif //WIN_SWITCHER_ICONUTIL_H
