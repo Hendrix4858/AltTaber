@@ -500,12 +500,43 @@ namespace Util {
     }
 
     QIcon resolveIdentityIcon(const AppIdentity& identity, HWND hwnd, const QString& fallbackExePath) {
+        // Layer 1: Window icon via WM_GETICON (matches taskbar per-window icon)
+        {
+            DWORD_PTR result = 0;
+            LRESULT iconBig = SendMessageTimeoutW(hwnd, WM_GETICON, ICON_BIG, 0,
+                                                  SMTO_ABORTIFHUNG, 1000, &result);
+            qDebug().nospace() << "[IconUtil] WM_GETICON ICON_BIG hwnd=" << hwnd
+                               << " success=" << iconBig << " hIcon=" << (void*)result;
+
+            DWORD_PTR resultSm = 0;
+            LRESULT iconSm = SendMessageTimeoutW(hwnd, WM_GETICON, ICON_SMALL, 0,
+                                                 SMTO_ABORTIFHUNG, 1000, &resultSm);
+            qDebug().nospace() << "[IconUtil] WM_GETICON ICON_SMALL hwnd=" << hwnd
+                               << " success=" << iconSm << " hIcon=" << (void*)resultSm;
+
+            HICON hClassIcon = (HICON)GetClassLongPtrW(hwnd, GCLP_HICON);
+            HICON hClassIconSm = (HICON)GetClassLongPtrW(hwnd, GCLP_HICONSM);
+            qDebug().nospace() << "[IconUtil] GCLP_HICON=" << (void*)hClassIcon
+                               << " GCLP_HICONSM=" << (void*)hClassIconSm;
+
+            if (iconBig && result) {
+                QIcon icon(QPixmap::fromImage(QImage::fromHICON((HICON)result)));
+                return icon;
+            }
+            if (iconSm && resultSm) {
+                QIcon icon(QPixmap::fromImage(QImage::fromHICON((HICON)resultSm)));
+                return icon;
+            }
+        }
+
+        // Layer 2: AUMID icon (Control Panel, Settings, etc.)
         if (!identity.appUserModelId.isEmpty()) {
             QPixmap pix = getIconFromAumid(identity.appUserModelId);
             if (!pix.isNull())
                 return QIcon(pix);
         }
 
+        // Layer 3: Instance-based icon (.msc files, etc.)
         if (!identity.instance.isEmpty()
             && identity.instance.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
             SHFILEINFOW sfi = {};
@@ -518,6 +549,7 @@ namespace Util {
             }
         }
 
+        // Layer 4: Executable icon (fallback)
         QString exePath = identity.host.isEmpty() ? fallbackExePath : identity.host;
         return Util::getCachedIcon(exePath, hwnd);
     }

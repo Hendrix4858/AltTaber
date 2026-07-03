@@ -88,7 +88,7 @@ namespace WindowGrouper {
                     group.icon = Util::resolveIdentityIcon(desc.identity, desc.hwnd, desc.processPath);
 
                     if (!desc.identity.instance.isEmpty())
-                        group.displayName = QFileInfo(desc.identity.instance).fileName();
+                        group.displayName = desc.title;
                 }
 
                 if (group.displayName.isEmpty())
