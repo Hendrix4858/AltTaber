@@ -16,6 +16,7 @@
 #include <QImage>
 #include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
+#include "utils/MiscUtil.h"
 #include "utils/WindowUtil.h"
 #include "core/ConfigManager.h"
 #include <ShObjIdl_core.h>
@@ -344,9 +345,6 @@ namespace Util {
             icon = AppUtil::getAppIcon(uwpDir + "\\fake.exe");
         } else {
             icon = getJumboIcon(path);
-            if (isBottomRightTransparent(icon, 32)) {
-                icon = QFileIconProvider().icon(QFileInfo(path)).pixmap(48);
-            }
         }
 
         DiskCache::instance().save(path, icon);
@@ -452,6 +450,28 @@ namespace Util {
         return pix;
     }
 
+    // ── tryGetWindowIcon ──
+    // WM_GETICON 只保留两级：ICON_BIG（窗口自定图标）→ GCLP_HICON（窗口类默认图标）
+    // 移除 ICON_SMALL2 / ICON_SMALL / GCLP_HICONSM，避免小尺寸挡住高质量路径
+    static QIcon tryGetWindowIcon(HWND hwnd) {
+        auto fromHicn = [](HICON hico, bool owned) -> QIcon {
+            if (!hico) return {};
+            QIcon icon(QPixmap::fromImage(QImage::fromHICON(hico)));
+            if (owned) DestroyIcon(hico);
+            return icon;
+        };
+
+        DWORD_PTR result = 0;
+        if (SendMessageTimeoutW(hwnd, WM_GETICON, ICON_BIG, 0,
+                                SMTO_ABORTIFHUNG, 1000, &result) && result)
+            return fromHicn((HICON)result, true);
+
+        if (HICON hico = (HICON)GetClassLongPtrW(hwnd, GCLP_HICON))
+            return fromHicn(hico, false);
+
+        return {};
+    }
+
     QPixmap getIconFromAumid(const QString& aumid) {
         if (aumid.isEmpty()) return {};
 
@@ -499,59 +519,136 @@ namespace Util {
         return QPixmap::fromImage(img);
     }
 
-    QIcon resolveIdentityIcon(const AppIdentity& identity, HWND hwnd, const QString& fallbackExePath) {
-        // Layer 1: Window icon via WM_GETICON (matches taskbar per-window icon)
-        {
-            DWORD_PTR result = 0;
-            LRESULT iconBig = SendMessageTimeoutW(hwnd, WM_GETICON, ICON_BIG, 0,
-                                                  SMTO_ABORTIFHUNG, 1000, &result);
-            qDebug().nospace() << "[IconUtil] WM_GETICON ICON_BIG hwnd=" << hwnd
-                               << " success=" << iconBig << " hIcon=" << (void*)result;
+    // ── resolveWindowIcon ──
+    // 按应用类型分场景选择图标来源，身份正确性优先于分辨率：
+    //
+    //   PWA        : getCachedPwaIcon → getShellAppIcon → WM_GETICON → exe
+    //   AUMID 非PWA: getIconFromAumid  → WM_GETICON → exe
+    //   MMC        : WM_GETICON（正确性优先）→ exe
+    //   普通 Win32 : getJumboIcon → WM_GETICON → QFileIconProvider
+    //
+    QIcon resolveWindowIcon(HWND hwnd, const QString& processPath,
+                            const QString& appUserModelId,
+                            WindowKind windowKind,
+                            const QString& processName,
+                            const AppIdentity& identity) {
+        // 内存缓存，key 按图标来源构造，避免 HWND 重用问题
+        static QHash<QString, QIcon> s_cache;
 
-            DWORD_PTR resultSm = 0;
-            LRESULT iconSm = SendMessageTimeoutW(hwnd, WM_GETICON, ICON_SMALL, 0,
-                                                 SMTO_ABORTIFHUNG, 1000, &resultSm);
-            qDebug().nospace() << "[IconUtil] WM_GETICON ICON_SMALL hwnd=" << hwnd
-                               << " success=" << iconSm << " hIcon=" << (void*)resultSm;
+        QString cacheKey;
+        if (windowKind == WindowKind::Pwa && !appUserModelId.isEmpty())
+            cacheKey = QStringLiteral("PWA:") + appUserModelId;
+        else if (!appUserModelId.isEmpty())
+            cacheKey = QStringLiteral("AUMID:") + appUserModelId;
+        else if (!identity.instance.isEmpty())
+            cacheKey = QStringLiteral("INST:") + identity.groupKey();
+        else
+            cacheKey = QStringLiteral("EXE:") + processPath;
 
-            HICON hClassIcon = (HICON)GetClassLongPtrW(hwnd, GCLP_HICON);
-            HICON hClassIconSm = (HICON)GetClassLongPtrW(hwnd, GCLP_HICONSM);
-            qDebug().nospace() << "[IconUtil] GCLP_HICON=" << (void*)hClassIcon
-                               << " GCLP_HICONSM=" << (void*)hClassIconSm;
+        if (auto it = s_cache.constFind(cacheKey); it != s_cache.constEnd())
+            return it.value();
 
-            if (iconBig && result) {
-                QIcon icon(QPixmap::fromImage(QImage::fromHICON((HICON)result)));
-                return icon;
+        QIcon icon;
+
+        // ── Scene 1: PWA ──
+        if (windowKind == WindowKind::Pwa && !appUserModelId.isEmpty()) {
+            icon = getCachedPwaIcon(appUserModelId);
+            if (icon.isNull()) {
+                auto pix = getShellAppIcon(hwnd);
+                if (!pix.isNull()) {
+                    icon = QIcon(pix);
+                    cachePwaIcon(appUserModelId, icon);
+                }
             }
-            if (iconSm && resultSm) {
-                QIcon icon(QPixmap::fromImage(QImage::fromHICON((HICON)resultSm)));
-                return icon;
-            }
+            if (icon.isNull())
+                icon = tryGetWindowIcon(hwnd);
+            if (icon.isNull())
+                icon = getCachedIcon(processPath, hwnd);
+            qDebug().noquote() << "[IconUtil] resolveWindowIcon PWA   key=" << cacheKey
+                               << "from=" << (icon.isNull() ? "none" : "ok");
         }
 
-        // Layer 2: AUMID icon (Control Panel, Settings, etc.)
-        if (!identity.appUserModelId.isEmpty()) {
-            QPixmap pix = getIconFromAumid(identity.appUserModelId);
+        // ── Scene 2: AUMID (Control Panel, Settings 等) ──
+        else if (!appUserModelId.isEmpty()) {
+            auto pix = getIconFromAumid(appUserModelId);
             if (!pix.isNull())
-                return QIcon(pix);
+                icon = QIcon(pix);
+            if (icon.isNull())
+                icon = tryGetWindowIcon(hwnd);
+            if (icon.isNull())
+                icon = getCachedIcon(processPath, hwnd);
+            qDebug().noquote() << "[IconUtil] resolveWindowIcon AUMID key=" << cacheKey
+                               << "from=" << (icon.isNull() ? "none" : "ok");
         }
 
-        // Layer 3: Instance-based icon (.msc files, etc.)
-        if (!identity.instance.isEmpty()
-            && identity.instance.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
-            SHFILEINFOW sfi = {};
-            if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(identity.instance.utf16()),
-                               SHGFI_ICON | SHGFI_LARGEICON, &sfi, sizeof(sfi), 0)
-                && sfi.hIcon) {
-                QIcon icon(QPixmap::fromImage(QImage::fromHICON(sfi.hIcon)));
-                DestroyIcon(sfi.hIcon);
-                return icon;
+        // ── Scene 3: MMC（正确性优先：WM_GETICON 在前）──
+        else if (processName == QStringLiteral("mmc.exe")
+                 && !identity.instance.isEmpty()) {
+            icon = tryGetWindowIcon(hwnd);
+            if (icon.isNull())
+                icon = getCachedIcon(processPath, hwnd);
+            qDebug().noquote() << "[IconUtil] resolveWindowIcon MMC   key=" << cacheKey
+                               << "from=" << (icon.isNull() ? "none" : "ok");
+        }
+
+        // ── Scene 4: 普通 Win32 ──
+        // getCachedIcon 内部调用 getJumboIcon + DiskCache::save()，自带磁盘缓存
+        else {
+            icon = getCachedIcon(processPath, hwnd);
+            if (icon.isNull())
+                icon = tryGetWindowIcon(hwnd);
+            if (icon.isNull()) {
+                QPixmap pix = QFileIconProvider().icon(QFileInfo(processPath)).pixmap(48);
+                if (!pix.isNull())
+                    icon = QIcon(pix);
             }
+            qDebug().noquote() << "[IconUtil] resolveWindowIcon EXE   key=" << cacheKey
+                               << "from=" << (icon.isNull() ? "none" : "ok");
         }
 
-        // Layer 4: Executable icon (fallback)
-        QString exePath = identity.host.isEmpty() ? fallbackExePath : identity.host;
-        return Util::getCachedIcon(exePath, hwnd);
+        if (!icon.isNull())
+            s_cache.insert(cacheKey, icon);
+        return icon;
+    }
+
+    QIcon resolveWindowIcon(const WindowDescriptor& desc) {
+        return resolveWindowIcon(desc.hwnd, desc.processPath,
+                                 desc.appUserModelId, desc.windowKind,
+                                 desc.processName, desc.identity);
+    }
+
+    // ── resolveDisplayName ──
+    // 独立于 identity 和 icon，只负责"用户看到什么名称"
+    QString resolveDisplayName(const QString& pwaDisplayName,
+                               const AppIdentity& identity,
+                               const QString& title,
+                               const QString& processPath,
+                               WindowKind windowKind) {
+        if (windowKind == WindowKind::Pwa && !pwaDisplayName.isEmpty()) {
+            qDebug().noquote() << "[IconUtil] resolveDisplayName path=PWA displayName  "
+                               << pwaDisplayName;
+            return pwaDisplayName;
+        }
+
+        if (!identity.instance.isEmpty()) {
+            qDebug().noquote() << "[IconUtil] resolveDisplayName path=instance title   "
+                               << title;
+            return title;
+        }
+
+        QString fileDesc = Util::getFileDescription(processPath);
+        if (!fileDesc.isEmpty()) {
+            qDebug().noquote() << "[IconUtil] resolveDisplayName path=fileDescription  "
+                               << fileDesc;
+            return fileDesc;
+        }
+
+        return QFileInfo(processPath).fileName();
+    }
+
+    QString resolveDisplayName(const WindowDescriptor& desc) {
+        return resolveDisplayName(desc.pwaDisplayName, desc.identity,
+                                  desc.title, desc.processPath, desc.windowKind);
     }
 
     QIcon overlayIcon(const QPixmap& icon, const QPixmap& overlay, const QRect& overlayRect) {

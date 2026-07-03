@@ -19,7 +19,22 @@ namespace Util {
     QIcon getCachedPwaIcon(const QString& aumid);
     void cachePwaIcon(const QString& aumid, const QIcon& icon);
     QPixmap getIconFromAumid(const QString& aumid);
-    QIcon resolveIdentityIcon(const AppIdentity& identity, HWND hwnd, const QString& fallbackExePath);
+
+    // 按应用类型分场景选择图标来源，身份正确性优先于分辨率
+    QIcon resolveWindowIcon(HWND hwnd, const QString& processPath,
+                            const QString& appUserModelId,
+                            WindowKind windowKind = WindowKind::Normal,
+                            const QString& processName = {},
+                            const AppIdentity& identity = {});
+    QIcon resolveWindowIcon(const WindowDescriptor& desc);
+
+    // 显示名称解析（独立于图标和身份识别）
+    QString resolveDisplayName(const QString& pwaDisplayName,
+                               const AppIdentity& identity,
+                               const QString& title,
+                               const QString& processPath,
+                               WindowKind windowKind);
+    QString resolveDisplayName(const WindowDescriptor& desc);
 }
 
 #endif //WIN_SWITCHER_ICONUTIL_H

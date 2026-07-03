@@ -1,7 +1,7 @@
 #include "WindowGrouper.h"
 #include "ActivationHistory.h"
 #include "utils/Util.h"
-#include "utils/PwaDetector.h"
+#include "lifecycle/IconUtil.h"
 #include "core/ConfigManager.h"
 #include <algorithm>
 
@@ -80,19 +80,8 @@ namespace WindowGrouper {
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
-
-                if (desc.windowKind == WindowKind::Pwa && separateGroups) {
-                    group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
-                    group.displayName = desc.pwaDisplayName;
-                } else {
-                    group.icon = Util::resolveIdentityIcon(desc.identity, desc.hwnd, desc.processPath);
-
-                    if (!desc.identity.instance.isEmpty())
-                        group.displayName = desc.title;
-                }
-
-                if (group.displayName.isEmpty())
-                    group.displayName = Util::getFileDescription(desc.processPath);
+                group.icon = Util::resolveWindowIcon(desc);
+                group.displayName = Util::resolveDisplayName(desc);
 
                 group.addWindow(winInfo);
                 populateJumpTokens(group);
