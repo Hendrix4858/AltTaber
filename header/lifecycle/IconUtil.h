@@ -9,6 +9,21 @@
 
 #include "WindowTypes.h"
 
+enum class IconSource {
+    None,
+    Aumid,       // IShellItemImageFactory (256/128)
+    ShellJumbo,  // SHIL_JUMBO (256)
+    DefExtract,  // SHDefExtractIconW
+    Window,      // WM_GETICON
+    Provider,    // QFileIconProvider
+};
+
+struct IconResult {
+    QIcon icon;
+    QSize sourceSize;
+    IconSource source = IconSource::None;
+};
+
 namespace Util {
     QIcon getJumboIcon(const QString& filePath);
     QIcon getCachedIcon(const QString& path, HWND hwnd);
@@ -21,12 +36,12 @@ namespace Util {
     QPixmap getIconFromAumid(const QString& aumid);
 
     // 按应用类型分场景选择图标来源，身份正确性优先于分辨率
-    QIcon resolveWindowIcon(HWND hwnd, const QString& processPath,
-                            const QString& appUserModelId,
-                            WindowKind windowKind = WindowKind::Normal,
-                            const QString& processName = {},
-                            const AppIdentity& identity = {});
-    QIcon resolveWindowIcon(const WindowDescriptor& desc);
+    IconResult resolveWindowIcon(HWND hwnd, const QString& processPath,
+                                 const QString& appUserModelId,
+                                 WindowKind windowKind = WindowKind::Normal,
+                                 const QString& processName = {},
+                                 const AppIdentity& identity = {});
+    IconResult resolveWindowIcon(const WindowDescriptor& desc);
 
     // 显示名称解析（独立于图标和身份识别）
     QString resolveDisplayName(const QString& pwaDisplayName,

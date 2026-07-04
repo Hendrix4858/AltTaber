@@ -14,6 +14,7 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QImage>
+#include <QtMath>
 #include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
 #include "utils/MiscUtil.h"
@@ -30,6 +31,63 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
 namespace Util {
+    // ── 图标质量分析 & 评分（SHIL_JUMBO vs SHIL_EXTRALARGE 选优） ──
+    struct IconAnalysis {
+        bool valid = false;
+        QPixmap image;
+        int canvasW = 0, canvasH = 0;
+        int contentX = 0, contentY = 0, contentW = 0, contentH = 0;
+    };
+
+    static IconAnalysis analyzeIcon(const QPixmap& pix) {
+        IconAnalysis r;
+        if (pix.isNull()) return r;
+        r.valid = true;
+        r.image = pix;
+        r.canvasW = pix.width();
+        r.canvasH = pix.height();
+        if (r.canvasW <= 0 || r.canvasH <= 0) return r;
+
+        QImage img = pix.toImage().convertToFormat(QImage::Format_ARGB32);
+        int w = img.width(), h = img.height();
+        int minX = w, minY = h, maxX = 0, maxY = 0;
+        int step = (w > 128) ? 4 : 2;
+
+        for (int y = 0; y < h; y += step) {
+            const uchar* line = img.constScanLine(y);
+            for (int x = 0; x < w; x += step) {
+                if (line[x * 4 + 3] > 0) {
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (minX <= maxX) {
+            r.contentX = minX;
+            r.contentY = minY;
+            r.contentW = maxX - minX + 1;
+            r.contentH = maxY - minY + 1;
+        }
+        return r;
+    }
+
+    static bool isFallbackLayout(const IconAnalysis& a) {
+        if (!a.valid || a.canvasW <= 0 || a.canvasH <= 0)
+            return false;
+        double cw = double(a.contentW) / a.canvasW;
+        double ch = double(a.contentH) / a.canvasH;
+        bool isSmallContent = (cw < 0.35 && ch < 0.35);
+        bool isCornerAligned =
+            (a.contentX < a.canvasW * 0.2 ||
+             a.contentY < a.canvasH * 0.2 ||
+             a.contentX + a.contentW > a.canvasW * 0.8 ||
+             a.contentY + a.contentH > a.canvasH * 0.8);
+        return isSmallContent && isCornerAligned;
+    }
+
     // 内部辅助：提取原生尺寸 QPixmap，跳过 QIcon 间接层
     // 供 getJumboIcon 和 getCachedIcon 使用
     static QPixmap extractJumboIconPixmap(const QString& filePath) {
@@ -110,9 +168,13 @@ namespace Util {
 
         QPixmap jumbo, extra, d256, d48, d32;
         jumbo = tryShellImageList(SHIL_JUMBO);
-        if (!jumbo.isNull() && !isPixmapPadded(jumbo)) {
+        extra = tryShellImageList(SHIL_EXTRALARGE);
+
+        auto jAnalysis = analyzeIcon(jumbo);
+
+        if (!jumbo.isNull() && !isFallbackLayout(jAnalysis)) {
             pix = jumbo; source = QStringLiteral("SHIL_JUMBO");
-        } else if (!(extra = tryShellImageList(SHIL_EXTRALARGE)).isNull()) {
+        } else if (!extra.isNull()) {
             pix = extra; source = QStringLiteral("SHIL_EXTRALARGE");
         } else if (!(d256 = tryDefExtract(256)).isNull()) {
             pix = d256; source = QStringLiteral("DefExtract(256)");
@@ -624,20 +686,15 @@ namespace Util {
     }
 
     // ── resolveWindowIcon ──
-    // 按应用类型分场景选择图标来源，身份正确性优先于分辨率：
+    // 按应用类型分场景选择图标来源。各场景内部按优先级逐级 fallback，
+    // 每个 fallback 步都记录 source tag + source size 用于调试。
     //
-    //   PWA        : getCachedPwaIcon → getShellAppIcon → WM_GETICON → exe
-    //   AUMID 非PWA: getIconFromAumid  → WM_GETICON → exe
-    //   MMC        : WM_GETICON（正确性优先）→ exe
-    //   普通 Win32 : getJumboIcon → WM_GETICON → QFileIconProvider
-    //
-    QIcon resolveWindowIcon(HWND hwnd, const QString& processPath,
-                            const QString& appUserModelId,
-                            WindowKind windowKind,
-                            const QString& processName,
-                            const AppIdentity& identity) {
-        // 内存缓存，key 按图标来源构造，避免 HWND 重用问题
-        static QHash<QString, QIcon> s_cache;
+    IconResult resolveWindowIcon(HWND hwnd, const QString& processPath,
+                                 const QString& appUserModelId,
+                                 WindowKind windowKind,
+                                 const QString& processName,
+                                 const AppIdentity& identity) {
+        static QHash<QString, IconResult> s_cache;
 
         QString cacheKey;
         if (windowKind == WindowKind::Pwa && !appUserModelId.isEmpty())
@@ -652,74 +709,126 @@ namespace Util {
         if (auto it = s_cache.constFind(cacheKey); it != s_cache.constEnd())
             return it.value();
 
-        QIcon icon;
+        auto bestSize = [](const QIcon& ic) -> QSize {
+            auto sizes = ic.availableSizes();
+            if (sizes.isEmpty()) return {};
+            return *std::max_element(sizes.begin(), sizes.end(),
+                [](const QSize& a, const QSize& b) {
+                    return a.width() * a.height() < b.width() * b.height();
+                });
+        };
+
+        IconResult result;
 
         // ── Scene 1: PWA ──
         if (windowKind == WindowKind::Pwa && !appUserModelId.isEmpty()) {
-            icon = getCachedPwaIcon(appUserModelId);
-            if (icon.isNull()) {
+            result.icon = getCachedPwaIcon(appUserModelId);
+            if (!result.icon.isNull()) {
+                result.sourceSize = bestSize(result.icon);
+                result.source = IconSource::ShellJumbo;
+            }
+            if (result.icon.isNull()) {
                 auto pix = getShellAppIcon(hwnd);
                 if (!pix.isNull()) {
-                    icon = QIcon(pix);
-                    cachePwaIcon(appUserModelId, icon);
+                    result.icon = QIcon(pix);
+                    result.sourceSize = pix.size();
+                    result.source = IconSource::Aumid;
+                    cachePwaIcon(appUserModelId, result.icon);
                 }
             }
-            if (icon.isNull())
-                icon = tryGetWindowIcon(hwnd);
-            if (icon.isNull())
-                icon = getCachedIcon(processPath, hwnd);
-            qDebug().noquote() << "[IconUtil] resolveWindowIcon PWA   key=" << cacheKey
-                               << "from=" << (icon.isNull() ? "none" : "ok");
+            if (result.icon.isNull()) {
+                result.icon = tryGetWindowIcon(hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::Window;
+                }
+            }
+            if (result.icon.isNull()) {
+                result.icon = getCachedIcon(processPath, hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::ShellJumbo;
+                }
+            }
         }
 
         // ── Scene 2: AUMID (Control Panel, Settings 等) ──
+        // 如果 AUMID 返回 < 48，说明 shell 只能提供低质量图标，退到 exe 源
         else if (!appUserModelId.isEmpty()) {
-#ifndef NDEBUG
-            if (processName.contains("ApplicationFrameHost", Qt::CaseInsensitive))
-                qDebug().nospace() << "[resolveWindowIcon] AppFrameHost in AUMID scene, aumid=" << appUserModelId;
-#endif
             auto pix = getIconFromAumid(appUserModelId);
-            if (!pix.isNull())
-                icon = QIcon(pix);
-            if (icon.isNull())
-                icon = tryGetWindowIcon(hwnd);
-            if (icon.isNull())
-                icon = getCachedIcon(processPath, hwnd);
-            qDebug().noquote() << "[IconUtil] resolveWindowIcon AUMID key=" << cacheKey
-                               << "from=" << (icon.isNull() ? "none" : "ok");
+            if (!pix.isNull() && pix.width() >= 48 && pix.height() >= 48) {
+                result.icon = QIcon(pix);
+                result.sourceSize = pix.size();
+                result.source = IconSource::Aumid;
+            }
+            if (result.icon.isNull()) {
+                result.icon = tryGetWindowIcon(hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::Window;
+                }
+            }
+            if (result.icon.isNull()) {
+                result.icon = getCachedIcon(processPath, hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::ShellJumbo;
+                }
+            }
         }
 
-        // ── Scene 3: MMC（质量优先：getCachedIcon(256) 优先，WM_GETICON 兜底）──
+        // ── Scene 3: MMC ──
         else if (processName == QStringLiteral("mmc.exe")
                  && !identity.instance.isEmpty()) {
-            icon = getCachedIcon(processPath, hwnd);
-            if (icon.isNull())
-                icon = tryGetWindowIcon(hwnd);
-            qDebug().noquote() << "[IconUtil] resolveWindowIcon MMC   key=" << cacheKey
-                               << "from=" << (icon.isNull() ? "none" : "ok");
+            result.icon = getCachedIcon(processPath, hwnd);
+            if (!result.icon.isNull()) {
+                result.sourceSize = bestSize(result.icon);
+                result.source = IconSource::ShellJumbo;
+            }
+            if (result.icon.isNull()) {
+                result.icon = tryGetWindowIcon(hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::Window;
+                }
+            }
         }
 
         // ── Scene 4: 普通 Win32 ──
-        // getCachedIcon 内部调用 getJumboIcon + DiskCache::save()，自带磁盘缓存
         else {
-            icon = getCachedIcon(processPath, hwnd);
-            if (icon.isNull())
-                icon = tryGetWindowIcon(hwnd);
-            if (icon.isNull()) {
-                QPixmap pix = QFileIconProvider().icon(QFileInfo(processPath)).pixmap(48);
-                if (!pix.isNull())
-                    icon = QIcon(pix);
+            result.icon = getCachedIcon(processPath, hwnd);
+            if (!result.icon.isNull()) {
+                result.sourceSize = bestSize(result.icon);
+                result.source = IconSource::ShellJumbo;
             }
-            qDebug().noquote() << "[IconUtil] resolveWindowIcon EXE   key=" << cacheKey
-                               << "from=" << (icon.isNull() ? "none" : "ok");
+            if (result.icon.isNull()) {
+                result.icon = tryGetWindowIcon(hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::Window;
+                }
+            }
+            if (result.icon.isNull()) {
+                QPixmap pix = QFileIconProvider().icon(QFileInfo(processPath)).pixmap(48);
+                if (!pix.isNull()) {
+                    result.icon = QIcon(pix);
+                    result.sourceSize = pix.size();
+                    result.source = IconSource::Provider;
+                }
+            }
         }
 
-        if (!icon.isNull())
-            s_cache.insert(cacheKey, icon);
-        return icon;
+        if (!result.icon.isNull()) {
+            static const char* tag[] = {"None","Aumid","Jumbo","Extract","Window","Provider"};
+            qDebug().noquote() << "[IconUtil] ICON" << cacheKey
+                               << "src=" << tag[static_cast<int>(result.source)]
+                               << "native=" << result.sourceSize;
+            s_cache.insert(cacheKey, result);
+        }
+        return result;
     }
 
-    QIcon resolveWindowIcon(const WindowDescriptor& desc) {
+    IconResult resolveWindowIcon(const WindowDescriptor& desc) {
         return resolveWindowIcon(desc.hwnd, desc.processPath,
                                  desc.appUserModelId, desc.windowKind,
                                  desc.processName, desc.identity);

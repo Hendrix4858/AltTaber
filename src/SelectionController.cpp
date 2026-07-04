@@ -221,7 +221,7 @@ void SelectionController::expandGroup() {
         g.displayName = win.title;
         if (win.windowKind == WindowKind::Pwa)
             g.icon = Util::resolveWindowIcon(win.hwnd, group.exePath,
-                                             win.appUserModelId, win.windowKind);
+                                             win.appUserModelId, win.windowKind).icon;
         else
             g.icon = group.icon;
         g.addWindow(win);

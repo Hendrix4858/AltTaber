@@ -80,7 +80,7 @@ namespace WindowGrouper {
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
-                group.icon = Util::resolveWindowIcon(desc);
+                group.icon = Util::resolveWindowIcon(desc).icon;
                 group.displayName = Util::resolveDisplayName(desc);
 
                 group.addWindow(winInfo);
