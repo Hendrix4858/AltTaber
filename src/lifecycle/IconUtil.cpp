@@ -25,29 +25,121 @@
 #include <minappmodel.h>
 #include <appmodel.h>
 #include <shlobj_core.h>
+#include <shlwapi.h>
 #include <winrt/Windows.Management.Deployment.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
 namespace Util {
-    QIcon getJumboIcon(const QString& filePath) {
-        SHFILEINFOW sfi = {nullptr};
-        SHGetFileInfo(filePath.toStdWString().c_str(), 0, &sfi, sizeof(SHFILEINFOW), SHGFI_SYSICONINDEX);
+    // 内部辅助：提取原生尺寸 QPixmap，跳过 QIcon 间接层
+    // 供 getJumboIcon 和 getCachedIcon 使用
+    static QPixmap extractJumboIconPixmap(const QString& filePath) {
+        auto wPath = filePath.toStdWString();
 
-        IImageList* imageList = nullptr;
-        HRESULT hResult = SHGetImageList(SHIL_JUMBO, IID_IImageList, (void**) &imageList);
+        // 单次 SHGetFileInfo，供各 ImageList 步骤共用
+        SHFILEINFOW sfi{};
+        int iIcon = -1;
+        if (SHGetFileInfoW(wPath.c_str(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
+                           SHGFI_SYSICONINDEX | SHGFI_USEFILEATTRIBUTES))
+            iIcon = sfi.iIcon;
 
-        QIcon icon;
-        if (hResult == S_OK && imageList) {
-            HICON hIcon;
-            hResult = imageList->GetIcon(sfi.iIcon, ILD_TRANSPARENT, &hIcon);
-
-            if (hResult == S_OK) {
-                icon = QtWin::fromHICON(hIcon);
+        // 从指定 shell 图像列表提取图标
+        auto tryShellImageList = [&](int type) -> QPixmap {
+            if (iIcon < 0) return {};
+            IImageList* imageList = nullptr;
+            if (FAILED(SHGetImageList(type, IID_IImageList, (void**)&imageList)))
+                return {};
+            HICON hIcon = nullptr;
+            QPixmap pix;
+            if (SUCCEEDED(imageList->GetIcon(iIcon, ILD_TRANSPARENT, &hIcon))) {
+                pix = QtWin::fromHICON(hIcon);
                 DestroyIcon(hIcon);
             }
+            imageList->Release();
+            return pix;
+        };
+
+        // 从 exe 资源直接提取图标
+        auto tryDefExtract = [&](int size) -> QPixmap {
+            HICON hIcon = nullptr;
+            if (FAILED(SHDefExtractIconW(wPath.c_str(), 0, 0, &hIcon, nullptr, size))
+                || !hIcon)
+                return {};
+            QPixmap pix = QtWin::fromHICON(hIcon);
+            DestroyIcon(hIcon);
+            return pix;
+        };
+
+        // 检测 QPixmap 的实际非透明内容是否远小于画布
+        // （Shell 把小图标塞进大画布的左上角，这时 JUMBO 不能用）
+        auto isPixmapPadded = [](const QPixmap& pix) -> bool {
+            if (pix.isNull()) return false;
+            QImage img = pix.toImage().convertToFormat(QImage::Format_ARGB32);
+            int w = img.width(), h = img.height();
+
+            int minX = w, minY = h, maxX = 0, maxY = 0;
+            bool hasContent = false;
+            int step = (w > 128) ? 4 : 2;
+
+            for (int y = 0; y < h; y += step) {
+                const uchar* line = img.constScanLine(y);
+                for (int x = 0; x < w; x += step) {
+                    if (line[x * 4 + 3] > 0) { // alpha byte in ARGB32
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                        hasContent = true;
+                    }
+                }
+            }
+            if (!hasContent) return true;
+
+            int cw = maxX - minX + 1;
+            int ch = maxY - minY + 1;
+
+#ifndef NDEBUG
+            qDebug().nospace() << "  [isPixmapPadded] canvas=" << w << "x" << h
+                               << " content=" << cw << "x" << ch
+                               << " padded=" << (cw < w / 2 || ch < h / 2);
+#endif
+            return cw < w / 2 || ch < h / 2;
+        };
+
+        QString source;
+        QPixmap pix;
+
+        QPixmap jumbo, extra, d256, d48, d32;
+        jumbo = tryShellImageList(SHIL_JUMBO);
+        if (!jumbo.isNull() && !isPixmapPadded(jumbo)) {
+            pix = jumbo; source = QStringLiteral("SHIL_JUMBO");
+        } else if (!(extra = tryShellImageList(SHIL_EXTRALARGE)).isNull()) {
+            pix = extra; source = QStringLiteral("SHIL_EXTRALARGE");
+        } else if (!(d256 = tryDefExtract(256)).isNull()) {
+            pix = d256; source = QStringLiteral("DefExtract(256)");
+        } else if (!(d48 = tryDefExtract(48)).isNull()) {
+            pix = d48; source = QStringLiteral("DefExtract(48)");
+        } else {
+            pix = tryDefExtract(32);
+            if (!pix.isNull()) source = QStringLiteral("DefExtract(32)");
         }
-        if (imageList) imageList->Release();
-        return icon;
+
+#ifndef NDEBUG
+        qDebug().nospace() << "[extractJumboIconPixmap] path=" << filePath
+                           << " source=" << source
+                           << " size=" << pix.size()
+                           << " [jumbo=" << jumbo.size()
+                           << " extra=" << extra.size()
+                           << " def256=" << d256.size()
+                           << " def48=" << d48.size()
+                           << " def32=" << d32.size()
+                           << "]";
+#endif
+        return pix;
+    }
+
+    QIcon getJumboIcon(const QString& filePath) {
+        QPixmap pix = extractJumboIconPixmap(filePath);
+        return pix.isNull() ? QIcon() : QIcon(pix);
     }
 
     bool isBottomRightTransparent(const QIcon& icon, int extent) {
@@ -191,8 +283,8 @@ namespace Util {
                 return {};
             }
 
-            void save(const QString& exePath, const QIcon& icon) {
-                if (!cfg().getIconCacheEnabled() || icon.isNull()) return;
+            void saveExeIcon(const QString& exePath, const QPixmap& pixmap) {
+                if (!cfg().getIconCacheEnabled() || pixmap.isNull()) return;
                 ensureLoaded();
 
                 QDir().mkpath(iconDir());
@@ -209,8 +301,9 @@ namespace Util {
                     }
                 }
 
-                qDebug().nospace() << "[DiskCache::save] path=" << exePath << " availableSizes=" << icon.availableSizes() << " actualSize(64,64)=" << icon.actualSize(QSize(64, 64)) << " pixmap(64).size=" << icon.pixmap(64).size();
-                icon.pixmap(64).save(filePath, "PNG");
+                qDebug().nospace() << "[DiskCache::saveExeIcon] path=" << exePath
+                                   << " size=" << pixmap.size();
+                pixmap.save(filePath, "PNG");
 
                 CacheEntry entry;
                 entry.type = "exe";
@@ -339,17 +432,28 @@ namespace Util {
 
         QElapsedTimer t;
         t.start();
-        QIcon icon;
 
+        QPixmap sourcePix;
         if (auto uwpDir = getUwpInstallDirFromHwnd(hwnd); !uwpDir.isEmpty()) {
-            icon = AppUtil::getAppIcon(uwpDir + "\\fake.exe");
+            QIcon uwpIcon = AppUtil::getAppIcon(uwpDir + "\\fake.exe");
+            sourcePix = uwpIcon.pixmap(256);
+#ifndef NDEBUG
+            if (path.contains("ApplicationFrameHost", Qt::CaseInsensitive))
+                qDebug().nospace() << "[getCachedIcon] AppFrameHost UWP hit: uwpDir=" << uwpDir
+                                   << " uwpIconSize=" << sourcePix.size();
+#endif
         } else {
-            icon = getJumboIcon(path);
+#ifndef NDEBUG
+            if (path.contains("ApplicationFrameHost", Qt::CaseInsensitive))
+                qDebug().nospace() << "[getCachedIcon] AppFrameHost UWP miss -> fallback to extractJumboIconPixmap";
+#endif
+            sourcePix = extractJumboIconPixmap(path);
         }
 
-        DiskCache::instance().save(path, icon);
+        QIcon icon(sourcePix);
+        DiskCache::instance().saveExeIcon(path, sourcePix);
         IconCache.insert(path, icon);
-        qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path;
+        qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path << "source=" << sourcePix.size();
         return icon;
     }
 
@@ -488,7 +592,7 @@ namespace Util {
         if (FAILED(hr) || !imgFactory) return {};
 
         HBITMAP hBitmap = nullptr;
-        SIZE sz = {128, 128};
+        SIZE sz = {256, 256};
         hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
         if (FAILED(hr) || !hBitmap) return {};
 
@@ -570,6 +674,10 @@ namespace Util {
 
         // ── Scene 2: AUMID (Control Panel, Settings 等) ──
         else if (!appUserModelId.isEmpty()) {
+#ifndef NDEBUG
+            if (processName.contains("ApplicationFrameHost", Qt::CaseInsensitive))
+                qDebug().nospace() << "[resolveWindowIcon] AppFrameHost in AUMID scene, aumid=" << appUserModelId;
+#endif
             auto pix = getIconFromAumid(appUserModelId);
             if (!pix.isNull())
                 icon = QIcon(pix);
@@ -581,12 +689,12 @@ namespace Util {
                                << "from=" << (icon.isNull() ? "none" : "ok");
         }
 
-        // ── Scene 3: MMC（正确性优先：WM_GETICON 在前）──
+        // ── Scene 3: MMC（质量优先：getCachedIcon(256) 优先，WM_GETICON 兜底）──
         else if (processName == QStringLiteral("mmc.exe")
                  && !identity.instance.isEmpty()) {
-            icon = tryGetWindowIcon(hwnd);
+            icon = getCachedIcon(processPath, hwnd);
             if (icon.isNull())
-                icon = getCachedIcon(processPath, hwnd);
+                icon = tryGetWindowIcon(hwnd);
             qDebug().noquote() << "[IconUtil] resolveWindowIcon MMC   key=" << cacheKey
                                << "from=" << (icon.isNull() ? "none" : "ok");
         }
