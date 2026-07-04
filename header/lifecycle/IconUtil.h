@@ -33,6 +33,7 @@ namespace Util {
     QPixmap getShellAppIcon(HWND hwnd);
     QIcon getCachedPwaIcon(const QString& aumid);
     void cachePwaIcon(const QString& aumid, const QIcon& icon);
+    QPixmap getFileIcon(const QString& filePath, int size = 256);
     QPixmap getIconFromAumid(const QString& aumid);
 
     // 按应用类型分场景选择图标来源，身份正确性优先于分辨率

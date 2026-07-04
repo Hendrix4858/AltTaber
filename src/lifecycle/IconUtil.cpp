@@ -14,7 +14,6 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QImage>
-#include <QtMath>
 #include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
 #include "utils/MiscUtil.h"
@@ -125,42 +124,6 @@ namespace Util {
             QPixmap pix = QtWin::fromHICON(hIcon);
             DestroyIcon(hIcon);
             return pix;
-        };
-
-        // 检测 QPixmap 的实际非透明内容是否远小于画布
-        // （Shell 把小图标塞进大画布的左上角，这时 JUMBO 不能用）
-        auto isPixmapPadded = [](const QPixmap& pix) -> bool {
-            if (pix.isNull()) return false;
-            QImage img = pix.toImage().convertToFormat(QImage::Format_ARGB32);
-            int w = img.width(), h = img.height();
-
-            int minX = w, minY = h, maxX = 0, maxY = 0;
-            bool hasContent = false;
-            int step = (w > 128) ? 4 : 2;
-
-            for (int y = 0; y < h; y += step) {
-                const uchar* line = img.constScanLine(y);
-                for (int x = 0; x < w; x += step) {
-                    if (line[x * 4 + 3] > 0) { // alpha byte in ARGB32
-                        if (x < minX) minX = x;
-                        if (y < minY) minY = y;
-                        if (x > maxX) maxX = x;
-                        if (y > maxY) maxY = y;
-                        hasContent = true;
-                    }
-                }
-            }
-            if (!hasContent) return true;
-
-            int cw = maxX - minX + 1;
-            int ch = maxY - minY + 1;
-
-#ifndef NDEBUG
-            qDebug().nospace() << "  [isPixmapPadded] canvas=" << w << "x" << h
-                               << " content=" << cw << "x" << ch
-                               << " padded=" << (cw < w / 2 || ch < h / 2);
-#endif
-            return cw < w / 2 || ch < h / 2;
         };
 
         QString source;
@@ -638,6 +601,52 @@ namespace Util {
         return {};
     }
 
+    QPixmap getFileIcon(const QString& filePath, int size) {
+        if (filePath.isEmpty()) return {};
+
+        CComPtr<IShellItem> shellItem;
+        HRESULT hr = SHCreateItemFromParsingName(
+            reinterpret_cast<const wchar_t*>(filePath.utf16()),
+            nullptr,
+            IID_PPV_ARGS(&shellItem));
+        if (FAILED(hr) || !shellItem) return {};
+
+        CComPtr<IShellItemImageFactory> imgFactory;
+        hr = shellItem->QueryInterface(IID_PPV_ARGS(&imgFactory));
+        if (FAILED(hr) || !imgFactory) return {};
+
+        HBITMAP hBitmap = nullptr;
+        SIZE sz = {size, size};
+        hr = imgFactory->GetImage(sz, SIIGBF_BIGGERSIZEOK, &hBitmap);
+        if (FAILED(hr) || !hBitmap) return {};
+
+        QImage img;
+        {
+            BITMAP bm = {};
+            GetObject(hBitmap, sizeof(bm), &bm);
+            if (bm.bmBitsPixel == 32) {
+                img = QImage(bm.bmWidth, bm.bmHeight, QImage::Format_ARGB32);
+                BITMAPINFO bmi = {};
+                bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                bmi.bmiHeader.biWidth  = bm.bmWidth;
+                bmi.bmiHeader.biHeight = -bm.bmHeight;
+                bmi.bmiHeader.biPlanes = 1;
+                bmi.bmiHeader.biBitCount = 32;
+                bmi.bmiHeader.biCompression = BI_RGB;
+                HDC hdc = GetDC(nullptr);
+                if (hdc) {
+                    GetDIBits(hdc, hBitmap, 0, bm.bmHeight, img.bits(), &bmi, DIB_RGB_COLORS);
+                    ReleaseDC(nullptr, hdc);
+                }
+                img = img.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            } else {
+                img = QImage::fromHBITMAP(hBitmap);
+            }
+        }
+        DeleteObject(hBitmap);
+        return QPixmap::fromImage(img);
+    }
+
     QPixmap getIconFromAumid(const QString& aumid) {
         if (aumid.isEmpty()) return {};
 
@@ -780,10 +789,18 @@ namespace Util {
         // ── Scene 3: MMC ──
         else if (processName == QStringLiteral("mmc.exe")
                  && !identity.instance.isEmpty()) {
-            result.icon = getCachedIcon(processPath, hwnd);
-            if (!result.icon.isNull()) {
-                result.sourceSize = bestSize(result.icon);
-                result.source = IconSource::ShellJumbo;
+            auto pix = getFileIcon(identity.instance);
+            if (!pix.isNull() && pix.width() >= 48 && pix.height() >= 48) {
+                result.icon = QIcon(pix);
+                result.sourceSize = pix.size();
+                result.source = IconSource::Aumid;
+            }
+            if (result.icon.isNull()) {
+                result.icon = getCachedIcon(processPath, hwnd);
+                if (!result.icon.isNull()) {
+                    result.sourceSize = bestSize(result.icon);
+                    result.source = IconSource::ShellJumbo;
+                }
             }
             if (result.icon.isNull()) {
                 result.icon = tryGetWindowIcon(hwnd);
