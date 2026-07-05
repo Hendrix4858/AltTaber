@@ -126,7 +126,8 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     });
 
     connect(m_selectCtrl, &SelectionController::switchToWindowRequested, this,
-            [this](HWND hwnd, const QString& exePath, const QString& title) {
+            [this](HWND hwnd, const QString& exePath, const QString& title, const AppIdentity& identity) {
+        m_windowManager->recordWindowActivation(identity);
         activateWindowWithVerification(hwnd, exePath, title);
     });
 
@@ -144,15 +145,19 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
         if (m_selectCtrl->isInGroupMode()) {
             HWND targetHwnd = nullptr;
             QString targetExePath, targetTitle;
+            AppIdentity targetIdentity;
             if (auto idx = m_listView->currentIndex(); idx.isValid())
                 if (auto& g = m_model->groupAt(idx.row()); !g.windows.empty()) {
                     targetHwnd = g.windows.first().hwnd;
                     targetExePath = g.exePath;
                     targetTitle = g.windows.first().title;
+                    targetIdentity = g.windows.first().identity;
                 }
             m_selectCtrl->collapseGroup(false);
-            if (targetHwnd)
+            if (targetHwnd) {
+                m_windowManager->recordWindowActivation(targetIdentity);
                 activateWindowWithVerification(targetHwnd, targetExePath, targetTitle);
+            }
         } else {
             activateCurrentGroupWindow();
         }
@@ -384,8 +389,10 @@ void Widget::setupLabelFont() {
 
 void Widget::activateCurrentGroupWindow() {
     if (auto index = m_listView->currentIndex(); index.isValid())
-        if (auto& group = m_model->groupAt(index.row()); !group.windows.empty())
+        if (auto& group = m_model->groupAt(index.row()); !group.windows.empty()) {
+            m_windowManager->recordWindowActivation(group.windows.first().identity);
             activateWindowWithVerification(group.windows.first().hwnd, group.exePath, group.windows.first().title);
+        }
 }
 
 void Widget::activateWindowWithVerification(HWND targetHwnd, const QString& exePath,

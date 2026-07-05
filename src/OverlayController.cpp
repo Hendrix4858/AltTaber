@@ -260,7 +260,8 @@ bool OverlayController::isForeground() const {
 }
 
 void OverlayController::notifyForegroundChanged(HWND hwnd) {
-    if (hwnd == m_view.hWnd()) return;
+    if (m_overlayState == OverlayState::Visible && hwnd == m_view.hWnd())
+        return;
     if (!Util::isWindowAllowed(hwnd, true)) return;
     auto path = Util::getWindowProcessPath(hwnd);
     qInfo() << "Foreground window changed:"

@@ -257,7 +257,8 @@ void SelectionController::collapseGroup(bool activateSelected) {
                 qInfo() << "[GroupMode] activating window on exit";
                 emit switchToWindowRequested(group.windows.first().hwnd,
                                               group.exePath,
-                                              group.windows.first().title);
+                                              group.windows.first().title,
+                                              group.windows.first().identity);
             }
         }
     }
@@ -341,8 +342,9 @@ void SelectionController::handleListItemClicked(const QModelIndex& index, bool s
         if (!group.windows.empty()) {
             qInfo() << "[Click] switchToWindow + hide";
             emit switchToWindowRequested(group.windows.first().hwnd,
-                                         group.exePath,
-                                         group.windows.first().title);
+                                          group.exePath,
+                                          group.windows.first().title,
+                                          group.windows.first().identity);
         }
         emit dismiss();
     }

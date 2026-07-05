@@ -49,7 +49,7 @@ signals:
     void geometryNeedsRecalc();
     void activateAndHide();
     void dismiss();
-    void switchToWindowRequested(HWND hwnd, const QString& exePath, const QString& title);
+    void switchToWindowRequested(HWND hwnd, const QString& exePath, const QString& title, const AppIdentity& identity);
     void foregroundChanged(HWND hwnd);
 
 private:
