@@ -18,8 +18,8 @@ QList<WindowGroup> WindowManager::prepareWindowGroupList() {
     return WindowGrouper::groupWindows(filtered, &m_activationHistory, m_selfHwnd);
 }
 
-void WindowManager::recordWindowActivation(HWND hwnd) {
-    m_activationHistory.record(hwnd);
+void WindowManager::recordWindowActivation(const AppIdentity& identity) {
+    m_activationHistory.record(identity);
 }
 
 void WindowManager::reloadFilterRules() {

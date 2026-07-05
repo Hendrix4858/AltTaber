@@ -17,7 +17,7 @@ public:
 
     virtual QList<WindowGroup> prepareWindowGroupList();
 
-    void recordWindowActivation(HWND hwnd);
+    void recordWindowActivation(const AppIdentity& identity);
     ActivationHistory& activationHistory() { return m_activationHistory; }
 
     void reloadFilterRules();

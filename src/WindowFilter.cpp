@@ -11,7 +11,8 @@ WindowFilterRule WindowFilter::builtinRules() {
         "Windows.UI.Core.CoreWindow",
         "CEF-OSC-WIDGET",
         "WorkerW",
-        "Shell_TrayWnd"
+        "Shell_TrayWnd",
+        "TApplication"
     };
     for (const auto& c : blockedClassNames) {
         WindowBlockRule e;

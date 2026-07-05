@@ -1,18 +1,19 @@
 #ifndef WIN_SWITCHER_ACTIVATIONHISTORY_H
 #define WIN_SWITCHER_ACTIVATIONHISTORY_H
 
-#include <Windows.h>
 #include <QMap>
+#include <QString>
+#include "WindowTypes.h"
 
 struct ActivationHistory {
-    void record(HWND hwnd);
-    qint64 lastActivationTime(HWND hwnd) const;
+    void record(const AppIdentity& identity);
+    qint64 lastActivationTime(const AppIdentity& identity) const;
     void clear();
 
-    const QMap<HWND, qint64>& times() const { return m_times; }
+    const QMap<QString, qint64>& times() const { return m_times; }
 
 private:
-    QMap<HWND, qint64> m_times;
+    QMap<QString, qint64> m_times;
 };
 
 #endif //WIN_SWITCHER_ACTIVATIONHISTORY_H

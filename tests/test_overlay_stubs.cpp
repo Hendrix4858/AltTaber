@@ -24,6 +24,7 @@ namespace Util {
     QString getWindowProcessPath(HWND) { return {}; }
     bool isWindowAllowed(HWND, bool) { return true; }
     void closeSystemWindows() {}
+    AppIdentity resolveIdentity(HWND, const QString&) { return {}; }
     void Logger::trace(const char*, int, const QString&) {}
 }
 
@@ -41,7 +42,7 @@ SystemTray& SystemTray::instance() {
 WindowManager::WindowManager(ConfigManager*, HWND, QObject* parent) : QObject(parent) {}
 void WindowManager::setSelfHwnd(HWND) {}
 QList<WindowGroup> WindowManager::prepareWindowGroupList() { return {}; }
-void WindowManager::recordWindowActivation(HWND) {}
+void WindowManager::recordWindowActivation(const AppIdentity&) {}
 void WindowManager::reloadFilterRules() {}
 QList<HWND> WindowManager::filteredHwndsForExe(const QString&) { return {}; }
 

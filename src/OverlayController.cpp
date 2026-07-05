@@ -266,7 +266,8 @@ void OverlayController::notifyForegroundChanged(HWND hwnd) {
     qInfo() << "Foreground window changed:"
             << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path
             << Util::getFileDescription(path);
-    m_windowManager->recordWindowActivation(hwnd);
+    auto identity = Util::resolveIdentity(hwnd);
+    m_windowManager->recordWindowActivation(identity);
 }
 
 void OverlayController::warmupCache() {

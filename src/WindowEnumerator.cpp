@@ -12,9 +12,14 @@ namespace WindowEnumerator {
     bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck, bool skipCloakedCheck) {
         LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
 
-        if ((skipVisibleCheck || IsWindowVisible(hwnd))
-            && (skipCloakedCheck || !Util::isWindowCloaked(hwnd))
-            && (!GetWindow(hwnd, GW_OWNER) || exStyle & WS_EX_APPWINDOW)
+        bool visibleOk = skipVisibleCheck || IsWindowVisible(hwnd);
+        bool cloakedOk = skipCloakedCheck || !Util::isWindowCloaked(hwnd);
+
+        HWND owner = GetWindow(hwnd, GW_OWNER);
+        bool isDelphiAppWindow = owner && Util::getClassName(owner) == QStringLiteral("TApplication");
+        bool ownerOk = !owner || (exStyle & WS_EX_APPWINDOW) || isDelphiAppWindow;
+
+        if (visibleOk && cloakedOk && ownerOk
             && (exStyle & WS_EX_TOOLWINDOW) == 0
             && GetWindowTextLength(hwnd) > 0
         ) {
