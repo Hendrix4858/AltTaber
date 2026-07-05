@@ -1,10 +1,10 @@
+#include <QWheelEvent>
+#include <QListView>
 #include "hook/WheelEventProcessor.h"
 #include "WindowGroupModel.h"
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"
 #include "utils/Util.h"
-#include <QWheelEvent>
-#include <QListView>
 
 WheelEventProcessor::WheelEventProcessor(QObject* parent)
     : QObject(parent) {}

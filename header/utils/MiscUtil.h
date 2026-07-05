@@ -2,8 +2,8 @@
 #define WIN_SWITCHER_MISCUTIL_H
 
 #include <Windows.h>
-#include <QString>
 #include <dwmapi.h>
+#include <QString>
 
 namespace Util {
     QString getWindowTitle(HWND hwnd);

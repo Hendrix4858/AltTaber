@@ -1,13 +1,13 @@
-#include "lifecycle/Logger.h"
-#include "core/ConfigManager.h"
-#include "utils/PathUtils.h"
-#include <QApplication>
+#include <windows.h>
 #include <QDir>
 #include <QFileInfo>
 #include <QDateTime>
 #include <QDebug>
 #include <QtGlobal>
-#include <windows.h>
+#include "lifecycle/Logger.h"
+#include "core/ConfigManager.h"
+#include "utils/PathUtils.h"
+#include <QApplication>
 
 namespace Util {
 

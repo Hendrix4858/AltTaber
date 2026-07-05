@@ -1,24 +1,24 @@
 // You may need to build the project (run Qt uic code generator) to get "ui_UpdateDialog.h" resolved
 
-#include "UpdateDialog.h"
 #include <windows.h>
 #include <QCommandLineParser>
-#include "ui_UpdateDialog.h"
 #include <QDebug>
 #include <QNetworkReply>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QElapsedTimer>
-
-#include "lifecycle/Logger.h"
-#include "lifecycle/SystemTray.h"
-#include "core/ThemeManager.h"
-#include "core/QuitReason.h"
 #include <QProcess>
 #include <QFileInfo>
 #include <QEvent>
 #include <QTimer>
+
+#include "UpdateDialog.h"
+#include "ui_UpdateDialog.h"
+#include "lifecycle/Logger.h"
+#include "lifecycle/SystemTray.h"
+#include "core/ThemeManager.h"
+#include "core/QuitReason.h"
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     QElapsedTimer t;

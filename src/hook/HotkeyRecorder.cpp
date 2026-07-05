@@ -1,9 +1,9 @@
-#include "hook/HotkeyRecorder.h"
-#include "core/HotkeyAction.h"
-#include "hook/KeyboardHooker.h"
 #include <QApplication>
 #include <QStyle>
 #include <QTimer>
+#include "hook/HotkeyRecorder.h"
+#include "core/HotkeyAction.h"
+#include "hook/KeyboardHooker.h"
 
 static QString bindingButtonText(const HotkeyBinding& binding) {
     QString s = binding.toString();

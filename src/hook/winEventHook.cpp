@@ -1,8 +1,8 @@
+#include <QDebug>
+#include <QTime>
 #include "hook/winEventHook.h"
 #include "core/ConfigManager.h"
 #include "utils/Util.h"
-#include <QDebug>
-#include <QTime>
 
 static HWINEVENTHOOK handler = nullptr;
 static WinEventCallback callback = nullptr;

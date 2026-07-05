@@ -1,6 +1,6 @@
+#include <QDebug>
 #include "hook/KeyboardHooker.h"
 #include "lifecycle/Logger.h"
-#include <QDebug>
 #include "utils/Util.h"
 
 KeyboardHooker* KeyboardHooker::s_instance = nullptr;

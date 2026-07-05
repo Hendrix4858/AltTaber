@@ -1,6 +1,3 @@
-#include "lifecycle/IconUtil.h"
-#include "utils/PwaDetector.h"
-
 #include <QDebug>
 #include <QFileInfo>
 #include <QFileIconProvider>
@@ -14,6 +11,9 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QImage>
+
+#include "lifecycle/IconUtil.h"
+#include "utils/PwaDetector.h"
 #include "lifecycle/QtWin.h"
 #include "utils/AppUtil.h"
 #include "utils/MiscUtil.h"

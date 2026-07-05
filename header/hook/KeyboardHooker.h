@@ -2,8 +2,8 @@
 #define WIN_SWITCHER_KEYBOARDHOOKER_H
 
 #include <Windows.h>
-#include <QObject>
 #include <atomic>
+#include <QObject>
 #include "core/HotkeyAction.h"
 
 class KeyboardHooker : public QObject {

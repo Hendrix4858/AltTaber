@@ -1,8 +1,8 @@
+#include <QDebug>
+#include <QStyle>
 #include "lifecycle/IconOnlyDelegate.h"
 #include "WindowTypes.h"
 #include "core/ThemeManager.h"
-#include <QDebug>
-#include <QStyle>
 
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();

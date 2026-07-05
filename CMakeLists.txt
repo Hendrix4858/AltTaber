@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.7.3
+    VERSION 0.7.4
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,8 +19,7 @@ if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "A
     elseif(DEFINED ENV{QT_ROOT_DIR} AND NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
         set(QT_BASE_DIR "$ENV{QT_ROOT_DIR}")
     else()
-        # Fallback: hardcoded path derived from known x64 install location
-        set(QT_BASE_DIR "E:/CodePath/Compiler/QT/6.8.2/msvc2022_arm64")
+
     endif()
     set(CMAKE_PREFIX_PATH "${QT_BASE_DIR}/lib/cmake")
     set(Qt6_DIR "${QT_BASE_DIR}/lib/cmake/Qt6")
