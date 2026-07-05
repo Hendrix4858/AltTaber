@@ -176,6 +176,7 @@ target_sources(Win_Switcher PRIVATE
     src/utils/setWindowBlur.cpp    header/utils/setWindowBlur.h
     src/utils/UwpHelper.cpp        header/utils/UwpHelper.h
     src/utils/StartMenuHelper.cpp  header/utils/StartMenuHelper.h
+    src/utils/VirtualDesktopManager.cpp header/utils/VirtualDesktopManager.h
     src/utils/AppExeResolver.cpp   header/utils/AppUtil.h
     src/utils/PathUtils.cpp        header/utils/PathUtils.h
 )

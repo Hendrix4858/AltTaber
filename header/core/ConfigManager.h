@@ -23,6 +23,13 @@ enum class PwaMode {
 };
 constexpr int PwaModeCount = 2;
 
+enum class VirtualDesktopScope {
+    FollowSystem,
+    CurrentDesktop,
+    AllDesktops,
+};
+constexpr int VirtualDesktopScopeCount = 3;
+
 struct BlockedWindowEntry {
     bool enabled = true;
     QString comment;
@@ -120,6 +127,25 @@ public:
 
     void setPwaMode(PwaMode mode) {
         set("PwaMode", static_cast<int>(mode));
+    }
+
+    VirtualDesktopScope getVirtualDesktopScope() {
+        auto scope = get("VirtualDesktopScope", static_cast<int>(VirtualDesktopScope::CurrentDesktop)).toInt();
+        if (scope < 0 || scope >= VirtualDesktopScopeCount)
+            scope = static_cast<int>(VirtualDesktopScope::CurrentDesktop);
+        return static_cast<VirtualDesktopScope>(scope);
+    }
+
+    void setVirtualDesktopScope(VirtualDesktopScope scope) {
+        set("VirtualDesktopScope", static_cast<int>(scope));
+    }
+
+    bool getTransparencyEnabled() {
+        return get("TransparencyEnabled", true).toBool();
+    }
+
+    void setTransparencyEnabled(bool enabled) {
+        set("TransparencyEnabled", enabled);
     }
 
     int getMinIconSize() {

@@ -8,9 +8,11 @@
 
 namespace WindowEnumerator {
     QList<WindowDescriptor> enumAllWindows();
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false);
+    QList<WindowDescriptor> enumAllWindows(bool includeCloaked);
+    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck = false, bool skipCloakedCheck = false);
     QList<WindowDescriptor> enumValidWindows();
     QList<WindowDescriptor> enumValidWindows(const QString& exePath);
+    QList<WindowDescriptor> enumValidWindows(int virtualDesktopScope);
 }
 
 #endif //WIN_SWITCHER_WINDOWENUMERATOR_H

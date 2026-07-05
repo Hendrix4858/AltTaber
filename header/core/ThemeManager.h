@@ -20,6 +20,7 @@ struct ThemeColors {
     QColor inputBg;
     QColor accentColor;
     QColor widgetBg;
+    QColor widgetBgSolid;
     QColor delegateSelected;
     QColor delegateHover;
     QColor delegateHoverUnselected;

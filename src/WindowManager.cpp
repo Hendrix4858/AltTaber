@@ -12,7 +12,8 @@ WindowManager::WindowManager(ConfigManager* config, HWND selfHwnd, QObject* pare
 void WindowManager::setSelfHwnd(HWND hwnd) { m_selfHwnd = hwnd; }
 
 QList<WindowGroup> WindowManager::prepareWindowGroupList() {
-    auto descriptors = WindowEnumerator::enumValidWindows();
+    auto scope = static_cast<int>(m_config->getVirtualDesktopScope());
+    auto descriptors = WindowEnumerator::enumValidWindows(scope);
     auto filtered = m_filter.filter(descriptors);
     return WindowGrouper::groupWindows(filtered, &m_activationHistory, m_selfHwnd);
 }
@@ -29,8 +30,14 @@ void WindowManager::reloadFilterRules() {
 }
 
 QList<HWND> WindowManager::filteredHwndsForExe(const QString& exePath) {
-    auto descriptors = WindowEnumerator::enumValidWindows(exePath);
-    auto filtered = m_filter.filter(descriptors);
+    auto scope = static_cast<int>(m_config->getVirtualDesktopScope());
+    auto descriptors = WindowEnumerator::enumValidWindows(scope);
+    QList<WindowDescriptor> filteredByExe;
+    for (const auto& desc : descriptors) {
+        if (desc.processPath.compare(exePath, Qt::CaseInsensitive) == 0)
+            filteredByExe.append(desc);
+    }
+    auto filtered = m_filter.filter(filteredByExe);
     QList<HWND> hwnds;
     hwnds.reserve(filtered.size());
     for (const auto& d : filtered)

@@ -332,6 +332,26 @@ Overwrite?</source>
         <translation> px</translation>
     </message>
     <message>
+        <location filename="../ui/SettingsDialog.ui" line="+0"/>
+        <source>Virtual Desktop Scope:</source>
+        <translation>虚拟桌面范围:</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Current Desktop Only</source>
+        <translation>仅当前桌面</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>All Desktops</source>
+        <translation>所有桌面</translation>
+    </message>
+    <message>
+        <location filename="../ui/SettingsDialog.ui" line="+0"/>
+        <source>Enable transparency effect</source>
+        <translation>启用透明效果</translation>
+    </message>
+    <message>
         <location line="+19"/>
         <source>PWA (Progressive Web Apps)</source>
         <translation>PWA（渐进式 Web 应用）</translation>

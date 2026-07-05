@@ -35,7 +35,8 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_listView->setModel(m_model);
     setWindowFlag(Qt::WindowStaysOnTopHint);
     setWindowFlag(Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
+    if (cfg().getTransparencyEnabled())
+        setAttribute(Qt::WA_TranslucentBackground);
     QtWin::taskbarDeleteTab(this);
     setWindowTitle("AltTaber");
 
@@ -171,7 +172,8 @@ void Widget::applyWindowEffects() {
         return;
     }
     Util::setWindowRoundCorner(hwnd);
-    setWindowBlur(hwnd);
+    if (cfg().getTransparencyEnabled())
+        setWindowBlur(hwnd);
     qInfo() << "[Widget] applyWindowEffects" << t.elapsed() << "ms";
 }
 
@@ -184,7 +186,9 @@ Widget::~Widget() {
 void Widget::showOverlay() {
     HWND hwnd = (HWND) winId();
     if (!isVisible()) {
-        setWindowOpacity(0.0);
+        bool transparent = cfg().getTransparencyEnabled();
+        if (transparent)
+            setWindowOpacity(0.0);
 
         m_listView->setUpdatesEnabled(false);
         m_listView->viewport()->update();
@@ -196,10 +200,12 @@ void Widget::showOverlay() {
         SetForegroundWindow(hwnd);
         BringWindowToTop(hwnd);
 
-        QTimer::singleShot(0, this, [this]() {
-            if (isVisible())
-                setWindowOpacity(1.0);
-        });
+        if (transparent) {
+            QTimer::singleShot(0, this, [this]() {
+                if (isVisible())
+                    setWindowOpacity(1.0);
+            });
+        }
     } else {
         SetForegroundWindow(hwnd);
         BringWindowToTop(hwnd);
@@ -354,7 +360,8 @@ void Widget::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(Qt::NoPen);
-    painter.setBrush(ThemeManager::current().widgetBg);
+    auto& colors = ThemeManager::current();
+    painter.setBrush(cfg().getTransparencyEnabled() ? colors.widgetBg : colors.widgetBgSolid);
     painter.drawRect(rect());
 }
 
