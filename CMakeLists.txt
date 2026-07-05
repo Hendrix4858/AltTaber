@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.7.4
+    VERSION 0.7.5
 )
 
 set(CMAKE_CXX_STANDARD 20)
