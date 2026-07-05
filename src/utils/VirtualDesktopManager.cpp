@@ -1,12 +1,6 @@
 #include "utils/VirtualDesktopManager.h"
 #include <QDebug>
-#include <QSettings>
 #include <ShlObj.h>
-#include <comdef.h>
-
-// IVirtualDesktopManager
-// CLSID = {AA509086-5CA9-4C0E-8B97-3E1E8C1F3E5B}
-// IID   = {A5CD92FF-29BE-454C-8D04-D82879FB3F1B}
 
 using PFN_IsWindowOnCurrentVirtualDesktop = HRESULT(STDMETHODCALLTYPE*)(HWND, BOOL*);
 
@@ -41,10 +35,6 @@ bool VirtualDesktopManager::isWindowOnCurrentDesktop(HWND hwnd) {
         return true;
 
     auto* mgr = static_cast<IUnknown*>(m_mgr);
-
-    // Use the vtable directly - IVirtualDesktopManager vtable:
-    // [0] QueryInterface, [1] AddRef, [2] Release
-    // [3] IsWindowOnCurrentVirtualDesktop
     auto vtable = *reinterpret_cast<void***>(mgr);
     auto func = reinterpret_cast<PFN_IsWindowOnCurrentVirtualDesktop>(vtable[3]);
 
@@ -55,26 +45,4 @@ bool VirtualDesktopManager::isWindowOnCurrentDesktop(HWND hwnd) {
         return true;
     }
     return onCurrentDesktop != FALSE;
-}
-
-VirtualDesktopScope VirtualDesktopManager::resolveScope(VirtualDesktopScope configScope) {
-    if (configScope != VirtualDesktopScope::FollowSystem)
-        return configScope;
-
-    int systemFilter = readSystemAltTabFilter();
-
-    // MultiTaskingAltTabFilter registry values (Windows 11):
-    //   1 = "Open windows on all desktops"
-    //   3 = "Open windows only on the desktop I'm using"
-    if (systemFilter == 3)
-        return VirtualDesktopScope::CurrentDesktop;
-
-    return VirtualDesktopScope::AllDesktops;
-}
-
-int VirtualDesktopManager::readSystemAltTabFilter() {
-    QSettings reg(
-        "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-        QSettings::NativeFormat);
-    return reg.value("MultiTaskingAltTabFilter", 1).toInt();
 }

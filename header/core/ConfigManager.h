@@ -24,11 +24,10 @@ enum class PwaMode {
 constexpr int PwaModeCount = 2;
 
 enum class VirtualDesktopScope {
-    FollowSystem,
     CurrentDesktop,
     AllDesktops,
 };
-constexpr int VirtualDesktopScopeCount = 3;
+constexpr int VirtualDesktopScopeCount = 2;
 
 struct BlockedWindowEntry {
     bool enabled = true;

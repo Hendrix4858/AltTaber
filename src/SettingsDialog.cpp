@@ -68,8 +68,6 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     ui->themeCombo->addItem(tr("Light"), Light);
     ui->themeCombo->addItem(tr("Follow System"), System);
 
-    ui->desktopScopeCombo->addItem(tr("Follow System"),
-        static_cast<int>(VirtualDesktopScope::FollowSystem));
     ui->desktopScopeCombo->addItem(tr("Current Desktop Only"),
         static_cast<int>(VirtualDesktopScope::CurrentDesktop));
     ui->desktopScopeCombo->addItem(tr("All Desktops"),

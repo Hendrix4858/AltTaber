@@ -2,7 +2,6 @@
 #include "WindowDescriptorBuilder.h"
 #include "utils/Util.h"
 #include "utils/WindowUtil.h"
-#include "utils/VirtualDesktopManager.h"
 #include "core/ConfigManager.h"
 #include <QDebug>
 #include <QFileInfo>
@@ -94,10 +93,14 @@ namespace WindowEnumerator {
 
     QList<WindowDescriptor> enumValidWindows(int virtualDesktopScope) {
         auto scope = static_cast<VirtualDesktopScope>(virtualDesktopScope);
-        scope = VirtualDesktopManager::resolveScope(scope);
+
+        // CurrentDesktop: exclude cloaked windows (other VDs are cloaked by DWM)
+        // AllDesktops: include all windows regardless of cloaked status
+        auto descriptors = (scope == VirtualDesktopScope::CurrentDesktop)
+            ? enumAllWindows(false)
+            : enumAllWindows(true);
 
         static const bool isUserAdmin = Util::isUserAdmin();
-        auto descriptors = enumAllWindows(true);
         QList<WindowDescriptor> result;
         result.reserve(descriptors.size());
 
@@ -105,10 +108,6 @@ namespace WindowEnumerator {
             if (!desc.hwnd) continue;
 
             if (!isUserAdmin && Util::isWindowElevated(desc.hwnd))
-                continue;
-
-            if (scope == VirtualDesktopScope::CurrentDesktop
-                && !VirtualDesktopManager::instance().isWindowOnCurrentDesktop(desc.hwnd))
                 continue;
 
             result.append(desc);
