@@ -123,104 +123,7 @@ namespace Util {
             return cache;
         }
 
-        PIDLIST_ABSOLUTE getExplorerPidl(HWND hwnd) {
-            IShellWindows* psw = nullptr;
-            HRESULT hr = CoCreateInstance(CLSID_ShellWindows, nullptr,
-                                          CLSCTX_ALL, IID_IShellWindows,
-                                          reinterpret_cast<void**>(&psw));
-            if (FAILED(hr) || !psw) return nullptr;
 
-            PIDLIST_ABSOLUTE result = nullptr;
-            long count = 0;
-            psw->get_Count(&count);
-
-            for (long i = 0; i < count && !result; ++i) {
-                VARIANT vIndex;
-                VariantInit(&vIndex);
-                vIndex.vt = VT_I4;
-                vIndex.lVal = i;
-
-                IDispatch* pDisp = nullptr;
-                hr = psw->Item(vIndex, &pDisp);
-                VariantClear(&vIndex);
-                if (FAILED(hr) || !pDisp) continue;
-
-                IWebBrowserApp* pwb = nullptr;
-                hr = pDisp->QueryInterface(IID_IWebBrowserApp,
-                                           reinterpret_cast<void**>(&pwb));
-                pDisp->Release();
-                if (FAILED(hr) || !pwb) continue;
-
-                HWND shellHwnd = nullptr;
-                hr = pwb->get_HWND(reinterpret_cast<SHANDLE_PTR*>(&shellHwnd));
-                if (SUCCEEDED(hr) && shellHwnd == hwnd) {
-                    IServiceProvider* psp = nullptr;
-                    hr = pwb->QueryInterface(IID_IServiceProvider,
-                                             reinterpret_cast<void**>(&psp));
-                    if (FAILED(hr) || !psp) { pwb->Release(); continue; }
-
-                    IShellBrowser* psb = nullptr;
-                    hr = psp->QueryService(SID_STopLevelBrowser,
-                                           IID_IShellBrowser,
-                                           reinterpret_cast<void**>(&psb));
-                    psp->Release();
-                    if (FAILED(hr) || !psb) { pwb->Release(); continue; }
-
-                    IShellView* psv = nullptr;
-                    hr = psb->QueryActiveShellView(&psv);
-                    psb->Release();
-                    if (FAILED(hr) || !psv) { pwb->Release(); continue; }
-
-                    IFolderView* pfv = nullptr;
-                    hr = psv->QueryInterface(IID_IFolderView,
-                                             reinterpret_cast<void**>(&pfv));
-                    psv->Release();
-                    if (FAILED(hr) || !pfv) { pwb->Release(); continue; }
-
-                    IPersistFolder2* ppf2 = nullptr;
-                    hr = pfv->GetFolder(IID_IPersistFolder2,
-                                        reinterpret_cast<void**>(&ppf2));
-                    pfv->Release();
-                    if (FAILED(hr) || !ppf2) { pwb->Release(); continue; }
-
-                    ppf2->GetCurFolder(&result);
-                    ppf2->Release();
-                }
-                pwb->Release();
-            }
-
-            psw->Release();
-            return result;
-        }
-
-        QString pidlToDisplayPath(PIDLIST_ABSOLUTE pidl) {
-            wchar_t path[MAX_PATH];
-            if (SHGetPathFromIDListW(pidl, path))
-                return QString::fromWCharArray(path);
-
-            // Virtual folder — get display name via IShellItem
-            IShellItem* pItem = nullptr;
-            if (FAILED(SHCreateItemFromIDList(pidl, IID_IShellItem,
-                                              reinterpret_cast<void**>(&pItem))))
-                return {};
-
-            LPWSTR name = nullptr;
-            QString result;
-            if (SUCCEEDED(pItem->GetDisplayName(SIGDN_NORMALDISPLAY, &name)) && name) {
-                result = QString::fromWCharArray(name);
-                CoTaskMemFree(name);
-            }
-            pItem->Release();
-            return result;
-        }
-
-        QString getExplorerInstance(HWND hwnd) {
-            PIDLIST_ABSOLUTE pidl = getExplorerPidl(hwnd);
-            if (!pidl) return {};
-            QString result = pidlToDisplayPath(pidl);
-            CoTaskMemFree(pidl);
-            return result;
-        }
 
         QString extractMscName(HWND hwnd) {
             DWORD pid = 0;
@@ -325,13 +228,11 @@ namespace Util {
             return id;
         }
 
-        // Layer 3: Explorer folder identity
+        // Layer 3: Explorer folder identity — all folder windows share one group
         if (processName == QStringLiteral("explorer.exe")
             && wcscmp(className, L"CabinetWClass") == 0) {
-            QString folderPath = getExplorerInstance(hwnd);
             AppIdentity id;
             id.host = processPath;
-            id.instance = folderPath;
             cache[hwnd] = id;
             return id;
         }
