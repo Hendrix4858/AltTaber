@@ -3,7 +3,6 @@
 #include "WindowManager.h"
 #include "GroupWindowCycler.h"
 #include "utils/Util.h"
-#include "utils/PwaDetector.h"
 #include "core/ConfigManager.h"
 #include "core/ThemeManager.h"
 #include "hook/WheelEventProcessor.h"
@@ -220,8 +219,9 @@ void SelectionController::expandGroup() {
         WindowGroup g;
         g.exePath = group.exePath;
         g.displayName = win.title;
-        if (pwaTagMode && win.windowKind == WindowKind::Pwa)
-            g.icon = PwaDetector::getPwaIcon(win.hwnd, win.appUserModelId, group.exePath);
+        if (win.windowKind == WindowKind::Pwa)
+            g.icon = Util::resolveWindowIcon(win.hwnd, group.exePath,
+                                             win.appUserModelId, win.windowKind).icon;
         else
             g.icon = group.icon;
         g.addWindow(win);

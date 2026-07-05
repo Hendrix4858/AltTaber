@@ -1,8 +1,8 @@
 ﻿#ifndef WIN_SWITCHER_TASKBARWHEELHOOKER_H
 #define WIN_SWITCHER_TASKBARWHEELHOOKER_H
 
-#include <QObject>
 #include <Windows.h>
+#include <QObject>
 
 class TaskbarWheelHooker : public QObject {
     Q_OBJECT

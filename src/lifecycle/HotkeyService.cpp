@@ -1,3 +1,7 @@
+#include "OverlayController.h"
+#include <QDebug>
+#include <QTimer>
+
 #include "lifecycle/HotkeyService.h"
 #include "ActionRouter.h"
 #include "widget.h"
@@ -9,10 +13,6 @@
 #include "hook/KeyboardHooker.h"
 #include "core/ConfigManager.h"
 #include "utils/Util.h"
-#include "OverlayController.h"
-
-#include <QDebug>
-#include <QTimer>
 
 HotkeyService::HotkeyService(ConfigManager* config, QObject* parent)
     : QObject(parent), m_config(config) {}

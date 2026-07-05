@@ -1,3 +1,9 @@
+#include <windows.h>
+#include <shellapi.h>
+#include <QMenu>
+#include <QAction>
+#include <QActionGroup>
+#include <QApplication>
 #include "lifecycle/SystemTray.h"
 #include "utils/Util.h"
 #include "core/ThemeManager.h"
@@ -5,12 +11,6 @@
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
 #include "SettingsDialog.h"
-#include <QMenu>
-#include <QAction>
-#include <QActionGroup>
-#include <QApplication>
-#include <windows.h>
-#include <shellapi.h>
 
 SystemTray& SystemTray::instance() {
     static SystemTray instance;

@@ -1,11 +1,11 @@
-#include "lifecycle/UpdateService.h"
-#include "core/UpdateMarker.h"
-#include "core/QuitReason.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QProcess>
 #include <QDebug>
+#include "lifecycle/UpdateService.h"
+#include "core/UpdateMarker.h"
+#include "core/QuitReason.h"
 
 bool UpdateService::handleUpdateRollback() {
     auto marker = UpdateMarker::read();

@@ -1,10 +1,10 @@
 #ifndef WIN_SWITCHER_LOGGER_H
 #define WIN_SWITCHER_LOGGER_H
 
+#include <cstdint>
 #include <QString>
 #include <QFile>
 #include <QMutex>
-#include <cstdint>
 
 namespace Util {
 

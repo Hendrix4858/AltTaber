@@ -1,8 +1,8 @@
 #ifndef WIN_SWITCHER_WHEELEVENTPROCESSOR_H
 #define WIN_SWITCHER_WHEELEVENTPROCESSOR_H
 
-#include <QObject>
 #include <Windows.h>
+#include <QObject>
 
 class QWheelEvent;
 class QListView;

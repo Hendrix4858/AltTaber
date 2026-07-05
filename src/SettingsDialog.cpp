@@ -68,6 +68,11 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     ui->themeCombo->addItem(tr("Light"), Light);
     ui->themeCombo->addItem(tr("Follow System"), System);
 
+    ui->desktopScopeCombo->addItem(tr("Current Desktop Only"),
+        static_cast<int>(VirtualDesktopScope::CurrentDesktop));
+    ui->desktopScopeCombo->addItem(tr("All Desktops"),
+        static_cast<int>(VirtualDesktopScope::AllDesktops));
+
     ui->langCombo->addItem(tr("Follow System"), "system");
     ui->langCombo->addItem(QStringLiteral("English"), "en");
     ui->langCombo->addItem(QStringLiteral("中文"), "zh_CN");
@@ -194,7 +199,12 @@ void SettingsDialog::loadSettings() {
     idx = ui->themeCombo->findData(m_config->getTheme());
     if (idx >= 0) ui->themeCombo->setCurrentIndex(idx);
 
+    idx = ui->desktopScopeCombo->findData(
+        static_cast<int>(m_config->getVirtualDesktopScope()));
+    if (idx >= 0) ui->desktopScopeCombo->setCurrentIndex(idx);
+
     ui->minIconSizeSpin->setValue(m_config->getMinIconSize());
+    ui->transparencyCheck->setChecked(m_config->getTransparencyEnabled());
     ui->letterJumpCheck->setChecked(m_config->getLetterJumpEnabled());
     bool mouseClickEnabled = m_config->getMouseClickActivateEnabled();
     ui->mouseClickActivateCheck->setChecked(mouseClickEnabled);
@@ -255,6 +265,11 @@ void SettingsDialog::applySettings() {
         ThemeManager::applyTheme();
     }
 
+    auto desktopScope = static_cast<VirtualDesktopScope>(
+        ui->desktopScopeCombo->currentData().toInt());
+    m_config->setVirtualDesktopScope(desktopScope);
+
+    m_config->setTransparencyEnabled(ui->transparencyCheck->isChecked());
     m_config->setMinIconSize(ui->minIconSizeSpin->value());
     m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
     m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());

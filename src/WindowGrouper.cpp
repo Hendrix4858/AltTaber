@@ -1,10 +1,9 @@
 #include "WindowGrouper.h"
 #include "ActivationHistory.h"
 #include "utils/Util.h"
-#include "utils/PwaDetector.h"
+#include "lifecycle/IconUtil.h"
 #include "core/ConfigManager.h"
 #include <algorithm>
-#include <shellapi.h>
 
 namespace WindowGrouper {
 
@@ -81,41 +80,8 @@ namespace WindowGrouper {
             } else {
                 WindowGroup group;
                 group.exePath = desc.processPath;
-
-                if (desc.windowKind == WindowKind::Pwa && separateGroups) {
-                    group.icon = PwaDetector::getPwaIcon(desc.hwnd, desc.appUserModelId, desc.processPath);
-                    group.displayName = desc.pwaDisplayName;
-                } else {
-                    // Resolve icon via identity.iconKey
-                    QString iconKey = desc.identity.iconKey;
-                    if (iconKey == QStringLiteral("SIID_CONTROL_PANEL")) {
-                        SHSTOCKICONINFO sii = {};
-                        sii.cbSize = sizeof(sii);
-                        if (SUCCEEDED(SHGetStockIconInfo(
-                                        static_cast<SHSTOCKICONID>(42),
-                                        SHGFI_ICON | SHGSI_LARGEICON, &sii)) && sii.hIcon) {
-                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sii.hIcon)));
-                            DestroyIcon(sii.hIcon);
-                        }
-                    } else if (iconKey.endsWith(QStringLiteral(".msc"), Qt::CaseInsensitive)) {
-                        SHFILEINFOW sfi = {};
-                        if (SHGetFileInfoW(reinterpret_cast<LPCWSTR>(iconKey.utf16()),
-                                           SHGFI_ICON | SHGFI_LARGEICON, &sfi, sizeof(sfi), 0)
-                            && sfi.hIcon) {
-                            group.icon = QIcon(QPixmap::fromImage(QImage::fromHICON(sfi.hIcon)));
-                            DestroyIcon(sfi.hIcon);
-                        }
-                    }
-
-                    if (group.icon.isNull())
-                        group.icon = Util::getCachedIcon(
-                            iconKey.isEmpty() ? desc.processPath : iconKey, desc.hwnd);
-
-                    group.displayName = desc.identity.instance;
-                }
-
-                if (group.displayName.isEmpty())
-                    group.displayName = Util::getFileDescription(desc.processPath);
+                group.icon = Util::resolveWindowIcon(desc).icon;
+                group.displayName = Util::resolveDisplayName(desc);
 
                 group.addWindow(winInfo);
                 populateJumpTokens(group);

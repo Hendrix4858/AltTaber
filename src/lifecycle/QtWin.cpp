@@ -1,7 +1,7 @@
-#include <ShObjIdl_core.h>
-#include "lifecycle/QtWin.h"
 #include <windows.h>
 #include <QtDebug>
+#include <ShObjIdl_core.h>
+#include "lifecycle/QtWin.h"
 
 namespace QtWin {
     /// internal

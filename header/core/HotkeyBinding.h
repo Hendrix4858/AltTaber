@@ -72,8 +72,22 @@ inline HotkeyBindings defaultHotkeyBindings() {
     defaults[HotkeyAction::CycleProcessWindows]     = {};
     defaults[HotkeyAction::SwitchProcessWindow]     = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
     defaults[HotkeyAction::ExpandGroup]          = {makePhysicalBinding(Qt::AltModifier, VK_OEM_3, 0x29)};
-    defaults[HotkeyAction::CycleForward]            = {makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F)};
-    defaults[HotkeyAction::CycleBackward]           = {makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F)};
+    {
+        auto cycleForward = makePhysicalBinding(Qt::AltModifier, VK_RIGHT, 0x4D);
+        cycleForward.extended = true;
+        defaults[HotkeyAction::CycleForward] = {
+            makePhysicalBinding(Qt::NoModifier, VK_TAB, 0x0F),
+            cycleForward
+        };
+    }
+    {
+        auto cycleBackward = makePhysicalBinding(Qt::AltModifier, VK_LEFT, 0x4B);
+        cycleBackward.extended = true;
+        defaults[HotkeyAction::CycleBackward] = {
+            makePhysicalBinding(Qt::ShiftModifier, VK_TAB, 0x0F),
+            cycleBackward
+        };
+    }
     defaults[HotkeyAction::MoveSelectionUp]         = {};
     defaults[HotkeyAction::MoveSelectionDown]       = {};
     defaults[HotkeyAction::ActivateSelected]        = {makePhysicalBinding(Qt::NoModifier, VK_RETURN, 0x1C)};

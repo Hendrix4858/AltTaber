@@ -259,30 +259,47 @@
             <item row="1" column="1">
              <widget class="QComboBox" name="themeCombo"/>
             </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="minIconSizeLabel">
-              <property name="text">
-               <string>Min Icon Size:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QSpinBox" name="minIconSizeSpin">
-              <property name="suffix">
-               <string> px</string>
-              </property>
-              <property name="minimum">
-               <number>24</number>
-              </property>
-              <property name="maximum">
-               <number>128</number>
-              </property>
-              <property name="value">
-               <number>32</number>
-              </property>
-             </widget>
-            </item>
-           </layout>
+             <item row="2" column="0">
+              <widget class="QLabel" name="minIconSizeLabel">
+               <property name="text">
+                <string>Min Icon Size:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QSpinBox" name="minIconSizeSpin">
+               <property name="suffix">
+                <string> px</string>
+               </property>
+               <property name="minimum">
+                <number>24</number>
+               </property>
+               <property name="maximum">
+                <number>128</number>
+               </property>
+               <property name="value">
+                <number>32</number>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="desktopScopeLabel">
+               <property name="text">
+                <string>Virtual Desktop Scope:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="desktopScopeCombo"/>
+             </item>
+             <item row="4" column="0">
+              <widget class="QCheckBox" name="transparencyCheck">
+               <property name="text">
+                <string>Enable transparency effect</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
           </widget>
          </item>
          <item>

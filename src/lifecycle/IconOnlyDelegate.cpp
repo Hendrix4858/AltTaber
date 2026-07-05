@@ -1,8 +1,8 @@
+#include <QDebug>
+#include <QStyle>
 #include "lifecycle/IconOnlyDelegate.h"
 #include "WindowTypes.h"
 #include "core/ThemeManager.h"
-#include <QDebug>
-#include <QStyle>
 
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();
@@ -27,19 +27,14 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         );
         QPixmap pixmap = icon.pixmap(option.decorationSize);
 
-        if (pixmap.devicePixelRatio() != 1.0) {
-            pixmap = QPixmap::fromImage(pixmap.toImage());
-        }
-
-        if (pixmap.size() != option.decorationSize) {
+        QSize logicalSize = pixmap.size() / pixmap.devicePixelRatio();
+        if (logicalSize != option.decorationSize && pixmap.devicePixelRatio() == 1.0) {
             pixmap = pixmap.scaled(
                 option.decorationSize,
                 Qt::KeepAspectRatio,
                 Qt::SmoothTransformation
             );
         }
-
-        pixmap.setDevicePixelRatio(1.0);
 
         painter->drawPixmap(aligned.topLeft(), pixmap);
     }

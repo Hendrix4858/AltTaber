@@ -1,5 +1,5 @@
-#include "hook/TaskbarWheelHooker.h"
 #include <QTimer>
+#include "hook/TaskbarWheelHooker.h"
 #include "hook/uiautomation.h"
 #include "utils/AppUtil.h"
 #include "utils/Util.h"

@@ -2,17 +2,18 @@
 #include "WindowDescriptorBuilder.h"
 #include "utils/Util.h"
 #include "utils/WindowUtil.h"
+#include "core/ConfigManager.h"
 #include <QDebug>
 #include <QFileInfo>
 
 
 namespace WindowEnumerator {
 
-    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck) {
+    bool isWindowAcceptable(HWND hwnd, bool skipVisibleCheck, bool skipCloakedCheck) {
         LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
 
         if ((skipVisibleCheck || IsWindowVisible(hwnd))
-            && !Util::isWindowCloaked(hwnd)
+            && (skipCloakedCheck || !Util::isWindowCloaked(hwnd))
             && (!GetWindow(hwnd, GW_OWNER) || exStyle & WS_EX_APPWINDOW)
             && (exStyle & WS_EX_TOOLWINDOW) == 0
             && GetWindowTextLength(hwnd) > 0
@@ -30,10 +31,25 @@ namespace WindowEnumerator {
         return TRUE;
     }
 
+    BOOL CALLBACK EnumWindowsProcAll(HWND hwnd, LPARAM lParam) {
+        if (isWindowAcceptable(hwnd, false, true)) {
+            auto* windowList = reinterpret_cast<QList<HWND>*>(lParam);
+            windowList->append(hwnd);
+        }
+        return TRUE;
+    }
+
     QList<WindowDescriptor> enumAllWindows() {
+        return enumAllWindows(false);
+    }
+
+    QList<WindowDescriptor> enumAllWindows(bool includeCloaked) {
         Util::clearIdentityCache();
         QList<HWND> hwnds;
-        EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&hwnds));
+        if (includeCloaked)
+            EnumWindows(EnumWindowsProcAll, reinterpret_cast<LPARAM>(&hwnds));
+        else
+            EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&hwnds));
 
         QList<WindowDescriptor> result;
         result.reserve(hwnds.size());
@@ -71,6 +87,30 @@ namespace WindowEnumerator {
         for (const auto& desc : descriptors) {
             if (desc.processPath.compare(exePath, Qt::CaseInsensitive) == 0)
                 result.append(desc);
+        }
+        return result;
+    }
+
+    QList<WindowDescriptor> enumValidWindows(int virtualDesktopScope) {
+        auto scope = static_cast<VirtualDesktopScope>(virtualDesktopScope);
+
+        // CurrentDesktop: exclude cloaked windows (other VDs are cloaked by DWM)
+        // AllDesktops: include all windows regardless of cloaked status
+        auto descriptors = (scope == VirtualDesktopScope::CurrentDesktop)
+            ? enumAllWindows(false)
+            : enumAllWindows(true);
+
+        static const bool isUserAdmin = Util::isUserAdmin();
+        QList<WindowDescriptor> result;
+        result.reserve(descriptors.size());
+
+        for (const auto& desc : descriptors) {
+            if (!desc.hwnd) continue;
+
+            if (!isUserAdmin && Util::isWindowElevated(desc.hwnd))
+                continue;
+
+            result.append(desc);
         }
         return result;
     }

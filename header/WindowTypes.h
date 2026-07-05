@@ -18,7 +18,7 @@ enum class WindowKind {
 struct AppIdentity {
     QString host;
     QString instance;
-    QString iconKey;
+    QString appUserModelId;
 
     QString groupKey() const {
         return instance.isEmpty() ? host : host + QStringLiteral("::") + instance;
