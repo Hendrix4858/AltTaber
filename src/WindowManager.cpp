@@ -3,6 +3,7 @@
 #include "WindowGrouper.h"
 #include "WindowFilter.h"
 #include "core/ConfigManager.h"
+#include "utils/Util.h"
 
 WindowManager::WindowManager(ConfigManager* config, HWND selfHwnd, QObject* parent)
     : QObject(parent), m_config(config), m_selfHwnd(selfHwnd) {
@@ -20,6 +21,16 @@ QList<WindowGroup> WindowManager::prepareWindowGroupList() {
 
 void WindowManager::recordWindowActivation(const AppIdentity& identity) {
     m_activationHistory.record(identity);
+}
+
+void WindowManager::onPossibleForegroundChange(HWND hwnd) {
+    if (hwnd == m_selfHwnd) return;
+    if (!Util::isWindowAllowed(hwnd, true)) return;
+    auto identity = Util::resolveIdentity(hwnd);
+    if (identity.host.isEmpty()) return;
+    qInfo() << "[Foreground] same-process window -> record activation:"
+            << Util::getWindowTitle(hwnd) << identity.host;
+    recordWindowActivation(identity);
 }
 
 void WindowManager::reloadFilterRules() {

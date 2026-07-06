@@ -43,6 +43,7 @@ WindowManager::WindowManager(ConfigManager*, HWND, QObject* parent) : QObject(pa
 void WindowManager::setSelfHwnd(HWND) {}
 QList<WindowGroup> WindowManager::prepareWindowGroupList() { return {}; }
 void WindowManager::recordWindowActivation(const AppIdentity&) {}
+void WindowManager::onPossibleForegroundChange(HWND) {}
 void WindowManager::reloadFilterRules() {}
 QList<HWND> WindowManager::filteredHwndsForExe(const QString&) { return {}; }
 

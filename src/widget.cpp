@@ -82,6 +82,15 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
         }
     });
 
+    connect(qApp, &QApplication::focusWindowChanged, this, [this](QWindow* focusWindow) {
+        if (!focusWindow) return;
+        if (m_overlayCtrl->overlayState() == OverlayController::OverlayState::Visible)
+            return;
+        HWND hwnd = (HWND)focusWindow->winId();
+        if (hwnd && hwnd != (HWND)winId())
+            m_windowManager->onPossibleForegroundChange(hwnd);
+    });
+
     connect(m_listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current, const QModelIndex&) {
         if (current.isValid()) m_selectCtrl->showLabelForItem(current);
