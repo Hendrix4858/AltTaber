@@ -207,6 +207,14 @@ public:
         set("LogDirectory", path);
     }
 
+    bool getIncludePreRelease() {
+        return get("IncludePreRelease", false).toBool();
+    }
+
+    void setIncludePreRelease(bool enabled) {
+        set("IncludePreRelease", enabled);
+    }
+
     bool getIconCacheEnabled() {
         return get("IconCacheEnabled", true).toBool();
     }

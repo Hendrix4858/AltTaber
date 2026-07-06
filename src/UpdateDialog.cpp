@@ -18,6 +18,7 @@
 #include "lifecycle/Logger.h"
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
+#include "core/ConfigManager.h"
 #include "core/QuitReason.h"
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
@@ -39,8 +40,11 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     manager.setTransferTimeout(10000); // 10s -> Operation canceled
     ui->progressBar->hide();
     connect(ui->btn_recheck, &QPushButton::clicked, this, &UpdateDialog::fetchGithubReleaseInfo);
+    m_includePreRelease = cfg().getIncludePreRelease();
+    ui->ckPreRelease->setChecked(m_includePreRelease);
     connect(ui->ckPreRelease, &QCheckBox::toggled, this, [this](bool checked) {
         m_includePreRelease = checked;
+        cfg().setIncludePreRelease(checked);
         if (!m_cachedReleases.isEmpty()) {
             QJsonObject bestObj;
             QVersionNumber bestVer;

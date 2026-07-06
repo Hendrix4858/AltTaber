@@ -2,10 +2,7 @@
 #include <shellapi.h>
 #include <ShlObj_core.h>
 #include <QMessageBox>
-#include <qoperatingsystemversion.h>
 #include <QStyleHints>
-#include <QProcess>
-#include <QDir>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 
@@ -22,6 +19,7 @@
 #include "lifecycle/SystemTray.h"
 #include "lifecycle/UpdateService.h"
 #include "lifecycle/HotkeyService.h"
+#include "lifecycle/IpcServer.h"
 #include "core/LanguageManager.h"
 #include "lifecycle/Logger.h"
 #include "core/ThemeManager.h"
@@ -50,8 +48,10 @@ Application::Application(int argc, char* argv[])
     Util::Logger::init();
 
     m_updateService = new UpdateService;
-    if (m_updateService->handleUpdateRollback())
+    if (m_updateService->handleUpdateRollback()) {
+        qWarning() << "[Main] Update rollback handled, exiting";
         return;
+    }
 
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");
     if (m_singleApp->isRunning()) {
@@ -63,18 +63,24 @@ Application::Application(int argc, char* argv[])
 
     m_com = new ComInitializer;
 
-    qDebug() << "isUserAdmin" << Util::isUserAdmin();
-    qDebug() << "System Version" << QOperatingSystemVersion::current().version();
     sysTray().show();
     UpdateDialog::verifyUpdate(m_app);
     initLanguage();
 
     if (m_config->getAlwaysRunAsAdmin() && !Util::isUserAdmin()) {
+        qWarning() << "[Main] Not running as admin, relaunching with runas";
         QString appPath = QApplication::applicationFilePath();
         ShellExecuteW(nullptr, L"runas", (LPCWSTR)appPath.utf16(), nullptr, nullptr, SW_SHOWNORMAL);
         QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
         return;
     }
+
+    m_ipcServer = new IpcServer;
+    m_ipcServer->start();
+    QObject::connect(m_ipcServer, &IpcServer::quitRequested, &m_app, [this]() {
+        QuitReason::markIntentional();
+        QTimer::singleShot(50, &m_app, &QApplication::quit);
+    });
 
     auto bindings = m_config->effectiveHotkeyBindings();
     qInfo() << "[Main] Loaded" << bindings.size() << "hotkey actions";
@@ -96,7 +102,6 @@ Application::Application(int argc, char* argv[])
     });
 
     if (m_widget) {
-        qInfo() << "[Main] Scheduling warmupCache via singleShot(0)";
         QTimer::singleShot(0, m_widget, &Widget::warmupCache);
     }
 
@@ -108,6 +113,7 @@ Application::Application(int argc, char* argv[])
 Application::~Application() {
     unhookWinEvent();
     Util::Logger::shutdown();
+    delete m_ipcServer;
     delete m_singleApp;
     delete m_com;
     delete m_updateService;
@@ -125,7 +131,6 @@ void Application::initControllers() {
 
 void Application::initUI() {
     QObject::connect(&sysTray(), &SystemTray::showRequested, m_widget, [this]() {
-        qInfo() << "[Main] System tray showRequested";
         m_widget->requestShow(OverlayIntent::ShowSwitcher);
     });
 

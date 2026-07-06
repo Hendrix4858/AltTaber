@@ -12,6 +12,7 @@ class ComInitializer;
 class ConfigManager;
 class UpdateService;
 class HotkeyService;
+class IpcServer;
 
 class SessionMonitor final : public QAbstractNativeEventFilter {
     bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) override;
@@ -30,6 +31,7 @@ private:
     void initHotkeys();
 
     ConfigManager* m_config = nullptr;
+    IpcServer* m_ipcServer = nullptr;
     UpdateService* m_updateService = nullptr;
     HotkeyService* m_hotkeyService = nullptr;
 

@@ -153,6 +153,7 @@ qt_add_resources(Win_Switcher "translations" PREFIX "/translations" FILES ${qm_f
 # ── Lifecycle ──
 target_sources(Win_Switcher PRIVATE
     src/lifecycle/Application.cpp  header/lifecycle/Application.h
+    src/lifecycle/IpcServer.cpp    header/lifecycle/IpcServer.h
     src/lifecycle/UpdateService.cpp header/lifecycle/UpdateService.h
     src/lifecycle/HotkeyService.cpp header/lifecycle/HotkeyService.h
     src/lifecycle/IconUtil.cpp     header/lifecycle/IconUtil.h
@@ -229,19 +230,16 @@ find_program(WINDEPLOYQT windeployqt
 message(STATUS "QT_BASE_DIR=${QT_BASE_DIR}")
 message(STATUS "WINDEPLOYQT=${WINDEPLOYQT}")
 
+if(DEFINED ENV{ISCC_DIR})
+    list(APPEND CMAKE_PROGRAM_PATH "$ENV{ISCC_DIR}")
+endif()
 find_program(ISCC iscc
-    PATHS
-        "E:/CodePath/Pack/Inno"
-        "C:/Program Files (x86)/Inno Setup 6"
-        "C:/Program Files/Inno Setup 6"
-        "C:/Program Files (x86)/Inno Setup"
-        "C:/Program Files/Inno Setup"
     DOC "Inno Setup Compiler (ISCC.exe)"
 )
 
 if (WINDEPLOYQT)
     add_custom_target(deploy
-        COMMAND ${WINDEPLOYQT} --release --no-translations --no-opengl-sw --verbose 2 "$<TARGET_FILE:Win_Switcher>"
+        COMMAND ${WINDEPLOYQT} --release --no-translations --no-opengl-sw --no-system-d3d-compiler --no-system-dxc-compiler --verbose 2 "$<TARGET_FILE:Win_Switcher>"
         COMMENT "Deploying Qt runtime DLLs ..."
         DEPENDS Win_Switcher
     )
@@ -272,7 +270,7 @@ if (ISCC)
     endif ()
     add_custom_target(installer
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build/output"
-        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=${CMAKE_BINARY_DIR}" "/DMyAppSourceDir=${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
+        COMMAND ${ISCC} "/DMyAppArch=${ARCH_SUFFIX}" "/DMyAppBuildDir=$<TARGET_FILE_DIR:Win_Switcher>" "/DMyAppSourceDir=${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/setup.iss"
         COMMENT "Compiling AltTaber installer (${ARCH_SUFFIX}) ..."
         DEPENDS ${installer_deps}
     )

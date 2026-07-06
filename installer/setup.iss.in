@@ -1,4 +1,4 @@
-; AltTaber Inno Setup Script
+﻿; AltTaber Inno Setup Script
 ; Requires Inno Setup 6+
 
 #define MyAppName "AltTaber"
@@ -31,8 +31,8 @@ PrivilegesRequired=admin
   ArchitecturesInstallIn64BitMode=arm64
   ArchitecturesAllowed=arm64
 #else
-  ArchitecturesInstallIn64BitMode=x64os
-  ArchitecturesAllowed=x64compatible
+  ArchitecturesInstallIn64BitMode=x64
+  ArchitecturesAllowed=x64
 #endif
 SolidCompression=yes
 MinVersion=10.0.10240
@@ -59,7 +59,7 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppBuildDir}\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
+Source: "{#MyAppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -105,6 +105,8 @@ function PostMessage(hWnd: Integer; Msg: DWORD; wParam: DWORD; lParam: Integer):
   external 'PostMessageW@user32.dll stdcall';
 function GetTickCount: DWORD;
   external 'GetTickCount@kernel32.dll stdcall';
+function WinCopyFile(lpExistingFileName: String; lpNewFileName: String; bFailIfExists: Boolean): Boolean;
+  external 'CopyFileW@kernel32.dll stdcall';
 
 function CmdLineParamExists(const Param: string): Boolean;
 var
@@ -265,7 +267,7 @@ begin
     if FindFirst(ExpandConstant('{app}\*.exe'), FindRec) then begin
       try
         repeat
-          CopyFile(ExpandConstant('{app}\') + FindRec.Name,
+          WinCopyFile(ExpandConstant('{app}\') + FindRec.Name,
                    BackupDir + '\' + FindRec.Name, False);
         until not FindNext(FindRec);
       finally
@@ -276,7 +278,7 @@ begin
     if FindFirst(ExpandConstant('{app}\*.dll'), FindRec) then begin
       try
         repeat
-          CopyFile(ExpandConstant('{app}\') + FindRec.Name,
+          WinCopyFile(ExpandConstant('{app}\') + FindRec.Name,
                    BackupDir + '\' + FindRec.Name, False);
         until not FindNext(FindRec);
       finally
