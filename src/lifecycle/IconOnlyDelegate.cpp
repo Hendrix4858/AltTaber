@@ -7,7 +7,6 @@
 void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
     const auto& colors = ThemeManager::current();
     painter->setRenderHint(QPainter::Antialiasing);
-    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setPen(Qt::NoPen);
     if (option.state & QStyle::State_Selected) {
         painter->setBrush(colors.delegateSelected);
@@ -19,24 +18,13 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
 
     auto icon = qvariant_cast<QIcon>(index.data(Qt::DecorationRole));
     if (!icon.isNull()) {
-        QRect aligned = QStyle::alignedRect(
-            option.direction,
-            Qt::AlignCenter,
-            option.decorationSize,
-            option.rect
-        );
+
         QPixmap pixmap = icon.pixmap(option.decorationSize);
 
-        QSize logicalSize = pixmap.size() / pixmap.devicePixelRatio();
-        if (logicalSize != option.decorationSize && pixmap.devicePixelRatio() == 1.0) {
-            pixmap = pixmap.scaled(
-                option.decorationSize,
-                Qt::KeepAspectRatio,
-                Qt::SmoothTransformation
-            );
-        }
+        QPoint center = option.rect.center()
+            - QPoint(pixmap.width() / 2, pixmap.height() / 2);
 
-        painter->drawPixmap(aligned.topLeft(), pixmap);
+        painter->drawPixmap(center, pixmap);
     }
 
     auto windowCount = qvariant_cast<WindowGroup>(index.data(Qt::UserRole)).windows.size();
