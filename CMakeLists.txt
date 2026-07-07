@@ -123,6 +123,7 @@ target_sources(Win_Switcher PRIVATE
                                    header/core/HotkeyStrings.h
                                    header/core/HotkeyBinding.h
     src/core/ThemeManager.cpp      header/core/ThemeManager.h
+    src/core/StyleManager.cpp      header/core/StyleManager.h
     src/HotkeyConflictResolver.cpp header/HotkeyConflictResolver.h
 )
 
