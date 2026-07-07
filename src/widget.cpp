@@ -89,8 +89,10 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     });
 
     connect(m_selectCtrl, &SelectionController::labelTextChanged, this, [this](const QString& text) {
-        ui->label->setText(text);
-        ui->label->adjustSize();
+        if (ui->label->text() != text) {
+            ui->label->setText(text);
+            ui->label->adjustSize();
+        }
         auto idx = m_listView->currentIndex();
         if (idx.isValid()) {
             auto itemRect = m_listView->visualRect(idx);

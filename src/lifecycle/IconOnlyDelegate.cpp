@@ -38,10 +38,7 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         painter->setBrush(colors.badgeBg);
         painter->drawRoundedRect(badgeRect, badgeRadius, badgeRadius);
 
-        QFont font{"Microsoft YaHei"};
-        font.setPointSizeF(12.8);
-        font.setBold(true);
-        painter->setFont(font);
+        painter->setFont(m_badgeFont);
         painter->setPen(colors.badgeText);
         painter->drawText(badgeRect, Qt::AlignCenter, text);
     }

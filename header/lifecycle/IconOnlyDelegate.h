@@ -11,6 +11,7 @@ class IconOnlyDelegate : public QStyledItemDelegate {
     QColor m_selectedColor;
     QColor m_hoverColor;
     int m_cornerRadius;
+    QFont m_badgeFont;
 
 public:
     explicit IconOnlyDelegate(QObject* parent = nullptr,
@@ -18,7 +19,10 @@ public:
                               QColor hoverColor = QColor(50, 50, 50, 100),
                               int radius = 8)
         : QStyledItemDelegate(parent), m_selectedColor(selectedColor), m_hoverColor(hoverColor),
-          m_cornerRadius(radius) {}
+          m_cornerRadius(radius), m_badgeFont(QStringLiteral("Microsoft YaHei")) {
+        m_badgeFont.setPointSizeF(12.8);
+        m_badgeFont.setBold(true);
+    }
 
     void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
