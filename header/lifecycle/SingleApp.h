@@ -9,17 +9,14 @@ private:
     QSharedMemory sharedMemory;
     const QString m_key;
 
-    void cleanupStale() {
-        if (sharedMemory.attach()) {
-            sharedMemory.detach();
-            qInfo() << "SingleApp: stale shared memory cleaned up for key" << m_key;
-        }
+public:
+    explicit SingleApp(const QString& key)
+        : sharedMemory(key),
+          m_key(key) {
     }
 
-public:
-    explicit SingleApp(const QString& key) : sharedMemory(key), m_key(key) {
-        cleanupStale();
-    }
+    SingleApp(const SingleApp&) = delete;
+    SingleApp& operator=(const SingleApp&) = delete;
 
     ~SingleApp() {
         if (sharedMemory.isAttached()) {
@@ -28,7 +25,7 @@ public:
         }
     }
 
-    /// check if another instance is running
+    /// Check existing instance and acquire lock if none exists
     bool isRunning() {
         if (sharedMemory.attach()) { // sharedMemory exists
             sharedMemory.detach();
