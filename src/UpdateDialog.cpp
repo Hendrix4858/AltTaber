@@ -92,7 +92,7 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         ui->progressBar->setMaximum(0);
         ui->progressBar->setValue(0);
         retranslateTexts();
-        QTimer::singleShot(800, qApp, &QApplication::quit);
+        QApplication::quit();
     });
 }
 

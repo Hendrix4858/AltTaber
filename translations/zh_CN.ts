@@ -1025,9 +1025,36 @@ p, li { white-space: pre-wrap; }
         <translation>## 下载成功✅</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location filename="../src/UpdateDialog.cpp" line="+3"/>
         <source>## Installing...</source>
         <translation>## 正在安装...</translation>
+    </message>
+</context>
+<context>
+    <name>Application</name>
+    <message>
+        <source>AltTaber</source>
+        <translation>AltTaber</translation>
+    </message>
+    <message>
+        <source>AltTaber is already running!</source>
+        <translation>AltTaber 正在运行！</translation>
+    </message>
+    <message>
+        <source>Close old instance and run</source>
+        <translation>关闭旧实例并运行</translation>
+    </message>
+    <message>
+        <source>Exit</source>
+        <translation>退出</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>错误</translation>
+    </message>
+    <message>
+        <source>Failed to close old instance.</source>
+        <translation>无法关闭旧实例。</translation>
     </message>
 </context>
 <context>

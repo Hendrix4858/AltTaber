@@ -5,6 +5,9 @@
 #include <QStyleHints>
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QLocalSocket>
+#include <QSharedMemory>
+#include <QThread>
 
 #include "lifecycle/Application.h"
 #include "ActionRouter.h"
@@ -53,19 +56,70 @@ Application::Application(int argc, char* argv[])
         return;
     }
 
+    initLanguage();
+
     m_singleApp = new SingleApp("AltTaber-MrBeanCpp");
     if (m_singleApp->isRunning()) {
-        qWarning() << "Another instance is running! Exit";
-        QMessageBox::warning(nullptr, "Warning", "AltTaber is already running!");
-        QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
-        return;
+        qWarning() << "Another instance is running!";
+
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setWindowTitle(QCoreApplication::translate("Application", "AltTaber"));
+        msgBox.setText(QCoreApplication::translate("Application", "AltTaber is already running!"));
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Close old instance and run"),
+            QMessageBox::AcceptRole);
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Exit"),
+            QMessageBox::RejectRole);
+        msgBox.exec();
+
+        if (msgBox.buttonRole(msgBox.clickedButton()) == QMessageBox::AcceptRole) {
+            qInfo() << "Sending quit to running instance via IPC";
+            QLocalSocket socket;
+            socket.connectToServer("AltTaber-MrBeanCpp-IPC");
+            if (socket.waitForConnected(2000)) {
+                socket.write("quit\n");
+                socket.waitForBytesWritten(2000);
+                socket.waitForReadyRead(2000);
+                qInfo() << "IPC response:" << socket.readAll().trimmed();
+                socket.disconnectFromServer();
+            }
+
+            // Wait for old instance to release shared memory
+            qInfo() << "Waiting for old instance to release shared memory...";
+            QElapsedTimer timer;
+            timer.start();
+            while (timer.elapsed() < 5000) {
+                QSharedMemory shm("AltTaber-MrBeanCpp");
+                if (!shm.attach())
+                    break;
+                shm.detach();
+                QThread::msleep(200);
+            }
+
+            // Retry: recreate SingleApp and check again
+            delete m_singleApp;
+            m_singleApp = new SingleApp("AltTaber-MrBeanCpp");
+            if (m_singleApp->isRunning()) {
+                qCritical() << "Failed to close old instance";
+                QMessageBox::critical(nullptr,
+                    QCoreApplication::translate("Application", "Error"),
+                    QCoreApplication::translate("Application", "Failed to close old instance."));
+                QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
+                return;
+            }
+            qInfo() << "Old instance closed, proceeding with startup";
+        } else {
+            QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
+            return;
+        }
     }
 
     m_com = new ComInitializer;
 
     sysTray().show();
     UpdateDialog::verifyUpdate(m_app);
-    initLanguage();
 
     if (m_config->getAlwaysRunAsAdmin() && !Util::isUserAdmin()) {
         qWarning() << "[Main] Not running as admin, relaunching with runas";

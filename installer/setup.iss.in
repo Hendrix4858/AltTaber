@@ -42,16 +42,12 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "zh"; MessagesFile: "{#MyAppSourceDir}\installer\ChineseSimplified.isl"
 
 [CustomMessages]
-en.AppRunningMsg=AltTaber is running. Please close it first.
-zh.AppRunningMsg=AltTaber 正在运行，请先关闭它。
-en.AppStillRunning=Still running. Click Retry after closing, or Cancel to abort.
-zh.AppStillRunning=仍在运行。关闭后请点"重试"，或点"取消"中止。
-en.GracefulCloseMsg=Close AltTaber automatically? (Recommended)
-zh.GracefulCloseMsg=是否自动关闭 AltTaber？（推荐）
-en.ForceKillMsg=Forcefully terminate AltTaber? (May cause data loss)
-zh.ForceKillMsg=是否强制终止 AltTaber？（可能导致数据丢失）
+en.AppRunningMsg=AltTaber is running. Close it automatically and continue installation?
+zh.AppRunningMsg=AltTaber 正在运行，是否自动关闭并继续安装？
 en.KillFailedMsg=Failed to terminate AltTaber. Please close it manually.
 zh.KillFailedMsg=无法终止 AltTaber。请手动关闭。
+en.AutoCloseFailed=Automatic close failed. Retry or cancel installation?
+zh.AutoCloseFailed=自动关闭失败。重试或取消安装？
 en.DeleteConfig=Delete configuration and settings?
 zh.DeleteConfig=删除配置和设置？
 
@@ -206,43 +202,36 @@ begin
     WaitForAppExit(3000);
 end;
 
-// Escalating prompt loop:
-//   Retry  — user says they closed it, re-check
-//   Cancel → offer automatic close → GracefulStopApp
-//         → if that fails, offer force kill → ForceKillApp
+// Simplified close loop:
+//   Yes → auto-close (graceful → force if needed) → proceed
+//   No  → cancel installation
 function PromptAndKillLoop: Boolean;
 begin
   Result := False;
-  while IsAppRunning do begin
-    case MsgBox(CustomMessage('AppRunningMsg') + #13#10 + CustomMessage('AppStillRunning'),
-                mbConfirmation, MB_RETRYCANCEL) of
-      IDRETRY:
-        begin
-          // User closed it manually; re-check
-        end;
-      IDCANCEL:
-        begin
-          // Level 1: Suggest automatic graceful close
-          if MsgBox(CustomMessage('GracefulCloseMsg'), mbConfirmation, MB_YESNO) = IDYES then begin
-            if GracefulStopApp then begin
-              Result := True;
-              Exit;
-            end;
-            // Level 2: Graceful close failed — offer force kill as last resort
-            if MsgBox(CustomMessage('ForceKillMsg'), mbConfirmation, MB_YESNO) = IDYES then begin
-              if ForceKillApp then begin
-                Result := True;
-                Exit;
-              end else begin
-                MsgBox(CustomMessage('KillFailedMsg'), mbError, MB_OK);
-              end;
-            end;
-          end;
-          Exit;
-        end;
-    end;
+  if not IsAppRunning then begin
+    Result := True;
+    Exit;
   end;
-  Result := True;
+
+  case MsgBox(CustomMessage('AppRunningMsg'),
+              mbConfirmation, MB_YESNO) of
+    IDYES:
+      begin
+        if not GracefulStopApp then begin
+          if ForceKillApp then begin
+            Result := True;
+          end else begin
+            MsgBox(CustomMessage('KillFailedMsg'), mbError, MB_OK);
+          end;
+        end else begin
+          Result := True;
+        end;
+      end;
+    IDNO:
+      begin
+        // User cancelled
+      end;
+  end;
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
