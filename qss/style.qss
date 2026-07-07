@@ -1,0 +1,34 @@
+/* ================================================================
+ * AltTaber — Global Stylesheet
+ *
+ * Placeholders (substituted by StyleManager at runtime):
+ *   %TEXT_COLOR%         — primary text color
+ *   %BORDER_COLOR%       — border/divider color
+ *   %TRAY_BG%            — system tray context menu background
+ *   %TRAY_TEXT%          — system tray context menu text
+ *   %TRAY_BORDER%        — system tray context menu border
+ *   %TRAY_SELECTED%      — system tray context menu selected item
+ * ================================================================ */
+
+/* ===== App Icon List ===== */
+QListView {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+/* ===== Window Title Label ===== */
+QLabel {
+    color: %TEXT_COLOR%;
+    background: transparent;
+}
+
+/* ===== System Tray Context Menu ===== */
+QMenu {
+    background-color: %TRAY_BG%;
+    color: %TRAY_TEXT%;
+    border: 1px solid %TRAY_BORDER%;
+}
+QMenu::item:selected {
+    background-color: %TRAY_SELECTED%;
+}

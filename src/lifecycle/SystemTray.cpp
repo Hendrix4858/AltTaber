@@ -2,11 +2,11 @@
 #include <shellapi.h>
 #include <QMenu>
 #include <QAction>
+#include <QStyle>
 #include <QActionGroup>
 #include <QApplication>
 #include "lifecycle/SystemTray.h"
 #include "utils/Util.h"
-#include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
@@ -42,21 +42,15 @@ void SystemTray::retranslateMenu() {
     m_quitAction->setText(tr("Quit >"));
 }
 
-void SystemTray::applyMenuTheme() {
-    const auto& c = ThemeManager::current();
-    m_menu->setStyleSheet(
-        QString("QMenu{"
-            "background-color:%1;"
-            "color:%2;"
-            "border:1px solid %3;"
-            "}"
-            "QMenu::item:selected{ background-color:%4; }")
-        .arg(c.trayBg.name(), c.trayText.name(), c.trayBorder.name(), c.traySelected.name()));
+void SystemTray::refreshStyle() {
+    if (m_menu) {
+        m_menu->style()->unpolish(m_menu);
+        m_menu->style()->polish(m_menu);
+    }
 }
 
 void SystemTray::setMenu(QWidget* parent) {
     m_menu = new QMenu(parent);
-    applyMenuTheme();
 
     m_updateAction = new QAction(m_menu);
     m_settingsAction = new QAction(m_menu);
@@ -111,7 +105,6 @@ void SystemTray::setMenu(QWidget* parent) {
     });
 
     connect(m_menu, &QMenu::aboutToShow, this, [this] {
-        applyMenuTheme();
         m_pauseAction->setChecked(cfg().getPaused());
         bool isAdmin = Util::isUserAdmin();
         m_restartAdminAction->setText(isAdmin ? tr("Running as Administrator") : tr("Restart as Administrator"));

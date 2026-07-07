@@ -7,19 +7,19 @@
 #include "ui_Widget.h"
 #include "utils/Util.h"
 #include "core/HotkeyAction.h"
-#include "core/ConfigManager.h"
 #include "core/ThemeManager.h"
+#include "core/ConfigManager.h"
 #include "lifecycle/SystemTray.h"
 #include "utils/setWindowBlur.h"
 #include "lifecycle/IconOnlyDelegate.h"
 #include "lifecycle/QtWin.h"
 #include "core/QuitReason.h"
 #include <QApplication>
+#include <QPainter>
 #include <QCloseEvent>
 #include <QDebug>
 #include <QWindow>
 #include <QScreen>
-#include <QPainter>
 #include <QWheelEvent>
 #include <QTimer>
 #include <QThread>
@@ -35,8 +35,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_listView->setModel(m_model);
     setWindowFlag(Qt::WindowStaysOnTopHint);
     setWindowFlag(Qt::FramelessWindowHint);
-    if (cfg().getTransparencyEnabled())
-        setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_TranslucentBackground);
     QtWin::taskbarDeleteTab(this);
     setWindowTitle("AltTaber");
 
@@ -52,13 +51,6 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_listView->setGridSize({80, 80});
     m_listView->setFixedHeight(m_listView->gridSize().height());
     m_listView->setUniformItemSizes(true);
-    m_listView->setStyleSheet(R"(
-        QListView {
-            background-color: transparent;
-            border: none;
-            outline: none;
-        }
-    )");
     m_listView->setItemDelegate(new IconOnlyDelegate(m_listView));
     m_listView->installEventFilter(this);
 
@@ -98,8 +90,6 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
 
     connect(m_selectCtrl, &SelectionController::labelTextChanged, this, [this](const QString& text) {
         ui->label->setText(text);
-        ui->label->setStyleSheet(QString("color: %1; background: transparent;")
-                                  .arg(ThemeManager::current().textColor.name()));
         ui->label->adjustSize();
         auto idx = m_listView->currentIndex();
         if (idx.isValid()) {
@@ -147,6 +137,7 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
 
     connect(&cfg(), &ConfigManager::configEdited, this, [this]() {
         m_windowManager->reloadFilterRules();
+        update();
     });
 
     connect(m_overlayCtrl, &OverlayController::sessionFinished, this, [this]() {

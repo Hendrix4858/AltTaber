@@ -17,13 +17,13 @@ public:
     static SystemTray& instance();
 
     void retranslateMenu();
+    void refreshStyle();
 
 signals:
     void showRequested();
 
 private:
     explicit SystemTray(QWidget* parent = nullptr);
-    void applyMenuTheme();
     void setMenu(QWidget* parent);
 
     QMenu* m_menu = nullptr;

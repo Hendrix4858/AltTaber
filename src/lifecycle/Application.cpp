@@ -25,6 +25,7 @@
 #include "core/LanguageManager.h"
 #include "lifecycle/Logger.h"
 #include "core/ThemeManager.h"
+#include "core/StyleManager.h"
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
@@ -93,6 +94,18 @@ Application::Application(int argc, char* argv[])
 
     QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
         m_hotkeyService->reloadFromConfig();
+    });
+
+    StyleManager::applyTheme(ThemeManager::current());
+    if (m_widget) {
+        m_widget->style()->unpolish(m_widget);
+        m_widget->style()->polish(m_widget);
+        m_widget->update();
+    }
+
+    QObject::connect(&ThemeManager::instance(), &ThemeManager::themeChanged, qApp, []() {
+        StyleManager::applyTheme(ThemeManager::current());
+        sysTray().refreshStyle();
     });
 
     if (m_widget) {
