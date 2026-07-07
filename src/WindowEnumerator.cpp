@@ -21,7 +21,7 @@ namespace WindowEnumerator {
 
         if (visibleOk && cloakedOk && ownerOk
             && (exStyle & WS_EX_TOOLWINDOW) == 0
-            && GetWindowTextLength(hwnd) > 0
+            && (GetWindowTextLength(hwnd) > 0 || (exStyle & WS_EX_APPWINDOW))
         ) {
             return true;
         }
