@@ -44,7 +44,8 @@ jobs:
       - name: Setup MSVC dev command prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: ${{ matrix.arch == 'x64' && 'x64' || 'arm64' }}
+          arch: ${{ matrix.arch }}
+          host: x64
 
       - name: Configure
         run: cmake --preset ninja-${{ matrix.arch }}
@@ -89,7 +90,8 @@ jobs:
       - name: Setup MSVC dev command prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: ${{ matrix.arch == 'x64' && 'x64' || 'arm64' }}
+          arch: ${{ matrix.arch }}
+          host: x64
 
       - name: Configure
         run: cmake --preset ninja-${{ matrix.arch }}
