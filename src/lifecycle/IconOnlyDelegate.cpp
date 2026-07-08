@@ -18,13 +18,9 @@ void IconOnlyDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
 
     auto icon = qvariant_cast<QIcon>(index.data(Qt::DecorationRole));
     if (!icon.isNull()) {
-
-        QPixmap pixmap = icon.pixmap(option.decorationSize);
-
-        QPoint center = option.rect.center()
-            - QPoint(pixmap.width() / 2, pixmap.height() / 2);
-
-        painter->drawPixmap(center, pixmap);
+        QRect iconRect{{}, option.decorationSize};
+        iconRect.moveCenter(option.rect.center());
+        icon.paint(painter, iconRect);
     }
 
     auto windowCount = qvariant_cast<WindowGroup>(index.data(Qt::UserRole)).windows.size();

@@ -136,8 +136,8 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             // them (e.g. Tab changing focus) before the widget receives them.
             //
             // Strategy: try full modifiers first (for user bindings that include Alt,
-            // e.g. Alt+Right→CycleForward). If no match and activation modifiers are
-            // being tracked, strip them and retry (so default bindings like Tab→CycleForward
+            // e.g. Alt+Right -> CycleForward). If no match and activation modifiers are
+            // being tracked, strip them and retry (so default bindings like Tab -> CycleForward
             // work while Alt is held to keep the overlay open).
             if (IsWindowVisible(inst->m_ownerHwnd)) {
                 auto tryMatch = [&](Qt::KeyboardModifiers tryMods) -> bool {

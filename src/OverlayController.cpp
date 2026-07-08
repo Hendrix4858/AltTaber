@@ -149,29 +149,29 @@ void OverlayController::transition(OverlayIntent intent) {
             LOG_TRACE(QStringLiteral("[Transition] Hidden + Show = show (backward=%1)").arg(m_wasInvokedBackward));
             showWindow();
         } else {
-            LOG_TRACE(QStringLiteral("[Transition] Hidden + %1 \u2192 no-op").arg((int)intent));
+            LOG_TRACE(QStringLiteral("[Transition] Hidden + %1  ->  no-op").arg((int)intent));
         }
         break;
 
     case OverlayState::Visible:
         if (intent == OverlayIntent::SessionEndConditionMet) {
             if (m_sessionInfo.endTrigger == SessionEndTrigger::ModifierRelease && !m_stayOpenMode) {
-                qInfo() << "[Transition] ModifierRelease → emit sessionFinished + hide";
+                qInfo() << "[Transition] ModifierRelease  ->  emit sessionFinished + hide";
                 emit sessionFinished();
                 hideWindow();
             } else {
-                qInfo() << "[Transition] SessionEndConditionMet → no-op (stayOpen or explicit action)";
+                qInfo() << "[Transition] SessionEndConditionMet  ->  no-op (stayOpen or explicit action)";
             }
         } else if (intent == OverlayIntent::Dismiss) {
-            qInfo() << "[Transition] Dismiss → hide";
+            qInfo() << "[Transition] Dismiss  ->  hide";
             hideWindow();
         } else {
-            LOG_TRACE(QStringLiteral("[Transition] Visible + %1 → no-op").arg((int)intent));
+            LOG_TRACE(QStringLiteral("[Transition] Visible + %1  ->  no-op").arg((int)intent));
         }
         break;
 
     default:
-        LOG_TRACE(QStringLiteral("[Transition] state=%1 intent=%2 → no-op (unused state)")
+        LOG_TRACE(QStringLiteral("[Transition] state=%1 intent=%2  ->  no-op (unused state)")
                      .arg((int)m_overlayState).arg((int)intent));
         break;
     }
@@ -198,11 +198,7 @@ void OverlayController::showWindow() {
                  .arg(m_stayOpenMode).arg((int)m_sessionInfo.endTrigger));
     Util::closeSystemWindows();
 
-    QTimer::singleShot(0, this, [this]() {
-        if (m_overlayState != OverlayState::Visible)
-            return;
-        forceShow();
-    });
+    forceShow();
 }
 
 void OverlayController::hideWindow() {
@@ -286,6 +282,5 @@ void OverlayController::warmupCache() {
         if (screen)
             calculateGeometry(screen);
     }
-    m_listDirty = false;
     qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
 }

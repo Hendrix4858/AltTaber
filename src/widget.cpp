@@ -51,6 +51,13 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
     m_listView->setGridSize({80, 80});
     m_listView->setFixedHeight(m_listView->gridSize().height());
     m_listView->setUniformItemSizes(true);
+    m_listView->setStyleSheet(R"(
+        QListView {
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+    )");
     m_listView->setItemDelegate(new IconOnlyDelegate(m_listView));
     m_listView->installEventFilter(this);
 
@@ -193,26 +200,16 @@ Widget::~Widget() {
 void Widget::showOverlay() {
     HWND hwnd = (HWND) winId();
     if (!isVisible()) {
-        bool transparent = cfg().getTransparencyEnabled();
-        if (transparent)
-            setWindowOpacity(0.0);
+        setWindowOpacity(0.005);
 
-        m_listView->setUpdatesEnabled(false);
-        m_listView->viewport()->update();
-        m_listView->doItemsLayout();
-        m_listView->viewport()->repaint();
-        m_listView->setUpdatesEnabled(true);
+        showMinimized();
 
         showNormal();
+
+        setWindowOpacity(1.0);
+
         SetForegroundWindow(hwnd);
         BringWindowToTop(hwnd);
-
-        if (transparent) {
-            QTimer::singleShot(0, this, [this]() {
-                if (isVisible())
-                    setWindowOpacity(1.0);
-            });
-        }
     } else {
         SetForegroundWindow(hwnd);
         BringWindowToTop(hwnd);

@@ -76,21 +76,21 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
 }
 
 void HotkeyService::wireSignals(Widget* widget) {
-    // Global hotkeys → ActionRouter
+    // Global hotkeys  ->  ActionRouter
     QObject::connect(m_keyboardHooker, &KeyboardHooker::hotkeyTriggered,
                      m_router, &ActionRouter::routeGlobalAction, Qt::QueuedConnection);
 
-    // Overlay key events from hook → SelectionController
+    // Overlay key events from hook  ->  SelectionController
     QObject::connect(m_keyboardHooker, &KeyboardHooker::overlayKeyTriggered,
                      widget, &Widget::handleHookOverlayAction, Qt::QueuedConnection);
 
-    // Forwarded actions from OverlayController → SelectionController
+    // Forwarded actions from OverlayController  ->  SelectionController
     QObject::connect(widget->overlayController(), &OverlayController::actionForwarded, widget,
                      [selCtrl = widget->selectionController()](HotkeyAction action, Qt::KeyboardModifiers modifiers) {
                          selCtrl->handleOverlayAction(action, modifiers);
                      });
 
-    // Modifier release → Widget coordination
+    // Modifier release  ->  Widget coordination
     QObject::connect(m_keyboardHooker, &KeyboardHooker::activationModifiersReleased,
                      widget, &Widget::onActivationModifiersReleased, Qt::QueuedConnection);
 
@@ -100,7 +100,7 @@ void HotkeyService::wireSignals(Widget* widget) {
     QObject::connect(widget, &Widget::overlayShown,
                      m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
 
-    // Taskbar wheel → TaskbarWindowCycler
+    // Taskbar wheel  ->  TaskbarWindowCycler
     QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
                      widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
 

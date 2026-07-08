@@ -580,7 +580,7 @@ namespace Util {
     }
 
     // ── tryGetWindowIcon ──
-    // WM_GETICON 只保留两级：ICON_BIG（窗口自定图标）→ GCLP_HICON（窗口类默认图标）
+    // WM_GETICON 只保留两级：ICON_BIG（窗口自定图标） ->  GCLP_HICON（窗口类默认图标）
     // 移除 ICON_SMALL2 / ICON_SMALL / GCLP_HICONSM，避免小尺寸挡住高质量路径
     static QIcon tryGetWindowIcon(HWND hwnd) {
         auto fromHicn = [](HICON hico, bool owned) -> QIcon {
