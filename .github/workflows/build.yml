@@ -47,6 +47,16 @@ jobs:
           arch: ${{ matrix.arch }}
           host: x64
 
+      - name: Check MSVC environment
+        shell: pwsh
+        run: |
+          Write-Host "=== Compilers in PATH ==="
+          where.exe cl
+          where.exe clang
+          Write-Host "=== VS tool variables ==="
+          Write-Host "VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          Write-Host "VSCMD_ARG_HOST_ARCH=$env:VSCMD_ARG_HOST_ARCH"
+
       - name: Configure
         run: cmake --preset ninja-${{ matrix.arch }}
 
@@ -92,6 +102,16 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           host: x64
+
+      - name: Check MSVC environment
+        shell: pwsh
+        run: |
+          Write-Host "=== Compilers in PATH ==="
+          where.exe cl
+          where.exe clang
+          Write-Host "=== VS tool variables ==="
+          Write-Host "VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          Write-Host "VSCMD_ARG_HOST_ARCH=$env:VSCMD_ARG_HOST_ARCH"
 
       - name: Configure
         run: cmake --preset ninja-${{ matrix.arch }}

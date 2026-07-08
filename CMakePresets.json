@@ -49,7 +49,9 @@
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build/ninja-arm64",
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
             },
             "environment": {
                 "QT_DIR": "$env{QT_DIR_ARM64}"
