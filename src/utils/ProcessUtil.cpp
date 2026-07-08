@@ -1,5 +1,6 @@
 #include "utils/ProcessUtil.h"
 #include <QDebug>
+#include <QHash>
 #include <psapi.h>
 #include <qoperatingsystemversion.h>
 #include <tlhelp32.h>
@@ -9,6 +10,12 @@
 #include "utils/WindowUtil.h"
 
 namespace Util {
+
+    QHash<DWORD, bool>& elevationCache() {
+        static QHash<DWORD, bool> cache;
+        return cache;
+    }
+
     bool isProcessElevated(HANDLE hProcess) {
         HANDLE hToken = nullptr;
         if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
@@ -34,6 +41,11 @@ namespace Util {
         DWORD pid;
         GetWindowThreadProcessId(hwnd, &pid);
 
+        auto& cache = elevationCache();
+        auto it = cache.constFind(pid);
+        if (it != cache.constEnd())
+            return it.value();
+
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
         if (hProcess == nullptr) {
             qWarning() << "OpenProcess failed" << GetLastError();
@@ -41,8 +53,9 @@ namespace Util {
         }
 
         bool isAdmin = isProcessElevated(hProcess);
-
         CloseHandle(hProcess);
+
+        cache[pid] = isAdmin;
         return isAdmin;
     }
 

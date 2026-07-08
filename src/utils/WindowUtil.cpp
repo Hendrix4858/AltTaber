@@ -1,7 +1,7 @@
 #include "utils/WindowUtil.h"
 #include <QDebug>
 #include <QFileInfo>
-#include <QMap>
+#include <QHash>
 #include <vector>
 #include <winternl.h>
 #include <ExDisp.h>
@@ -118,8 +118,13 @@ namespace Util {
     }
 
     namespace {
-        QMap<HWND, AppIdentity>& identityCache() {
-            static QMap<HWND, AppIdentity> cache;
+        struct IdentityCacheEntry {
+            DWORD processId = 0;
+            AppIdentity identity;
+        };
+
+        QHash<HWND, IdentityCacheEntry>& identityCache() {
+            static QHash<HWND, IdentityCacheEntry> cache;
             return cache;
         }
 
@@ -193,9 +198,13 @@ namespace Util {
 
     AppIdentity Util::resolveIdentity(HWND hwnd, const QString& knownAumid) {
         auto& cache = identityCache();
+
+        DWORD currentPid = 0;
+        GetWindowThreadProcessId(hwnd, &currentPid);
+
         auto it = cache.constFind(hwnd);
-        if (it != cache.constEnd())
-            return it.value();
+        if (it != cache.constEnd() && it->processId == currentPid)
+            return it->identity;
 
         // Layer 1: AUMID (stable app identity)
         if (knownAumid == QLatin1StringView("Microsoft.Windows.ControlPanel")) {
@@ -203,14 +212,14 @@ namespace Util {
             id.host = QStringLiteral("explorer.exe");
             id.instance = QStringLiteral("ControlPanel");
             id.appUserModelId = knownAumid;
-            cache[hwnd] = id;
+            cache[hwnd] = {currentPid, id};
             return id;
         }
 
         wchar_t className[256];
         if (!GetClassNameW(hwnd, className, 256)) {
             AppIdentity id;
-            cache[hwnd] = id;
+            cache[hwnd] = {currentPid, id};
             return id;
         }
 
@@ -224,7 +233,7 @@ namespace Util {
             AppIdentity id;
             id.host = processPath;
             id.instance = mscPath; // full path for icon resolution
-            cache[hwnd] = id;
+            cache[hwnd] = {currentPid, id};
             return id;
         }
 
@@ -233,14 +242,14 @@ namespace Util {
             && wcscmp(className, L"CabinetWClass") == 0) {
             AppIdentity id;
             id.host = processPath;
-            cache[hwnd] = id;
+            cache[hwnd] = {currentPid, id};
             return id;
         }
 
         // Layer 4: Default — use process path as identity
         AppIdentity id;
         id.host = processPath;
-        cache[hwnd] = id;
+        cache[hwnd] = {currentPid, id};
         return id;
     }
 

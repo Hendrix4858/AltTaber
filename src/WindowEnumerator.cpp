@@ -49,7 +49,6 @@ namespace WindowEnumerator {
     }
 
     QList<WindowDescriptor> enumAllWindows(bool includeCloaked) {
-        Util::clearIdentityCache();
         QList<HWND> hwnds;
         if (includeCloaked)
             EnumWindows(EnumWindowsProcAll, reinterpret_cast<LPARAM>(&hwnds));
