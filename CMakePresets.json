@@ -28,6 +28,32 @@
             "environment": {
                 "QT_DIR": "$env{QT_DIR_ARM64}"
             }
+        },
+        {
+            "name": "ninja-x64",
+            "displayName": "Ninja x64",
+            "description": "Ninja Multi-Config build for x64 (requires x64 Native Tools prompt)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/ninja-x64",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+            },
+            "environment": {
+                "QT_DIR": "$env{QT_DIR_X64}"
+            }
+        },
+        {
+            "name": "ninja-arm64",
+            "displayName": "Ninja ARM64",
+            "description": "Ninja Multi-Config build for ARM64 (requires ARM64 Native Tools prompt)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/ninja-arm64",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+            },
+            "environment": {
+                "QT_DIR": "$env{QT_DIR_ARM64}"
+            }
         }
     ],
     "buildPresets": [
@@ -39,6 +65,26 @@
         {
             "name": "release-arm64",
             "configurePreset": "release-arm64",
+            "configuration": "Release"
+        },
+        {
+            "name": "ninja-x64-debug",
+            "configurePreset": "ninja-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ninja-x64-release",
+            "configurePreset": "ninja-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "ninja-arm64-debug",
+            "configurePreset": "ninja-arm64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ninja-arm64-release",
+            "configurePreset": "ninja-arm64",
             "configuration": "Release"
         }
     ]
