@@ -1,0 +1,32 @@
+name: Test Self-Hosted Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System info
+        shell: pwsh
+        run: |
+          Write-Host "=== Hostname ==="
+          hostname
+          Write-Host "=== OS ==="
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, OSArchitecture
+          Write-Host "=== Qt env ==="
+          Get-ChildItem Env: | Where-Object { $_.Name -match "^QT" } | Sort-Object Name
+          Write-Host "=== CMake ==="
+          cmake --version
+          Write-Host "=== MSVC ==="
+          where.exe cl 2>$null
+          Write-Host "=== Ninja ==="
+          where.exe ninja 2>$null
+
+      - name: Quick configure
+        run: cmake --preset ninja-x64
+
+      - name: Quick build
+        run: cmake --build build/ninja-x64 --config Release
