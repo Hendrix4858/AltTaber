@@ -22,9 +22,11 @@ jobs:
           - arch: arm64
             qt_arch: win64_msvc2022_arm64_cross_compiled
             qt_env_var: QT_DIR_ARM64
+            vcvars_arch: x64_arm64
           - arch: x64
             qt_arch: win64_msvc2022_64
             qt_env_var: QT_DIR_X64
+            vcvars_arch: x64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -42,10 +44,14 @@ jobs:
           echo "${{ matrix.qt_env_var }}=$env:QT_ROOT_DIR" >> $env:GITHUB_ENV
 
       - name: Setup MSVC dev command prompt
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-          host: x64
+        shell: pwsh
+        run: |
+          cmd /c "`"%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat`" ${{ matrix.vcvars_arch }} && set" |
+          ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+              Add-Content $env:GITHUB_ENV "$($matches[1])=$($matches[2])"
+            }
+          }
 
       - name: Check MSVC environment
         shell: pwsh
@@ -74,9 +80,11 @@ jobs:
           - arch: arm64
             qt_arch: win64_msvc2022_arm64_cross_compiled
             qt_env_var: QT_DIR_ARM64
+            vcvars_arch: x64_arm64
           - arch: x64
             qt_arch: win64_msvc2022_64
             qt_env_var: QT_DIR_X64
+            vcvars_arch: x64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -98,10 +106,14 @@ jobs:
         run: choco install innosetup --no-progress --yes
 
       - name: Setup MSVC dev command prompt
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-          host: x64
+        shell: pwsh
+        run: |
+          cmd /c "`"%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat`" ${{ matrix.vcvars_arch }} && set" |
+          ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+              Add-Content $env:GITHUB_ENV "$($matches[1])=$($matches[2])"
+            }
+          }
 
       - name: Check MSVC environment
         shell: pwsh
