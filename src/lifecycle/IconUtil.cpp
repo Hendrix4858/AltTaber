@@ -148,17 +148,6 @@ namespace Util {
             if (!pix.isNull()) source = QStringLiteral("DefExtract(32)");
         }
 
-#ifndef NDEBUG
-        qDebug().nospace() << "[extractJumboIconPixmap] path=" << filePath
-                           << " source=" << source
-                           << " size=" << pix.size()
-                           << " [jumbo=" << jumbo.size()
-                           << " extra=" << extra.size()
-                           << " def256=" << d256.size()
-                           << " def48=" << d48.size()
-                           << " def32=" << d32.size()
-                           << "]";
-#endif
         return pix;
     }
 
@@ -771,10 +760,14 @@ namespace Util {
                 result.source = IconSource::Aumid;
             }
             if (result.icon.isNull()) {
-                result.icon = tryGetWindowIcon(hwnd);
-                if (!result.icon.isNull()) {
-                    result.sourceSize = bestSize(result.icon);
-                    result.source = IconSource::Window;
+                auto windowIcon = tryGetWindowIcon(hwnd);
+                if (!windowIcon.isNull()) {
+                    auto maxSize = bestSize(windowIcon);
+                    if (maxSize.width() >= 48 && maxSize.height() >= 48) {
+                        result.icon = windowIcon;
+                        result.sourceSize = maxSize;
+                        result.source = IconSource::Window;
+                    }
                 }
             }
             if (result.icon.isNull()) {
