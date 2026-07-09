@@ -34,10 +34,17 @@
 bool SessionMonitor::nativeEventFilter(const QByteArray& eventType, void* message, qintptr*) {
     if (eventType == "windows_generic_MSG") {
         MSG* msg = static_cast<MSG*>(message);
-        if (msg->message == WM_QUERYENDSESSION) {
+        switch (msg->message) {
+        case WM_QUERYENDSESSION:
             qInfo() << "[Session] WM_QUERYENDSESSION - Windows session ending";
-        } else if (msg->message == WM_ENDSESSION) {
+            break;
+        case WM_ENDSESSION:
             qInfo() << "[Session] WM_ENDSESSION - session ended:" << (bool)msg->wParam;
+            break;
+        case WM_SETTINGCHANGE:
+        case WM_THEMECHANGED:
+            ThemeManager::checkSystemThemeChange();
+            break;
         }
     }
     return false;

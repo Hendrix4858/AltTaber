@@ -2,6 +2,11 @@
 #include "core/ConfigManager.h"
 #include <QSettings>
 
+ThemeManager::ThemeManager()
+    : QObject(nullptr)
+    , m_lastSystemTheme(detectSystemTheme()) {
+}
+
 ThemeManager& ThemeManager::instance() {
     static ThemeManager inst;
     return inst;
@@ -78,4 +83,16 @@ const ThemeColors& ThemeManager::colors(Theme theme) {
 
 void ThemeManager::applyTheme() {
     emit instance().themeChanged();
+}
+
+void ThemeManager::checkSystemThemeChange() {
+    auto& self = instance();
+    int saved = cfg().get("Theme", System).toInt();
+    if (saved != System)
+        return;
+    Theme currentSystem = detectSystemTheme();
+    if (currentSystem != self.m_lastSystemTheme) {
+        self.m_lastSystemTheme = currentSystem;
+        emit self.themeChanged();
+    }
 }

@@ -50,12 +50,15 @@ public:
     static const ThemeColors& colors(Theme theme);
 
     static void applyTheme();
+    static void checkSystemThemeChange();
 
 signals:
     void themeChanged();
 
 private:
-    ThemeManager() : QObject(nullptr) {}
+    ThemeManager();
+
+    Theme m_lastSystemTheme;
 };
 
 #endif //WIN_SWITCHER_THEMEMANAGER_H
