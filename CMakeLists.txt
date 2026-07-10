@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 project(
     Win_Switcher
-    VERSION 0.7.8
+    VERSION 0.7.9
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -244,7 +244,7 @@ if (WINDEPLOYQT)
     add_custom_target(deploy
         COMMAND ${WINDEPLOYQT}
                 "$<IF:$<CONFIG:Debug>,--debug,--release>"
-                --no-translations --no-svg --no-opengl-sw --no-system-d3d-compiler --no-system-dxc-compiler --verbose 2
+                --no-translations --no-svg --no-opengl-sw --no-system-d3d-compiler --no-system-dxc-compiler --no-compiler-runtime --verbose 2
                 "$<TARGET_FILE:Win_Switcher>"
         COMMENT "Deploying Qt runtime DLLs ..."
         DEPENDS Win_Switcher
