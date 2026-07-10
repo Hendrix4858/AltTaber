@@ -358,16 +358,13 @@ namespace Util {
                 }
 
                 auto hash = QCryptographicHash::hash(aumid.toUtf8(), QCryptographicHash::Md5).toHex();
-                auto fileName = "pwa_" + hash + ".png";
-                qDebug().nospace() << "[DiskCache::savePwa] aumid=" << aumid << " availableSizes=" << icon.availableSizes() << " actualSize(64,64)=" << icon.actualSize(QSize(64, 64)) << " pixmap(64).size=" << icon.pixmap(64).size();
-                // Save original-size version for QIcon scaling comparison
+                auto fileName = hash + ".png";
                 auto sizes = icon.availableSizes();
                 if (!sizes.isEmpty()) {
-                    auto maxSize = *std::max_element(sizes.begin(), sizes.end(), [](const QSize& a, const QSize& b) { return a.width() < b.width(); });
-                    icon.pixmap(maxSize).save(iconDir() + "/orig_" + fileName, "PNG");
-                    qDebug().nospace() << "[DiskCache::savePwa] saved orig size " << maxSize << " as orig_" << fileName;
+                    auto maxSize = *std::max_element(sizes.begin(), sizes.end(),
+                        [](const QSize& a, const QSize& b) { return a.width() < b.width(); });
+                    icon.pixmap(maxSize).save(iconDir() + "/" + fileName, "PNG");
                 }
-                icon.pixmap(64).save(iconDir() + "/" + fileName, "PNG");
 
                 CacheEntry entry;
                 entry.type = "pwa";
