@@ -13,6 +13,7 @@
 #include "utils/MiscUtil.h"
 #include "utils/ProcessUtil.h"
 #include "utils/AppUtil.h"
+#include "utils/PwaDetector.h"
 #include "core/ConfigManager.h"
 #include "WindowFilter.h"
 #include "WindowDescriptorBuilder.h"
@@ -246,7 +247,20 @@ namespace Util {
             return id;
         }
 
-        // Layer 4: Default — use process path as identity
+        // Layer 4: PWA — use AUMID as instance for unique groupKey()
+        QString aumid = knownAumid;
+        if (aumid.isEmpty() && PwaDetector::mayHostPwa(processPath))
+            aumid = PwaDetector::getAppUserModelId(hwnd);
+        if (!aumid.isEmpty() && PwaDetector::isPwaWindow(processPath, aumid)) {
+            AppIdentity id;
+            id.host = processPath;
+            id.instance = aumid;
+            id.appUserModelId = aumid;
+            cache[hwnd] = {currentPid, id};
+            return id;
+        }
+
+        // Layer 5: Default — use process path as identity
         AppIdentity id;
         id.host = processPath;
         cache[hwnd] = {currentPid, id};

@@ -13,6 +13,7 @@ namespace PwaDetector {
         WindowsAppModel
     };
 
+    bool mayHostPwa(const QString& processPath);
     QString getAppUserModelId(HWND hwnd);
     PwaType detectPwaType(const QString& processPath, const QString& appUserModelId);
     bool isPwaWindow(const QString& processPath, const QString& appUserModelId);
