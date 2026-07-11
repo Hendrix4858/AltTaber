@@ -21,6 +21,7 @@
 #include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
 #include "core/QuitReason.h"
+#include "utils/RuntimeArch.h"
 
 UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::UpdateDialog) {
     QElapsedTimer t;
@@ -178,38 +179,54 @@ void UpdateDialog::fetchGithubReleaseInfo() {
 }
 
 QJsonObject UpdateDialog::selectInstallerAsset(const QJsonArray& assets) const {
-#ifndef APP_ARCH
-#  error "APP_ARCH not defined — update CMakeLists.txt"
-#endif
-    QString archSuffix = QStringLiteral(APP_ARCH);
-    QString archTag = QStringLiteral("-%1-Setup.exe").arg(archSuffix);
+    auto runtimeArch = detectRuntimeArch();
+    qInfo() << "[Update] Runtime architecture:" << runtimeArchToString(runtimeArch);
 
-    // 1) 精确匹配: 文件名以 -{arch}-Setup.exe 结尾
+    qInfo() << "[Update] Available release assets:";
     for (const auto& a : assets) {
-        auto o = a.toObject();
-        if (o["name"].toString().endsWith(archTag, Qt::CaseInsensitive))
-            return o;
+        auto obj = a.toObject();
+        auto arch = parseAssetArch(obj["name"].toString());
+        qInfo() << "  -" << obj["name"].toString()
+                << "arch=" << runtimeArchToString(arch);
     }
 
-    // 2) 容错: 任意 Setup.exe
     for (const auto& a : assets) {
-        auto o = a.toObject();
-        if (o["name"].toString().contains("Setup.exe", Qt::CaseInsensitive))
-            return o;
+        auto obj = a.toObject();
+        auto assetArch = parseAssetArch(obj["name"].toString());
+        if (assetArch == runtimeArch) {
+            qInfo() << "[Update] Selected:" << obj["name"].toString();
+            return obj;
+        }
     }
 
-    // 3) 容错: 任意 .exe
-    for (const auto& a : assets) {
-        auto o = a.toObject();
-        if (o["name"].toString().endsWith(".exe", Qt::CaseInsensitive))
-            return o;
-    }
-
-    // 4) 最后手段: 第一个资产
-    if (!assets.isEmpty())
-        return assets.first().toObject();
-
+    qWarning() << "[Update] No installer found for architecture" << runtimeArchToString(runtimeArch);
     return {};
+}
+
+RuntimeArchitecture UpdateDialog::parseAssetArch(const QString& fileName) {
+    // Extract arch from the second-to-last `-` segment before `.exe`
+    //   AltTaber-v0.7.9-arm64-Setup.exe  → "arm64"
+    //   AltTaber-v0.8.0-arm64-Portable   → "arm64"
+    QString name = fileName;
+    if (name.endsWith(".exe", Qt::CaseInsensitive))
+        name.chop(4);
+
+    int lastHyphen = name.lastIndexOf('-');
+    if (lastHyphen < 0)
+        return RuntimeArchitecture::Unknown;
+
+    int secondLastHyphen = name.lastIndexOf('-', lastHyphen - 1);
+    if (secondLastHyphen < 0)
+        return RuntimeArchitecture::Unknown;
+
+    QString archStr = name.mid(secondLastHyphen + 1, lastHyphen - secondLastHyphen - 1);
+    if (archStr.compare("arm64", Qt::CaseInsensitive) == 0)
+        return RuntimeArchitecture::Arm64;
+    if (archStr.compare("win64", Qt::CaseInsensitive) == 0)
+        return RuntimeArchitecture::X64;
+    if (archStr.compare("x64", Qt::CaseInsensitive) == 0)
+        return RuntimeArchitecture::X64;
+    return RuntimeArchitecture::Unknown;
 }
 
 void UpdateDialog::applyRelease(const QJsonObject& obj) {
@@ -218,11 +235,24 @@ void UpdateDialog::applyRelease(const QJsonObject& obj) {
     relInfo.publishTime = toLocalTime(obj["published_at"].toString());
 
     auto asset = selectInstallerAsset(obj["assets"].toArray());
-    relInfo.downloadUrl = asset["browser_download_url"].toString();
+    ui->progressBar->hide();
 
+    if (asset.isEmpty()) {
+        auto arch = detectRuntimeArch();
+        qWarning() << "[Update] Release" << relInfo.ver.toString()
+                   << "has no installer for" << runtimeArchToString(arch);
+        m_phase = Phase::FetchError;
+        m_errorCache = tr("No %1 installer found in this release.\n"
+                          "Please download manually from the release page.")
+                          .arg(runtimeArchToString(arch));
+        ui->btn_update->setEnabled(false);
+        retranslateTexts();
+        return;
+    }
+
+    relInfo.downloadUrl = asset["browser_download_url"].toString();
     qInfo() << "[Update] Selected asset:" << asset["name"].toString();
     qInfo() << "Update info applied" << relInfo.ver << relInfo.downloadUrl;
-    ui->progressBar->hide();
 
     bool needUpdate = relInfo.ver > version;
     m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;

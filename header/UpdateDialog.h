@@ -8,6 +8,7 @@
 #include <QVersionNumber>
 #include <QJsonArray>
 #include <QJsonObject>
+#include "utils/RuntimeArch.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -30,6 +31,7 @@ private:
     void fetchGithubReleaseInfo();
     void applyRelease(const QJsonObject& obj);
     QJsonObject selectInstallerAsset(const QJsonArray& assets) const;
+    static RuntimeArchitecture parseAssetArch(const QString& fileName);
     void download(const QString& url, const QString& savePath);
     static QVersionNumber normalizeVersion(const QString& ver);
     static QString toLocalTime(const QString& isoTime);

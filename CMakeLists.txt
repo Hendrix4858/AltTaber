@@ -185,6 +185,7 @@ target_sources(Win_Switcher PRIVATE
     src/utils/VirtualDesktopManager.cpp header/utils/VirtualDesktopManager.h
     src/utils/AppExeResolver.cpp   header/utils/AppUtil.h
     src/utils/PathUtils.cpp        header/utils/PathUtils.h
+    src/utils/RuntimeArch.cpp      header/utils/RuntimeArch.h
 )
 target_link_libraries(Win_Switcher
         Qt::Core
@@ -207,7 +208,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE true)
 # --- Architecture suffix for package naming ---
 
 if(CMAKE_VS_PLATFORM_NAME STREQUAL "arm64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64"
-   OR CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|AARCH64")
+   OR CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|AARCH64"
+   OR "$ENV{VSCMD_ARG_TGT_ARCH}" STREQUAL "arm64")
     set(ARCH_SUFFIX "arm64")
 else()
     set(ARCH_SUFFIX "win64")
