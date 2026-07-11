@@ -16,7 +16,7 @@ public:
                                  QObject* parent = nullptr);
 
 public slots:
-    void rotate(const QString& exePath, bool forward, int windowCount);
+    void rotate(const QString& exePath, bool forward, int windowCount, const QString& appid);
     void clearOrder();
 
 private:
@@ -24,6 +24,7 @@ private:
     WindowManager* m_windowManager;
 
     QString m_lastTaskbarExePath;
+    QString m_lastTaskbarAppid;
     HWND m_lastTaskbarHwnd = nullptr;
     bool m_lastTaskbarDirection = true;
     QTimer* m_releaseTimer = nullptr;

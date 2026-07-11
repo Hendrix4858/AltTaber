@@ -1,4 +1,5 @@
 #include <QTimer>
+#include <QRegularExpression>
 #include "hook/TaskbarWheelHooker.h"
 #include "hook/uiautomation.h"
 #include "utils/AppUtil.h"
@@ -28,12 +29,16 @@ LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 int windows = 0;
                 const auto kWindowCountDelimiter = QStringLiteral(" - ");
                 if (auto dashIdx = name.lastIndexOf(kWindowCountDelimiter); dashIdx != -1) {
-                    windows = name.mid(dashIdx + kWindowCountDelimiter.size()).toInt();
+                    static const QRegularExpression leadingNum(R"(^(\d+))");
+                    auto countStr = name.mid(dashIdx + kWindowCountDelimiter.size());
+                    auto match = leadingNum.match(countStr);
+                    if (match.hasMatch())
+                        windows = match.captured(1).toInt();
                     name = name.left(dashIdx);
                 }
                 auto exePath = AppUtil::getExePathFromAppIdOrName(appid, name);
                 if (s_instance)
-                    emit s_instance->tabWheelEvent(exePath, delta > 0, windows);
+                    emit s_instance->tabWheelEvent(exePath, delta > 0, windows, appid);
             }
         }
     }
@@ -46,7 +51,6 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
         return;
     }
     s_instance = this;
-    qInfo() << "[TaskbarWheel] deferred AppUtil cache (lazy on first use)";
 
     auto* timer = new QTimer(this);
     timer->callOnTimeout(this, [this]() {
@@ -58,7 +62,7 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
             if (isTaskbar) {
                 m_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, (HOOKPROC) mouseProc, GetModuleHandle(nullptr), 0);
                 if (m_mouseHook == nullptr)
-                    qCritical() << "Failed to install m_mouseHook";
+                    qCritical() << "Failed to install m_mouseHook, error:" << GetLastError();
             } else {
                 UnhookWindowsHookEx(m_mouseHook);
                 m_mouseHook = nullptr;

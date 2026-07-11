@@ -13,7 +13,7 @@ public:
     void setPaused(bool paused);
 
 signals:
-    void tabWheelEvent(const QString& exePath, bool isUp, int windows);
+    void tabWheelEvent(const QString& exePath, bool isUp, int windows, const QString& appid);
     void leaveTaskbar();
 
 private:
