@@ -74,6 +74,9 @@ find_package(Qt6 COMPONENTS
 
 add_executable(Win_Switcher)
 
+add_executable(AltTaberCtl tools/AltTaberCtl/main.cpp)
+target_link_libraries(AltTaberCtl PRIVATE Qt::Core Qt::Network)
+
 add_subdirectory(tests)
 
 # ── Infrastructure ──
@@ -270,7 +273,7 @@ add_custom_target(zip
 # --- Inno Setup installer ---
 
 if (ISCC)
-    set(installer_deps Win_Switcher)
+    set(installer_deps Win_Switcher AltTaberCtl)
     if (WINDEPLOYQT)
         list(APPEND installer_deps deploy)
     endif ()

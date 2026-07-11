@@ -34,6 +34,8 @@ PrivilegesRequired=admin
   ArchitecturesInstallIn64BitMode=x64
   ArchitecturesAllowed=x64
 #endif
+CloseApplications=yes
+RestartApplications=no
 SolidCompression=yes
 MinVersion=10.0.10240
 
@@ -55,6 +57,9 @@ zh.DeleteConfig=删除配置和设置？
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
+; Temporary copy for setup-time IPC (extracted via ExtractTemporaryFile)
+Source: "{#MyAppBuildDir}\AltTaberCtl.exe"; Flags: dontcopy
+; All files including AltTaberCtl.exe (installed to {app} for later use)
 Source: "{#MyAppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
 
 [Icons]
@@ -202,10 +207,14 @@ begin
     WaitForAppExit(3000);
 end;
 
-// Simplified close loop:
-//   Yes → auto-close (graceful → force if needed) → proceed
-//   No  → cancel installation
+// Close loop:
+//   1) IPC via AltTaberCtl → app self-exits gracefully
+//   2) Fallback: WM_CLOSE → taskkill
+//   3) Last resort: taskkill /F
+//   4) CloseApplications=yes as ultimate safety net
 function PromptAndKillLoop: Boolean;
+var
+  ResultCode: Integer;
 begin
   Result := False;
   if not IsAppRunning then begin
@@ -213,23 +222,26 @@ begin
     Exit;
   end;
 
+  ExtractTemporaryFile('AltTaberCtl.exe');
+
   case MsgBox(CustomMessage('AppRunningMsg'),
               mbConfirmation, MB_YESNO) of
     IDYES:
       begin
-        if not GracefulStopApp then begin
-          if ForceKillApp then begin
-            Result := True;
-          end else begin
-            MsgBox(CustomMessage('KillFailedMsg'), mbError, MB_OK);
-          end;
-        end else begin
-          Result := True;
-        end;
+        if Exec(ExpandConstant('{tmp}\AltTaberCtl.exe'), 'quit',
+                '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+        and (ResultCode = 0)
+        and WaitForAppExit(5000) then
+          Result := True
+        else if GracefulStopApp then
+          Result := True
+        else if ForceKillApp then
+          Result := True
+        else
+          MsgBox(CustomMessage('KillFailedMsg'), mbError, MB_OK);
       end;
     IDNO:
       begin
-        // User cancelled
       end;
   end;
 end;

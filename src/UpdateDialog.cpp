@@ -10,6 +10,7 @@
 #include <QElapsedTimer>
 #include <QProcess>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QEvent>
 #include <QTimer>
 
@@ -71,7 +72,8 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         ui->btn_update->setEnabled(false);
         auto url = relInfo.downloadUrl;
         auto fileName = QUrl(url).fileName();
-        download(url, qApp->applicationDirPath() + '/' + fileName);
+        auto tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+        download(url, tempDir + '/' + fileName);
     });
     qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
