@@ -88,8 +88,8 @@ inline HotkeyBindings defaultHotkeyBindings() {
             cycleBackward
         };
     }
-    defaults[HotkeyAction::MoveSelectionUp]         = {};
-    defaults[HotkeyAction::MoveSelectionDown]       = {};
+    defaults[HotkeyAction::MoveSelectionUp]         = {makePhysicalBinding(Qt::AltModifier, VK_UP, 0x48, true)};
+    defaults[HotkeyAction::MoveSelectionDown]       = {makePhysicalBinding(Qt::AltModifier, VK_DOWN, 0x50, true)};
     defaults[HotkeyAction::ActivateSelected]        = {makePhysicalBinding(Qt::NoModifier, VK_RETURN, 0x1C)};
     defaults[HotkeyAction::DismissSwitcher]         = {makePhysicalBinding(Qt::NoModifier, VK_ESCAPE, 0x01)};
     defaults[HotkeyAction::TogglePause]             = {};

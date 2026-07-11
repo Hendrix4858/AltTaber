@@ -134,8 +134,8 @@ inline QString hotkeyActionDisplayName(HotkeyAction action) {
         case HotkeyAction::ExpandGroup:         return QCoreApplication::translate("HotkeyAction", "Expand Group");
         case HotkeyAction::CycleForward:           return QCoreApplication::translate("HotkeyAction", "Cycle Forward");
         case HotkeyAction::CycleBackward:          return QCoreApplication::translate("HotkeyAction", "Cycle Backward");
-        case HotkeyAction::MoveSelectionUp:        return QCoreApplication::translate("HotkeyAction", "Move Selection Up");
-        case HotkeyAction::MoveSelectionDown:      return QCoreApplication::translate("HotkeyAction", "Move Selection Down");
+        case HotkeyAction::MoveSelectionUp:        return QCoreApplication::translate("HotkeyAction", "Preview Window");
+        case HotkeyAction::MoveSelectionDown:      return QCoreApplication::translate("HotkeyAction", "Minimize Window");
         case HotkeyAction::ActivateSelected:       return QCoreApplication::translate("HotkeyAction", "Activate Selected");
         case HotkeyAction::DismissSwitcher:        return QCoreApplication::translate("HotkeyAction", "Dismiss Switcher");
         case HotkeyAction::TogglePause:            return QCoreApplication::translate("HotkeyAction", "Toggle Pause");
