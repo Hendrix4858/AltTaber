@@ -210,6 +210,7 @@ void SettingsDialog::loadSettings() {
     ui->mouseClickActivateCheck->setChecked(mouseClickEnabled);
     ui->clickShowGroupCheck->setChecked(mouseClickEnabled && m_config->getClickShowGroupForMultiWindow());
     ui->clickShowGroupCheck->setEnabled(mouseClickEnabled);
+    ui->taskbarWheelCheck->setChecked(m_config->getTaskbarWheelEnabled());
 
     {
         auto flags = m_config->getLogFlags();
@@ -274,6 +275,7 @@ void SettingsDialog::applySettings() {
     m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
     m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
+    m_config->setTaskbarWheelEnabled(ui->taskbarWheelCheck->isChecked());
 
     {
         Util::LogFlags flags = 0;
@@ -390,6 +392,7 @@ void SettingsDialog::retranslateUi() {
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
+    ui->taskbarWheelCheck->setText(tr("Enable taskbar wheel switching"));
 
     QString version = QApplication::applicationVersion();
     ui->aboutDesc->setText(

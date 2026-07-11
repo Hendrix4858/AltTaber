@@ -2,6 +2,7 @@
 #include "TaskbarMouseHelper.h"
 #include "GroupWindowCycler.h"
 #include "WindowManager.h"
+#include "core/ConfigManager.h"
 #include "utils/Util.h"
 #include "utils/PwaDetector.h"
 #include <QDebug>
@@ -11,6 +12,7 @@ TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* 
     : QObject(parent), m_groupCycler(cyc), m_windowManager(wm) {}
 
 void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windowCount, const QString& appid) {
+    if (!ConfigManager::instance().getTaskbarWheelEnabled()) return;
     if (exePath.isEmpty()) return;
     if (!windowCount) return;
 

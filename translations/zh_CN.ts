@@ -159,13 +159,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Move Selection Up</source>
-        <translation>向上移动</translation>
+        <source>Preview Window</source>
+        <translation>预览窗口</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Move Selection Down</source>
-        <translation>向下移动</translation>
+        <source>Minimize Window</source>
+        <translation>最小化窗口</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -303,8 +303,14 @@ Overwrite?</source>
         <translation>多窗口程序显示窗口列表</translation>
     </message>
     <message>
-        <location line="+39"/>
-        <location filename="../src/SettingsDialog.cpp" line="-59"/>
+        <location filename="../ui/SettingsDialog.ui" line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <source>Enable taskbar wheel switching</source>
+        <translation>启用任务栏滚轮切换</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <location filename="../src/SettingsDialog.cpp" line="-65"/>
         <source>Display Settings</source>
         <translation>显示设置</translation>
     </message>

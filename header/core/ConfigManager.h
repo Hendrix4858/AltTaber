@@ -100,6 +100,14 @@ public:
         set("Theme", theme);
     }
 
+    bool getTaskbarWheelEnabled() {
+        return get("TaskbarWheelEnabled", false).toBool();
+    }
+
+    void setTaskbarWheelEnabled(bool enabled) {
+        set("TaskbarWheelEnabled", enabled);
+    }
+
     bool getPaused() {
         return get("Paused", false).toBool();
     }
