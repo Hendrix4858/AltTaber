@@ -7,7 +7,6 @@
 #include "core/ThemeManager.h"
 #include "hook/WheelEventProcessor.h"
 #include <QWheelEvent>
-#include <QApplication>
 
 SelectionController::SelectionController(QListView* listView, WindowGroupModel* model,
                                          WindowManager* wm, GroupWindowCycler* cyc, QObject* parent)
@@ -17,6 +16,8 @@ SelectionController::SelectionController(QListView* listView, WindowGroupModel* 
             this, &SelectionController::foregroundChanged);
     connect(m_wheelProcessor, &WheelEventProcessor::labelTextChanged,
             this, &SelectionController::labelTextChanged);
+    connect(m_wheelProcessor, &WheelEventProcessor::aboutToActivateWindow,
+            this, &SelectionController::aboutToActivateWindow);
 }
 
 void SelectionController::setLabelWidget(QWidget* label) {
@@ -94,26 +95,14 @@ void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardM
         }
         return;
     }
-    case HotkeyAction::MoveSelectionUp: {
-        if (auto index = m_listView->currentIndex(); index.isValid()) {
-            auto center = m_listView->visualRect(index).center();
-            auto wheelEvent = new QWheelEvent(center, m_listView->mapToGlobal(center), {},
-                                              {120, 0},
-                                              Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-            QApplication::postEvent(m_listView, wheelEvent);
-        }
+    case HotkeyAction::MoveSelectionUp:
+        m_wheelProcessor->handleKeyboardNavigation(
+            m_listView, m_model, m_windowManager, m_groupCycler, true);
         return;
-    }
-    case HotkeyAction::MoveSelectionDown: {
-        if (auto index = m_listView->currentIndex(); index.isValid()) {
-            auto center = m_listView->visualRect(index).center();
-            auto wheelEvent = new QWheelEvent(center, m_listView->mapToGlobal(center), {},
-                                              {-120, 0},
-                                              Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-            QApplication::postEvent(m_listView, wheelEvent);
-        }
+    case HotkeyAction::MoveSelectionDown:
+        m_wheelProcessor->handleKeyboardNavigation(
+            m_listView, m_model, m_windowManager, m_groupCycler, false);
         return;
-    }
     case HotkeyAction::ActivateSelected: {
         emit activateAndHide();
         return;

@@ -51,10 +51,10 @@ signals:
     void dismiss();
     void switchToWindowRequested(HWND hwnd, const QString& exePath, const QString& title, const AppIdentity& identity);
     void foregroundChanged(HWND hwnd);
+    void aboutToActivateWindow();
 
 private:
     void expandGroup();
-    void cycleSelection(int direction); // +1 forward, -1 backward
     bool handleLetterJump(QChar pressedLetter);
 
     QListView* m_listView;

@@ -139,6 +139,10 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
         activateWindowWithVerification(hwnd, exePath, title);
     });
 
+    connect(m_selectCtrl, &SelectionController::aboutToActivateWindow, this, [this]() {
+        m_skipForegroundHide = true;
+    });
+
     connect(m_selectCtrl, &SelectionController::foregroundChanged, this,
             [this](HWND hwnd) {
         notifyForegroundChanged(hwnd);

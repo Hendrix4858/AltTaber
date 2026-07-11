@@ -50,6 +50,8 @@ public:
     void hideOverlay();
     void notifyForegroundChanged(HWND hwnd);
     OverlayController* overlayController() const { return m_overlayCtrl; }
+    void setSkipForegroundHide(bool v) { m_skipForegroundHide = v; }
+    bool shouldSkipForegroundHide() const { return m_skipForegroundHide; }
 
     bool isForeground() { return GetForegroundWindow() == (HWND) winId(); }
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -87,6 +89,7 @@ private:
     SelectionController* m_selectCtrl;
     TaskbarWindowCycler* m_taskbarCycler;
     GroupWindowCycler* m_groupCycler;
+    bool m_skipForegroundHide = false;
 };
 
 #endif //WIN_SWITCHER_WIDGET_H

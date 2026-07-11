@@ -62,3 +62,41 @@ bool WheelEventProcessor::handleWheelEvent(QWheelEvent* event, QListView* listVi
     }
     return false;
 }
+
+void WheelEventProcessor::handleKeyboardNavigation(QListView* listView,
+    WindowGroupModel* model, WindowManager* wm, GroupWindowCycler* cyc, bool forward) {
+    auto index = listView->currentIndex();
+    if (!index.isValid()) return;
+    auto windowGroup = model->groupAt(index.row());
+    if (windowGroup.windows.isEmpty()) return;
+
+    if (m_lastRow != index.row()) {
+        m_lastRow = index.row();
+        m_lastHwnd = nullptr;
+        cyc->clearGroupWindowOrder();
+    }
+    auto& order = cyc->groupWindowOrder();
+    if (order.isEmpty())
+        order = wm->filteredHwndsForExe(windowGroup.exePath);
+    if (order.isEmpty()) return;
+
+    if (!m_lastHwnd) {
+        m_lastHwnd = order.first();
+    } else {
+        m_lastHwnd = GroupWindowCycler::rotateWindow(order, m_lastHwnd, forward);
+    }
+
+    HWND nextFocus = m_lastHwnd;
+    if (forward) {
+        Util::focusWindow(m_lastHwnd, HWND_TOPMOST);
+    } else {
+        auto& orderForNormal = cyc->groupWindowOrder();
+        if (auto normal = GroupWindowCycler::rotateToNormalWindow(orderForNormal, m_lastHwnd, false)) {
+            ShowWindow(normal, SW_SHOWMINNOACTIVE);
+            m_lastHwnd = normal;
+            nextFocus = m_lastHwnd;
+        }
+    }
+    emit foregroundChanged(nextFocus);
+    emit labelTextChanged(Util::getWindowTitle(nextFocus));
+}

@@ -45,11 +45,14 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
 
             if (oState == OverlayController::OverlayState::Visible
                 && hwnd != widget->hWnd()
-                && !Util::isKeyPressed(VK_MENU)) {
+                && !Util::isKeyPressed(VK_MENU)
+                && !widget->shouldSkipForegroundHide()) {
                 qInfo() << "[WinEvent] hiding overlay (clicked outside while Visible)";
                 widget->hideOverlay();
+                widget->setSkipForegroundHide(false);
                 return;
             }
+            widget->setSkipForegroundHide(false);
 
             if (oState != OverlayController::OverlayState::Hidden
                 && hwnd != widget->hWnd()

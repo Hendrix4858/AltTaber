@@ -20,11 +20,16 @@ public:
                           WindowGroupModel* model, WindowManager* wm,
                           GroupWindowCycler* cyc);
 
+    void handleKeyboardNavigation(QListView* listView,
+                                  WindowGroupModel* model, WindowManager* wm,
+                                  GroupWindowCycler* cyc, bool forward);
+
     void reset();
 
 signals:
     void foregroundChanged(HWND hwnd);
     void labelTextChanged(const QString& text);
+    void aboutToActivateWindow();
 
 private:
     int m_lastRow = -1;
