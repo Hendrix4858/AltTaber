@@ -10,11 +10,6 @@
 bool UpdateService::handleUpdateRollback() {
     auto marker = UpdateMarker::read();
 
-    if (marker == "ok" && UpdateMarker::hasBackup()) {
-        qInfo() << "[Update] Cleaning up stale backup (previous update ok)";
-        UpdateMarker::cleanupBackup();
-    }
-
     if (marker == "pending" && UpdateMarker::hasBackup()) {
         int attempts = UpdateMarker::readRollbackCount();
         UpdateMarker::writeRollbackCount(attempts + 1);
