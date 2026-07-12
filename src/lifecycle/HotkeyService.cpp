@@ -19,6 +19,7 @@ HotkeyService::HotkeyService(ConfigManager* config, QObject* parent)
 
 HotkeyService::~HotkeyService() {
     unhookWinEvent();
+    delete m_taskbarHooker;
 }
 
 void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindings& bindings) {
@@ -29,8 +30,10 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
     m_keyboardHooker->setPaused(m_config->getPaused());
     widget->updateOverlayBindings(bindings);
 
-    m_taskbarHooker = new TaskbarWheelHooker;
-    m_taskbarHooker->setPaused(m_config->getPaused());
+    if (m_config->getTaskbarWheelEnabled()) {
+        m_taskbarHooker = new TaskbarWheelHooker;
+        m_taskbarHooker->setPaused(m_config->getPaused());
+    }
 
     m_retryTimer = new QTimer(this);
     m_retryTimer->setInterval(kRetryIntervalMs);
@@ -103,14 +106,18 @@ void HotkeyService::wireSignals(Widget* widget) {
     QObject::connect(widget, &Widget::overlayShown,
                      m_keyboardHooker, &KeyboardHooker::notifyOverlayShown);
 
-    // Taskbar wheel  ->  TaskbarWindowCycler
-    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
-                     widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
-
-    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::leaveTaskbar,
-                     widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
+    if (m_taskbarHooker)
+        wireTaskbarSignals();
 
     qInfo() << "[Main] Hotkey system initialized";
+}
+
+void HotkeyService::wireTaskbarSignals() {
+    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::tabWheelEvent,
+                     m_widget->taskbarCycler(), &TaskbarWindowCycler::rotate, Qt::QueuedConnection);
+
+    QObject::connect(m_taskbarHooker, &TaskbarWheelHooker::leaveTaskbar,
+                     m_widget->taskbarCycler(), &TaskbarWindowCycler::clearOrder, Qt::QueuedConnection);
 }
 
 void HotkeyService::retryFallbackShow() {
@@ -140,6 +147,19 @@ void HotkeyService::reloadFromConfig() {
     qInfo() << "[Config] binding count:" << b.size() << "paused:" << m_config->getPaused();
     m_keyboardHooker->updateBindings(b);
     m_keyboardHooker->setPaused(m_config->getPaused());
-    m_taskbarHooker->setPaused(m_config->getPaused());
     m_keyboardHooker->resetActivationModifiers();
+
+    bool wheelEnabled = m_config->getTaskbarWheelEnabled();
+    if (wheelEnabled && !m_taskbarHooker) {
+        m_taskbarHooker = new TaskbarWheelHooker;
+        m_taskbarHooker->setPaused(m_config->getPaused());
+        wireTaskbarSignals();
+        qInfo() << "[TaskbarWheel] hook installed";
+    } else if (!wheelEnabled && m_taskbarHooker) {
+        delete m_taskbarHooker;
+        m_taskbarHooker = nullptr;
+        qInfo() << "[TaskbarWheel] hook uninstalled";
+    } else if (wheelEnabled && m_taskbarHooker) {
+        m_taskbarHooker->setPaused(m_config->getPaused());
+    }
 }

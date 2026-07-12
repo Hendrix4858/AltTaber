@@ -27,6 +27,8 @@ private slots:
     void retryFallbackShow();
 
 private:
+    void wireTaskbarSignals();
+
     ConfigManager* m_config;
     ActionRouter* m_router = nullptr;
     KeyboardHooker* m_keyboardHooker = nullptr;
