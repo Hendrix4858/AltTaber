@@ -81,7 +81,7 @@ Without admin rights, AltTaber cannot see elevated windows.
 | MSVC | 2022 |
 | Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
 | Windows SDK | 10.0+ |
-| Inno Setup | 6+ |
+| Inno Setup | 6.3+ (x64compatible) |
 
 ### Build
 Inno Setup is required for installer packaging.

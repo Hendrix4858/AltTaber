@@ -82,7 +82,7 @@
 | MSVC | 2022 |
 | Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
 | Windows SDK | 10.0+ |
-| INNO setup | Inno Setup 6+ |
+| Inno Setup | 6.3+ (x64compatible) |
 
 ### 调试构建
 构建安装包需要使用 INNO setup 来打包.

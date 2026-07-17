@@ -1,5 +1,5 @@
 ﻿; AltTaber Inno Setup Script
-; Requires Inno Setup 6+
+; Requires Inno Setup 6.3+ (x64compatible directive)
 
 #define MyAppName "AltTaber"
 #define MyAppVersion "@PROJECT_VERSION@"
@@ -212,7 +212,7 @@ end;
 //   2) Fallback: WM_CLOSE → taskkill
 //   3) Last resort: taskkill /F
 //   4) CloseApplications=yes as ultimate safety net
-function PromptAndKillLoop: Boolean;
+function PromptAndKillLoop(CanExtractTemp: Boolean): Boolean;
 var
   ResultCode: Integer;
 begin
@@ -222,13 +222,15 @@ begin
     Exit;
   end;
 
-  ExtractTemporaryFile('AltTaberCtl.exe');
+  if CanExtractTemp then
+    ExtractTemporaryFile('AltTaberCtl.exe');
 
   case MsgBox(CustomMessage('AppRunningMsg'),
               mbConfirmation, MB_YESNO) of
     IDYES:
       begin
-        if Exec(ExpandConstant('{tmp}\AltTaberCtl.exe'), 'quit',
+        if CanExtractTemp
+        and Exec(ExpandConstant('{tmp}\AltTaberCtl.exe'), 'quit',
                 '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
         and (ResultCode = 0)
         and WaitForAppExit(5000) then
@@ -251,7 +253,7 @@ begin
   Result := '';
   if not IsAppRunning then
     Exit;
-  if not PromptAndKillLoop then
+  if not PromptAndKillLoop(True) then
     Result := 'Setup was cancelled by the user.';
 end;
 
@@ -311,7 +313,7 @@ begin
   Result := True;
   if not IsAppRunning then
     Exit;
-  if not PromptAndKillLoop then
+  if not PromptAndKillLoop(False) then
     Result := False;
 
 end;
