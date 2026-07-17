@@ -7,6 +7,7 @@
 #include "utils/PwaDetector.h"
 #include <QDebug>
 #include <QSet>
+#include <QDateTime>
 
 TaskbarWindowCycler::TaskbarWindowCycler(GroupWindowCycler* cyc, WindowManager* wm, QObject* parent)
     : QObject(parent), m_groupCycler(cyc), m_windowManager(wm) {}
@@ -16,9 +17,9 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     if (exePath.isEmpty()) return;
     if (!windowCount) return;
 
-    qWarning() << "[TaskbarWheel] rotate: exe=" << exePath
-               << "fwd=" << forward << "cnt=" << windowCount
-               << "appid=" << appid;
+    qDebug() << "[TaskbarWheel] rotate: exe=" << exePath
+             << "fwd=" << forward << "cnt=" << windowCount
+             << "appid=" << appid;
 
     if (m_lastTaskbarExePath != exePath) {
         m_lastTaskbarExePath = exePath;
@@ -27,12 +28,21 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     }
     auto& tbOrder = m_groupCycler->groupWindowOrder();
     if (tbOrder.isEmpty()) {
-        tbOrder = m_windowManager->filteredHwndsForExe(exePath);
+        qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (m_windowCache.timestamp > 0
+            && m_windowCache.exePath == exePath
+            && (now - m_windowCache.timestamp) < 1000) {
+            tbOrder = m_windowCache.hwnds;
+            qDebug() << "[TaskbarWheel] cache hit for" << exePath;
+        } else {
+            tbOrder = m_windowManager->filteredHwndsForExe(exePath);
+            m_windowCache = {exePath, tbOrder, now};
+        }
         m_lastTaskbarHwnd = nullptr;
     }
 
     if (tbOrder.isEmpty()) {
-        qWarning() << "[TaskbarWheel] no window by exePath:" << exePath;
+        qDebug() << "[TaskbarWheel] no window by exePath:" << exePath;
         auto childPaths = Util::getChildProcessPaths(exePath);
         if (childPaths.isEmpty()) {
             if (!appid.isEmpty()) {
@@ -41,13 +51,13 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
                     if (!aumid.isEmpty() && aumid == appid)
                         tbOrder.append(hwnd);
                 }
-                qWarning() << "[TaskbarWheel] AUMID fallback: found" << tbOrder.size() << "windows";
+                qDebug() << "[TaskbarWheel] AUMID fallback: found" << tbOrder.size() << "windows";
             }
             if (tbOrder.isEmpty()) return;
         } else if (childPaths.size() == 1) {
             tbOrder = m_windowManager->filteredHwndsForExe(childPaths.first());
         } else {
-            qWarning() << "[TaskbarWheel] multiple child processes" << childPaths;
+            qDebug() << "[TaskbarWheel] multiple child processes" << childPaths;
             QSet<QString> validPaths;
             for (auto hwnd : Util::listValidWindows()) {
                 if (auto path = Util::getWindowProcessPath(hwnd); !path.isEmpty())
@@ -64,7 +74,7 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     }
 
     if (windowCount == 1 && tbOrder.size() > 1) {
-        qWarning() << "[TaskbarWheel] clipping tbOrder from" << tbOrder.size() << "to 1 (windowCount=1)";
+        qDebug() << "[TaskbarWheel] clipping tbOrder from" << tbOrder.size() << "to 1 (windowCount=1)";
         tbOrder = {tbOrder.first()};
         m_lastTaskbarHwnd = nullptr;
     }
@@ -72,9 +82,9 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     HWND hwnd = nullptr;
     if (!m_lastTaskbarHwnd) {
         hwnd = tbOrder.first();
-        qWarning() << "[TaskbarWheel] first hwnd=" << Qt::hex << hwnd << Qt::dec
-                   << "fg=" << Qt::hex << GetForegroundWindow() << Qt::dec
-                   << "iconic=" << IsIconic(hwnd);
+        qDebug() << "[TaskbarWheel] first hwnd=" << Qt::hex << hwnd << Qt::dec
+                 << "fg=" << Qt::hex << GetForegroundWindow() << Qt::dec
+                 << "iconic=" << IsIconic(hwnd);
         if (forward && hwnd == GetForegroundWindow())
             hwnd = GroupWindowCycler::rotateWindow(tbOrder, hwnd, true);
     } else {
@@ -88,24 +98,24 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
     if (forward) {
         if (windowCount == 1) {
             bool doClick = (hwnd != GetForegroundWindow() || IsIconic(hwnd));
-            qWarning() << "[TaskbarWheel] fwd-single: hwnd=" << Qt::hex << hwnd << Qt::dec
-                       << "isFg=" << (hwnd == GetForegroundWindow())
-                       << "iconic=" << IsIconic(hwnd) << "doClick=" << doClick;
+            qDebug() << "[TaskbarWheel] fwd-single: hwnd=" << Qt::hex << hwnd << Qt::dec
+                     << "isFg=" << (hwnd == GetForegroundWindow())
+                     << "iconic=" << IsIconic(hwnd) << "doClick=" << doClick;
             if (doClick) {
                 TaskbarMouseHelper::click();
-                qWarning() << "[TaskbarWheel] click done";
+                qDebug() << "[TaskbarWheel] click done";
             }
         } else {
-            qWarning() << "[TaskbarWheel] fwd-multi: hwnd=" << Qt::hex << hwnd << Qt::dec;
+            qDebug() << "[TaskbarWheel] fwd-multi: hwnd=" << Qt::hex << hwnd << Qt::dec;
             HWND thumbnail = Util::getCurrentTaskListThumbnailWnd();
             if (thumbnail && IsWindowVisible(thumbnail)) {
-                qWarning() << "[TaskbarWheel] thumbnail visible, hold+switch";
+                qDebug() << "[TaskbarWheel] thumbnail visible, hold+switch";
                 TaskbarMouseHelper::hold();
                 QTimer::singleShot(20, this, [hwnd]() {
                     Util::switchToWindow(hwnd, true);
                 });
             } else {
-                qWarning() << "[TaskbarWheel] no thumbnail, direct switch";
+                qDebug() << "[TaskbarWheel] no thumbnail, direct switch";
                 Util::switchToWindow(hwnd, true);
             }
 
@@ -128,14 +138,14 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
             m_releaseTimer->start();
         }
     } else {
-        qWarning() << "[TaskbarWheel] backward: hwnd=" << Qt::hex << hwnd << Qt::dec
-                   << "iconic=" << IsIconic(hwnd);
+        qDebug() << "[TaskbarWheel] backward: hwnd=" << Qt::hex << hwnd << Qt::dec
+                 << "iconic=" << IsIconic(hwnd);
         if (auto normal = GroupWindowCycler::rotateToNormalWindow(tbOrder, hwnd, false)) {
-            qWarning() << "[TaskbarWheel] backward: normal=" << Qt::hex << normal << Qt::dec;
+            qDebug() << "[TaskbarWheel] backward: normal=" << Qt::hex << normal << Qt::dec;
             hwnd = normal;
             SendMessage(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
         } else {
-            qWarning() << "[TaskbarWheel] backward: no normal window";
+            qDebug() << "[TaskbarWheel] backward: no normal window";
         }
     }
 
@@ -144,4 +154,8 @@ void TaskbarWindowCycler::rotate(const QString& exePath, bool forward, int windo
 
 void TaskbarWindowCycler::clearOrder() {
     m_groupCycler->clearGroupWindowOrder();
+}
+
+void TaskbarWindowCycler::invalidateCache() {
+    m_windowCache.timestamp = 0;
 }

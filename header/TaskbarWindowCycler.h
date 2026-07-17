@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QList>
 #include <Windows.h>
 
 class GroupWindowCycler;
@@ -20,6 +21,14 @@ public slots:
     void clearOrder();
 
 private:
+    void invalidateCache();
+
+    struct WindowCache {
+        QString exePath;
+        QList<HWND> hwnds;
+        qint64 timestamp = 0;
+    };
+
     GroupWindowCycler* m_groupCycler;
     WindowManager* m_windowManager;
 
@@ -28,6 +37,7 @@ private:
     HWND m_lastTaskbarHwnd = nullptr;
     bool m_lastTaskbarDirection = true;
     QTimer* m_releaseTimer = nullptr;
+    WindowCache m_windowCache;
 };
 
 #endif //WIN_SWITCHER_TASKBARWINDOWCYCLER_H
