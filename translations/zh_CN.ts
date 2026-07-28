@@ -309,6 +309,12 @@ Overwrite?</source>
         <translation>启用任务栏滚轮切换</translation>
     </message>
     <message>
+        <location filename="../ui/SettingsDialog.ui" line="+5"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <source>Hide utility windows (Chrome/Electron popups)</source>
+        <translation>隐藏不包含任务栏按钮的窗口</translation>
+    </message>
+    <message>
         <location line="+33"/>
         <location filename="../src/SettingsDialog.cpp" line="-65"/>
         <source>Display Settings</source>

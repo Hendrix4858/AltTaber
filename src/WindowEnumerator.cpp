@@ -28,6 +28,33 @@ namespace WindowEnumerator {
         return false;
     }
 
+    bool isLikelyUtilityWindow(HWND hwnd) {
+        if (Util::getClassName(hwnd) != QStringLiteral("Chrome_WidgetWin_1"))
+            return false;
+
+        LONG_PTR exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+
+        if (exStyle & WS_EX_APPWINDOW)
+            return false;
+
+        if (exStyle & WS_EX_TOOLWINDOW)
+            return true;
+
+        HWND owner = GetWindow(hwnd, GW_OWNER);
+        if (owner != nullptr)
+            return true;
+
+        LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
+
+        bool hasCaption = style & WS_CAPTION;
+        bool hasMaximize = style & WS_MAXIMIZEBOX;
+
+    if (!hasCaption && !hasMaximize)
+        return true;
+
+    return false;
+}
+
     BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         if (isWindowAcceptable(hwnd)) {
             auto* windowList = reinterpret_cast<QList<HWND>*>(lParam);

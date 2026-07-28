@@ -211,6 +211,7 @@ void SettingsDialog::loadSettings() {
     ui->clickShowGroupCheck->setChecked(mouseClickEnabled && m_config->getClickShowGroupForMultiWindow());
     ui->clickShowGroupCheck->setEnabled(mouseClickEnabled);
     ui->taskbarWheelCheck->setChecked(m_config->getTaskbarWheelEnabled());
+    ui->hideUtilityWindowsCheck->setChecked(m_config->getHideUtilityWindows());
 
     {
         auto flags = m_config->getLogFlags();
@@ -276,6 +277,7 @@ void SettingsDialog::applySettings() {
     m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
     m_config->setTaskbarWheelEnabled(ui->taskbarWheelCheck->isChecked());
+    m_config->setHideUtilityWindows(ui->hideUtilityWindowsCheck->isChecked());
 
     {
         Util::LogFlags flags = 0;
@@ -393,6 +395,7 @@ void SettingsDialog::retranslateUi() {
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
     ui->taskbarWheelCheck->setText(tr("Enable taskbar wheel switching"));
+    ui->hideUtilityWindowsCheck->setText(tr("Hide utility windows (Chrome/Electron popups)"));
 
     QString version = QApplication::applicationVersion();
     ui->aboutDesc->setText(

@@ -240,6 +240,14 @@ public:
         set("IconCacheDirectory", path);
     }
 
+    bool getHideUtilityWindows() {
+        return get("HideUtilityWindows", false).toBool();
+    }
+
+    void setHideUtilityWindows(bool enabled) {
+        set("HideUtilityWindows", enabled);
+    }
+
     // BlockedWindows stored as JSON array
     QList<BlockedWindowEntry> getBlockedWindows() {
         QList<BlockedWindowEntry> list;

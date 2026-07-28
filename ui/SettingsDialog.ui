@@ -201,14 +201,21 @@
              </item>
             </layout>
            </item>
-           <item>
-            <widget class="QCheckBox" name="taskbarWheelCheck">
-             <property name="text">
-              <string>Enable taskbar wheel switching</string>
-             </property>
-            </widget>
-           </item>
-         <item>
+            <item>
+             <widget class="QCheckBox" name="taskbarWheelCheck">
+              <property name="text">
+               <string>Enable taskbar wheel switching</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="hideUtilityWindowsCheck">
+              <property name="text">
+               <string>Hide utility windows</string>
+              </property>
+             </widget>
+            </item>
+          <item>
           <spacer name="generalSpacer">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
