@@ -312,7 +312,7 @@ Overwrite?</source>
         <location filename="../ui/SettingsDialog.ui" line="+5"/>
         <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Hide utility windows (Chrome/Electron popups)</source>
-        <translation>隐藏不包含任务栏按钮的窗口</translation>
+        <translation>隐藏工具窗口（如 Chrome/Electron 弹窗）</translation>
     </message>
     <message>
         <location line="+33"/>

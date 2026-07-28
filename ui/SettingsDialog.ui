@@ -211,7 +211,7 @@
             <item>
              <widget class="QCheckBox" name="hideUtilityWindowsCheck">
               <property name="text">
-               <string>Hide utility windows</string>
+               <string>Hide utility windows (Chrome/Electron popups)</string>
               </property>
              </widget>
             </item>
