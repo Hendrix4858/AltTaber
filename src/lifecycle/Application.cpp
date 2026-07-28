@@ -151,23 +151,42 @@ Application::Application(int argc, char* argv[])
     phaseTimer.start();
     totalTimer.start();
     initControllers();
-    qInfo() << "[Startup] initControllers" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initControllers" << e << "ms";
+        Util::checkSlowInit("initControllers", e, 100);
+    }
 
     initUI();
-    qInfo() << "[Startup] initUI" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initUI" << e << "ms";
+        Util::checkSlowInit("initUI", e, 100);
+    }
 
     initHotkeys();
-    qInfo() << "[Startup] initHotkeys" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initHotkeys" << e << "ms";
+        Util::checkSlowInit("initHotkeys", e, 100);
+    }
 
     QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
         m_hotkeyService->reloadFromConfig();
     });
 
-    StyleManager::applyTheme(ThemeManager::current());
-    if (m_widget) {
-        m_widget->style()->unpolish(m_widget);
-        m_widget->style()->polish(m_widget);
-        m_widget->update();
+    {
+        QElapsedTimer t;
+        t.start();
+        StyleManager::applyTheme(ThemeManager::current());
+        if (m_widget) {
+            m_widget->style()->unpolish(m_widget);
+            m_widget->style()->polish(m_widget);
+            m_widget->update();
+        }
+        auto e = t.elapsed();
+        qInfo() << "[Startup] applyTheme+polish" << e << "ms";
+        Util::checkSlowInit("applyTheme+polish", e, 100);
     }
 
     QObject::connect(&ThemeManager::instance(), &ThemeManager::themeChanged, qApp, []() {
@@ -180,7 +199,11 @@ Application::Application(int argc, char* argv[])
     }
 
     m_updateService->cleanupUpdateMarkers();
-    qInfo() << "[Startup] Application constructor total" << totalTimer.elapsed() << "ms";
+    {
+        auto e = totalTimer.elapsed();
+        qInfo() << "[Startup] Application constructor total" << e << "ms";
+        Util::checkSlowInit("Application constructor total", e, 500);
+    }
     qInfo() << "[Main] Entering event loop";
 }
 

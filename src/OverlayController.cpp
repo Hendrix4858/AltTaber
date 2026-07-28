@@ -182,8 +182,12 @@ void OverlayController::showWindow() {
 
     if (m_listDirty) {
         LOG_TRACE("[OverlayCtrl] list dirty, refreshing...");
+        QElapsedTimer t;
+        t.start();
         if (!refreshWindowList())
             return;
+        auto e = t.elapsed();
+        Util::checkSlowInit("refreshWindowList", e, 200);
     }
 
     int idx = calculateInitialIndex();
@@ -223,8 +227,13 @@ bool OverlayController::refreshWindowList() {
 }
 
 bool OverlayController::prepareListWidget() {
+    QElapsedTimer t;
+    t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_view.updateGroups(winGroupList);
+    auto e = t.elapsed();
+    qInfo() << "[OverlayCtrl] prepareWindowGroupList" << e << "ms";
+    Util::checkSlowInit("prepareWindowGroupList", e, 200);
 
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
@@ -272,6 +281,7 @@ void OverlayController::warmupCache() {
     t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_view.updateGroups(winGroupList);
+    bool success = false;
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
         auto screen = displayOnPrimary
@@ -279,8 +289,14 @@ void OverlayController::warmupCache() {
                           : QGuiApplication::screenAt(QCursor::pos());
         if (!screen && !displayOnPrimary)
             screen = QApplication::primaryScreen();
-        if (screen)
+        if (screen) {
             calculateGeometry(screen);
+            success = true;
+        }
     }
-    qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
+    if (success)
+        m_listDirty = false;
+    auto elapsed = t.elapsed();
+    qInfo() << "[Startup] warmupCache" << elapsed << "ms";
+    Util::checkSlowInit("warmupCache", elapsed, 200);
 }
