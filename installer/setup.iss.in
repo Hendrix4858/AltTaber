@@ -1,4 +1,4 @@
-﻿; AltTaber Inno Setup Script
+; AltTaber Inno Setup Script
 ; Requires Inno Setup 6.3+ (x64compatible directive)
 
 #define MyAppName "AltTaber"
