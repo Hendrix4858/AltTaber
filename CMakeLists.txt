@@ -61,8 +61,6 @@ configure_file(
         @ONLY
 )
 
-include_directories(header)
-
 find_package(Qt6 COMPONENTS
         Core
         Gui
@@ -73,6 +71,8 @@ find_package(Qt6 COMPONENTS
         REQUIRED)
 
 add_executable(Win_Switcher)
+
+target_include_directories(Win_Switcher PRIVATE src)
 
 add_executable(AltTaberCtl tools/AltTaberCtl/main.cpp)
 target_link_libraries(AltTaberCtl PRIVATE Qt::Core Qt::Network)
@@ -86,107 +86,8 @@ target_sources(Win_Switcher PRIVATE
     ${VERSIONINFO_RC}
 )
 
-# ── Core / UI ──
-target_sources(Win_Switcher PRIVATE
-    src/widget.cpp                 header/widget.h                 ui/widget.ui
-    src/WindowManager.cpp          header/WindowManager.h
-    src/WindowGroupModel.cpp       header/WindowGroupModel.h
-                                   header/WindowTypes.h
-    src/WindowEnumerator.cpp       header/WindowEnumerator.h
-    src/WindowGrouper.cpp          header/WindowGrouper.h
-    src/WindowFilter.cpp           header/WindowFilter.h
-    src/WindowDescriptorBuilder.cpp header/WindowDescriptorBuilder.h
-    src/ActivationHistory.cpp      header/ActivationHistory.h
-    src/WindowCycleOrder.cpp       header/WindowCycleOrder.h
-    src/TaskbarMouseHelper.cpp     header/TaskbarMouseHelper.h
-    src/OverlayController.cpp      header/OverlayController.h
-    src/SelectionController.cpp    header/SelectionController.h
-    src/GroupWindowCycler.cpp      header/GroupWindowCycler.h
-    src/TaskbarWindowCycler.cpp    header/TaskbarWindowCycler.h
-                                   header/OverlayView.h
-    src/ActionRouter.cpp           header/ActionRouter.h
-)
-
-# ── Hooks ──
-target_sources(Win_Switcher PRIVATE
-    src/hook/KeyboardHooker.cpp    header/hook/KeyboardHooker.h
-    src/hook/TaskbarWheelHooker.cpp header/hook/TaskbarWheelHooker.h
-    src/hook/WheelEventProcessor.cpp header/hook/WheelEventProcessor.h
-    src/hook/winEventHook.cpp      header/hook/winEventHook.h
-    src/hook/uiautomation.cpp      header/hook/uiautomation.h
-    src/hook/HotkeyRecorder.cpp    header/hook/HotkeyRecorder.h
-)
-
-# ── Config / Hotkey ──
-target_sources(Win_Switcher PRIVATE
-                                   header/core/IConfigStore.h
-    src/core/ConfigManagerBase.cpp header/core/ConfigManagerBase.h
-                                   header/core/ConfigManager.h
-    src/core/HotkeyAction.cpp      header/core/HotkeyAction.h
-                                   header/core/HotkeyActionTypes.h
-                                   header/core/HotkeyStrings.h
-                                   header/core/HotkeyBinding.h
-    src/core/ThemeManager.cpp      header/core/ThemeManager.h
-    src/core/StyleManager.cpp      header/core/StyleManager.h
-    src/HotkeyConflictResolver.cpp header/HotkeyConflictResolver.h
-)
-
-# ── Dialogs ──
-target_sources(Win_Switcher PRIVATE
-    src/SettingsDialog.cpp         header/SettingsDialog.h
-    src/SettingsStyleHelper.cpp    header/SettingsStyleHelper.h
-    src/HotkeyPageManager.cpp      header/HotkeyPageManager.h
-    src/BlockedWindowManager.cpp   header/BlockedWindowManager.h
-    src/AddBlockedDialog.cpp       header/AddBlockedDialog.h
-                                   ui/SettingsDialog.ui
-    src/UpdateDialog.cpp           header/UpdateDialog.h
-                                   ui/UpdateDialog.ui
-)
-
-# ── i18n ──
-target_sources(Win_Switcher PRIVATE
-    src/core/LanguageManager.cpp   header/core/LanguageManager.h
-)
-
-# Translation toolchain: .ts → .qm (embedded via qt_add_resources)
-qt_add_lupdate(Win_Switcher TS_FILES translations/zh_CN.ts
-    OPTIONS -locations relative)
-qt_add_lrelease(Win_Switcher TS_FILES translations/zh_CN.ts QM_FILES_OUTPUT_VARIABLE qm_files)
-set_source_files_properties(${qm_files} PROPERTIES QT_RESOURCE_ALIAS "zh_CN.qm")
-qt_add_resources(Win_Switcher "translations" PREFIX "/translations" FILES ${qm_files})
-
-# ── Lifecycle ──
-target_sources(Win_Switcher PRIVATE
-    src/lifecycle/Application.cpp  header/lifecycle/Application.h
-    src/lifecycle/IpcServer.cpp    header/lifecycle/IpcServer.h
-    src/lifecycle/UpdateService.cpp header/lifecycle/UpdateService.h
-    src/lifecycle/HotkeyService.cpp header/lifecycle/HotkeyService.h
-    src/lifecycle/IconUtil.cpp     header/lifecycle/IconUtil.h
-    src/lifecycle/IconOnlyDelegate.cpp header/lifecycle/IconOnlyDelegate.h
-    src/lifecycle/QtWin.cpp        header/lifecycle/QtWin.h
-    src/lifecycle/SystemTray.cpp   header/lifecycle/SystemTray.h
-    src/lifecycle/ScheduledTask.cpp header/lifecycle/ScheduledTask.h
-    src/lifecycle/Logger.cpp       header/lifecycle/Logger.h
-                                   header/lifecycle/ComInitializer.h
-                                   header/lifecycle/SingleApp.h
-                                   header/lifecycle/Startup.h
-)
-
-# ── Utils ──
-target_sources(Win_Switcher PRIVATE
-    src/utils/WindowUtil.cpp       header/utils/WindowUtil.h
-    src/utils/ProcessUtil.cpp       header/utils/ProcessUtil.h
-    src/utils/MiscUtil.cpp         header/utils/MiscUtil.h
-    src/utils/PwaDetector.cpp      header/utils/PwaDetector.h
-    header/utils/Util.h
-    src/utils/setWindowBlur.cpp    header/utils/setWindowBlur.h
-    src/utils/UwpHelper.cpp        header/utils/UwpHelper.h
-    src/utils/StartMenuHelper.cpp  header/utils/StartMenuHelper.h
-    src/utils/VirtualDesktopManager.cpp header/utils/VirtualDesktopManager.h
-    src/utils/AppExeResolver.cpp   header/utils/AppUtil.h
-    src/utils/PathUtils.cpp        header/utils/PathUtils.h
-    src/utils/RuntimeArch.cpp      header/utils/RuntimeArch.h
-)
+add_subdirectory(translations)
+add_subdirectory(src)
 target_link_libraries(Win_Switcher
         Qt::Core
         Qt::Gui

@@ -9,7 +9,7 @@ add_executable(test_filter
     test_filter_main.cpp
     ${CMAKE_SOURCE_DIR}/src/WindowFilter.cpp
 )
-target_include_directories(test_filter PRIVATE ${CMAKE_SOURCE_DIR}/header)
+target_include_directories(test_filter PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_filter PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
 
 # --- HotkeyConflictResolver tests ---
@@ -18,7 +18,7 @@ add_executable(test_hotkey
     ${CMAKE_SOURCE_DIR}/src/HotkeyConflictResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/HotkeyAction.cpp
 )
-target_include_directories(test_hotkey PRIVATE ${CMAKE_SOURCE_DIR}/header)
+target_include_directories(test_hotkey PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_hotkey PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
 
 # --- OverlayController state machine tests ---
@@ -29,14 +29,14 @@ add_executable(test_overlay
     ${CMAKE_SOURCE_DIR}/src/OverlayController.cpp
     ${CMAKE_SOURCE_DIR}/src/core/HotkeyAction.cpp
     # Q_OBJECT headers — AUTOMOC generates MOC metadata from these
-    ${CMAKE_SOURCE_DIR}/header/WindowManager.h
-    ${CMAKE_SOURCE_DIR}/header/WindowGroupModel.h
-    ${CMAKE_SOURCE_DIR}/header/OverlayController.h
-    ${CMAKE_SOURCE_DIR}/header/core/ConfigManagerBase.h
-    ${CMAKE_SOURCE_DIR}/header/core/ThemeManager.h
-    ${CMAKE_SOURCE_DIR}/header/lifecycle/SystemTray.h
+    ${CMAKE_SOURCE_DIR}/src/WindowManager.h
+    ${CMAKE_SOURCE_DIR}/src/WindowGroupModel.h
+    ${CMAKE_SOURCE_DIR}/src/OverlayController.h
+    ${CMAKE_SOURCE_DIR}/src/core/ConfigManagerBase.h
+    ${CMAKE_SOURCE_DIR}/src/core/ThemeManager.h
+    ${CMAKE_SOURCE_DIR}/src/lifecycle/SystemTray.h
 )
-target_include_directories(test_overlay PRIVATE ${CMAKE_SOURCE_DIR}/header)
+target_include_directories(test_overlay PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_overlay PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
 
 enable_testing()
