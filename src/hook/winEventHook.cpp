@@ -1,5 +1,3 @@
-#include <QDebug>
-#include <QTime>
 #include "hook/winEventHook.h"
 #include "core/ConfigManager.h"
 #include "utils/Util.h"
@@ -14,23 +12,6 @@ void CALLBACK WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd, 
 
     if (cfg().getPaused())
         return;
-
-    // Diagnostic logging for interesting window events
-    const char* eventName = nullptr;
-    switch (event) {
-        case EVENT_SYSTEM_FOREGROUND: eventName = "EVENT_SYSTEM_FOREGROUND"; break;
-        case EVENT_OBJECT_SHOW:       eventName = "EVENT_OBJECT_SHOW"; break;
-        case EVENT_OBJECT_HIDE:       eventName = "EVENT_OBJECT_HIDE"; break;
-    }
-    if (eventName) {
-        WCHAR className[256] = {};
-        GetClassNameW(hwnd, className, 256);
-        auto title = Util::getWindowTitle(hwnd);
-        // qDebug() << "[WinEvent]" << eventName
-        //         << "hwnd=" << Qt::hex << hwnd << Qt::dec
-        //         << "class=" << QString::fromWCharArray(className)
-        //         << "title=" << title;
-    }
 
     if (callback)
         callback(event, hwnd);
@@ -63,6 +44,4 @@ void unhookWinEvent() {
     callback = nullptr;
     UnhookWinEvent(handler);
     handler = nullptr;
-
-    qDebug() << "Unhook win event.";
 }

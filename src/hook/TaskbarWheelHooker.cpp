@@ -57,7 +57,6 @@ TaskbarWheelHooker::TaskbarWheelHooker() {
 TaskbarWheelHooker::~TaskbarWheelHooker() {
     if (m_mouseHook) {
         UnhookWindowsHookEx(m_mouseHook);
-        qDebug() << "WH_MOUSE_LL uninstalled";
     }
     s_instance = nullptr;
     UIAutomation::cleanup();

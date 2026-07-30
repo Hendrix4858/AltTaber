@@ -130,7 +130,6 @@ bool HotkeyRecorder::eventFilter(QObject* obj, QEvent* event) {
     if (event->type() == QEvent::KeyPress) {
         auto* ke = static_cast<QKeyEvent*>(event);
         if (ke->key() == Qt::Key_Escape) {
-            qDebug() << "[RecordFallback] Escape -> cancelRecording";
             cancelRecording();
             return true;
         }

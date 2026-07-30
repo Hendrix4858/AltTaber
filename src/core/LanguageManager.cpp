@@ -5,7 +5,7 @@
 #include <QApplication>
 #include <QTranslator>
 #include <QLocale>
-#include <QDebug>
+
 
 namespace {
 QTranslator g_translator;
@@ -33,7 +33,6 @@ void switchLanguage(const QString& langCode) {
     if (targetLang == "zh_CN") {
         if (g_translator.load(":/translations/zh_CN.qm")) {
             qApp->installTranslator(&g_translator);
-            qDebug().noquote() << "Loaded zh_CN translations";
         } else {
             qWarning() << "Failed to load zh_CN translations";
         }

@@ -5,7 +5,7 @@
 #include "WindowManager.h"
 #include "utils/Util.h"
 #include "core/ConfigManager.h"
-#include <QDebug>
+
 
 ActionRouter::ActionRouter(QObject* parent)
     : QObject(parent) {}
@@ -27,8 +27,6 @@ void ActionRouter::setWindowManager(WindowManager* wm) {
 }
 
 void ActionRouter::routeGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    qInfo() << "[ActionRouter] routeGlobalAction" << hotkeyActionName(action);
-
     switch (action) {
     case HotkeyAction::SwitchToNextWindow:
     case HotkeyAction::SwitchToPreviousWindow:

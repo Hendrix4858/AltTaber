@@ -66,16 +66,13 @@ private:
 #define LOG_TRACE(msg) ::Util::Logger::trace(__FILE__, __LINE__, msg)
 
 inline void checkSlowInit(const char* phaseName, qint64 elapsedMs, qint64 thresholdMs = 100) {
-#ifndef NDEBUG
     if (elapsedMs > thresholdMs) {
         qWarning().noquote() << QStringLiteral("[SlowInit] %1 took %2 ms (threshold: %3 ms)")
             .arg(phaseName).arg(elapsedMs).arg(thresholdMs);
     }
-#else
     Q_UNUSED(phaseName)
     Q_UNUSED(elapsedMs)
     Q_UNUSED(thresholdMs)
-#endif
 }
 
 } // namespace Util

@@ -50,7 +50,6 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
                 && hwnd != widget->hWnd()
                 && !Util::isKeyPressed(VK_MENU)
                 && !widget->shouldSkipForegroundHide()) {
-                qInfo() << "[WinEvent] hiding overlay (clicked outside while Visible)";
                 widget->hideOverlay();
                 widget->setSkipForegroundHide(false);
                 return;
@@ -61,7 +60,6 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
                 && hwnd != widget->hWnd()
                 && !Util::isKeyPressed(VK_MENU)
                 && oState != OverlayController::OverlayState::Visible) {
-                qInfo() << "[WinEvent] hiding overlay (fg changed while not Visible)";
                 widget->hideOverlay();
             }
 
@@ -70,7 +68,6 @@ void HotkeyService::init(Widget* widget, ActionRouter* router, const HotkeyBindi
                 (className == "ForegroundStaging") &&
                 widget->overlayController()->overlayState()
                     != OverlayController::OverlayState::Visible) {
-                qInfo() << "[WinEvent] Task switcher detected (fallback)" << className;
                 widget->requestShow(OverlayIntent::FallbackShow);
                 if (Util::isKeyPressed(VK_MENU))
                     m_keyboardHooker->activateTrackingFromPhysicalState();
@@ -135,16 +132,13 @@ void HotkeyService::retryFallbackShow() {
         m_retryCount = 0;
         return;
     }
-    qInfo() << "[WinEvent] Fallback retry" << m_retryCount;
     m_widget->requestShow(OverlayIntent::FallbackShow);
     if (Util::isKeyPressed(VK_MENU))
         m_keyboardHooker->activateTrackingFromPhysicalState();
 }
 
 void HotkeyService::reloadFromConfig() {
-    qInfo() << "[Config] configEdited -> re-injecting hotkey bindings";
     auto b = m_config->effectiveHotkeyBindings();
-    qInfo() << "[Config] binding count:" << b.size() << "paused:" << m_config->getPaused();
     m_keyboardHooker->updateBindings(b);
     m_keyboardHooker->setPaused(m_config->getPaused());
     m_keyboardHooker->resetActivationModifiers();
@@ -154,11 +148,9 @@ void HotkeyService::reloadFromConfig() {
         m_taskbarHooker = new TaskbarWheelHooker;
         m_taskbarHooker->setPaused(m_config->getPaused());
         wireTaskbarSignals();
-        qInfo() << "[TaskbarWheel] hook installed";
     } else if (!wheelEnabled && m_taskbarHooker) {
         delete m_taskbarHooker;
         m_taskbarHooker = nullptr;
-        qInfo() << "[TaskbarWheel] hook uninstalled";
     } else if (wheelEnabled && m_taskbarHooker) {
         m_taskbarHooker->setPaused(m_config->getPaused());
     }

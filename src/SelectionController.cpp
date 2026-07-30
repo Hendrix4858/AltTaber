@@ -46,10 +46,6 @@ int SelectionController::currentRow() const {
 
 void SelectionController::handleOverlayAction(HotkeyAction action, Qt::KeyboardModifiers modifiers,
                                               InputSource source) {
-    qInfo() << "[Action] overlayAction=" << hotkeyActionName(action)
-            << "source=" << (source == InputSource::LowLevelHook ? "LowLevelHook" : "KeyboardInput")
-            << "groupMode=" << m_isGroupExpanded;
-
     switch (action) {
     case HotkeyAction::CycleForward: {
         if (m_isGroupExpanded && (modifiers & Qt::AltModifier)) {
@@ -186,20 +182,16 @@ bool SelectionController::handleEventFilter(QObject* watched, QEvent* event, boo
 void SelectionController::expandGroup() {
     auto index = m_listView->currentIndex();
     if (!index.isValid()) {
-        LOG_TRACE("[GroupMode] expandGroup called but currentIndex invalid");
         return;
     }
 
     auto group = m_model->groupAt(index.row());
     if (group.windows.size() <= 1) {
-        LOG_TRACE("[GroupMode] expandGroup called but only 1 window");
         return;
     }
 
     m_expandedGroupBackup = m_model->groups();
     m_expandedGroupBackupIndex = index.row();
-    qInfo() << "[GroupMode] Enter, backupIndex=" << m_expandedGroupBackupIndex
-            << "windows=" << group.windows.size();
 
     bool pwaTagMode = cfg().getPwaEnabled() && cfg().getPwaMode() == PwaMode::TagWithinGroup;
 
@@ -227,23 +219,17 @@ void SelectionController::expandGroup() {
     emit geometryNeedsRecalc();
     m_listView->setCurrentIndex(m_model->index(0));
     showLabelForItem(m_model->index(0));
-    qInfo() << "(Alt+`)Window focus:" << group.exePath << filtered.size() << "windows";
 }
 
 void SelectionController::collapseGroup(bool activateSelected) {
     if (!m_isGroupExpanded) {
-        LOG_TRACE("[GroupMode] collapseGroup called but NOT in group mode");
         return;
     }
-    qInfo() << "[GroupMode] collapseGroup activateSelected=" << activateSelected
-            << "backupIndex=" << m_expandedGroupBackupIndex
-            << "backupCount=" << m_expandedGroupBackup.size();
     m_isGroupExpanded = false;
 
     if (activateSelected) {
         if (auto index = m_listView->currentIndex(); index.isValid()) {
             if (auto group = m_model->groupAt(index.row()); !group.windows.empty()) {
-                qInfo() << "[GroupMode] activating window on exit";
                 emit switchToWindowRequested(group.windows.first().hwnd,
                                               group.exePath,
                                               group.windows.first().title,
@@ -260,35 +246,24 @@ void SelectionController::collapseGroup(bool activateSelected) {
     m_listView->setCurrentIndex(m_model->index(restoreIndex));
     showLabelForItem(m_model->index(restoreIndex));
     m_expandedGroupBackupIndex = 0;
-
-    qInfo() << "[GroupMode] Exit, restored to index" << restoreIndex;
 }
 
 bool SelectionController::tryEnterGroupForWindow(HWND hwnd) {
-    qInfo() << "[AutoGroup] tryEnterGroupForWindow hwnd=" << Qt::hex << hwnd
-             << "groupCount=" << m_model->groupCount()
-             << "inGroupMode=" << m_isGroupExpanded;
     if (m_isGroupExpanded) return false;
 
     for (int i = 0; i < m_model->groupCount(); ++i) {
         auto& group = m_model->groupAt(i);
         for (auto& w : group.windows) {
             if (w.hwnd == hwnd) {
-                qInfo() << "[AutoGroup] found window in group" << i
-                         << "windows=" << group.windows.size();
                 if (group.windows.size() <= 1) {
-                    qInfo() << "[AutoGroup] single window group, skip";
                     return false;
                 }
-                qInfo() << "[AutoGroup] entering group mode for" << group.windows.size()
-                         << "windows";
                 m_listView->setCurrentIndex(m_model->index(i));
                 expandGroup();
                 return true;
             }
         }
     }
-    qInfo() << "[AutoGroup] window not found in any group";
     return false;
 }
 
@@ -306,30 +281,20 @@ void SelectionController::resetAll() {
 }
 
 void SelectionController::handleListItemClicked(const QModelIndex& index, bool stayOpenMode) {
-    qInfo() << "[Click] item row=" << index.row() << "groupMode=" << m_isGroupExpanded
-             << "stayOpen=" << stayOpenMode << "mouseClickActivate=" << cfg().getMouseClickActivateEnabled();
-
     if (!cfg().getMouseClickActivateEnabled() && !stayOpenMode) {
-        LOG_TRACE("[Click] ignored (mouseClickActivate disabled, not stay-open)");
         return;
     }
 
     if (m_isGroupExpanded) {
-        qInfo() << "[Click] in group mode -> collapseGroup(true)";
         collapseGroup(true);
         return;
     }
 
     auto& group = m_model->groupAt(index.row());
-    LOG_TRACE(QStringLiteral("[Click] group windows=%1 clickShowGroup=%2")
-                 .arg(group.windows.size())
-                 .arg(cfg().getClickShowGroupForMultiWindow()));
     if (group.windows.size() > 1 && cfg().getClickShowGroupForMultiWindow()) {
-        qInfo() << "[Click] expandGroup";
         expandGroup();
     } else {
         if (!group.windows.empty()) {
-            qInfo() << "[Click] switchToWindow + hide";
             emit switchToWindowRequested(group.windows.first().hwnd,
                                           group.exePath,
                                           group.windows.first().title,

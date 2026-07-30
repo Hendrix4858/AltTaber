@@ -219,7 +219,7 @@ namespace Util {
             PackageManager packageManager;
             auto package = packageManager.FindPackageForUser(L"", hstring(packageFullName));
             if (!package) {
-                qDebug() << "Package not found?";
+        
                 return {};
             }
             return QString::fromStdWString(package.InstalledPath().c_str());
@@ -315,8 +315,6 @@ namespace Util {
                     }
                 }
 
-                qDebug().nospace() << "[DiskCache::saveExeIcon] path=" << exePath
-                                   << " size=" << pixmap.size();
                 pixmap.save(filePath, "PNG");
 
                 CacheEntry entry;
@@ -448,23 +446,13 @@ namespace Util {
         if (auto uwpDir = getUwpInstallDirFromHwnd(hwnd); !uwpDir.isEmpty()) {
             QIcon uwpIcon = AppUtil::getAppIcon(uwpDir + "\\fake.exe");
             sourcePix = uwpIcon.pixmap(256);
-#ifndef NDEBUG
-            if (path.contains("ApplicationFrameHost", Qt::CaseInsensitive))
-                qDebug().nospace() << "[getCachedIcon] AppFrameHost UWP hit: uwpDir=" << uwpDir
-                                   << " uwpIconSize=" << sourcePix.size();
-#endif
         } else {
-#ifndef NDEBUG
-            if (path.contains("ApplicationFrameHost", Qt::CaseInsensitive))
-                qDebug().nospace() << "[getCachedIcon] AppFrameHost UWP miss -> fallback to extractJumboIconPixmap";
-#endif
             sourcePix = extractJumboIconPixmap(path);
         }
 
         QIcon icon(sourcePix);
         DiskCache::instance().saveExeIcon(path, sourcePix);
         IconCache.insert(path, icon);
-        qDebug() << "Icon not found in cache, loaded in" << t.elapsed() << "ms" << path << "source=" << sourcePix.size();
         return icon;
     }
 
@@ -531,7 +519,6 @@ namespace Util {
         {
             BITMAP bm = {};
             GetObject(hBitmap, sizeof(bm), &bm);
-            qDebug().nospace() << "[IconUtil::getShellAppIcon] HBITMAP size=" << bm.bmWidth << "x" << bm.bmHeight << " bpp=" << bm.bmBitsPixel;
             if (bm.bmBitsPixel == 32) {
                 // Read GDI raw data as straight alpha (Format_ARGB32), NOT premultiplied.
                 // GDI's GetDIBits returns straight alpha BGRA pixels.
@@ -559,9 +546,7 @@ namespace Util {
             }
         }
         DeleteObject(hBitmap);
-        qDebug().nospace() << "[IconUtil::getShellAppIcon] QImage format=" << imgFormat << " hasAlpha=" << img.hasAlphaChannel() << " size=" << img.width() << "x" << img.height();
         QPixmap pix = QPixmap::fromImage(img);
-        qDebug().nospace() << "[IconUtil::getShellAppIcon] result QPixmap size=" << pix.size() << " dpr=" << pix.devicePixelRatio();
         return pix;
     }
 
@@ -826,10 +811,6 @@ namespace Util {
         }
 
         if (!result.icon.isNull()) {
-            static const char* tag[] = {"None","Aumid","Jumbo","Extract","Window","Provider"};
-            qDebug().noquote() << "[IconUtil] ICON" << cacheKey
-                               << "src=" << tag[static_cast<int>(result.source)]
-                               << "native=" << result.sourceSize;
             s_cache.insert(cacheKey, result);
         }
         return result;
@@ -849,21 +830,15 @@ namespace Util {
                                const QString& processPath,
                                WindowKind windowKind) {
         if (windowKind == WindowKind::Pwa && !pwaDisplayName.isEmpty()) {
-            qDebug().noquote() << "[IconUtil] resolveDisplayName path=PWA displayName  "
-                               << pwaDisplayName;
             return pwaDisplayName;
         }
 
         if (!identity.instance.isEmpty()) {
-            qDebug().noquote() << "[IconUtil] resolveDisplayName path=instance title   "
-                               << title;
             return title;
         }
 
         QString fileDesc = Util::getFileDescription(processPath);
         if (!fileDesc.isEmpty()) {
-            qDebug().noquote() << "[IconUtil] resolveDisplayName path=fileDescription  "
-                               << fileDesc;
             return fileDesc;
         }
 

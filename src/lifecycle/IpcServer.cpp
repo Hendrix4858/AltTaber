@@ -12,7 +12,6 @@ IpcServer::IpcServer(QObject* parent)
 IpcServer::~IpcServer()
 {
     if (m_server->isListening()) {
-        qInfo() << "[IPC] Server closed";
         m_server->close();
     }
 }
@@ -59,14 +58,11 @@ void IpcServer::onNewConnection()
         return;
     }
 
-    qInfo() << "[IPC] Client connected";
-
     connect(socket, &QLocalSocket::readyRead,
             this, &IpcServer::onReadyRead);
     connect(socket, &QLocalSocket::disconnected,
             socket, &QLocalSocket::deleteLater);
     connect(socket, &QLocalSocket::disconnected, this, [socket]() {
-        qInfo() << "[IPC] Client disconnected";
     });
 }
 
@@ -79,14 +75,12 @@ void IpcServer::onReadyRead()
     }
 
     QByteArray cmd = socket->readAll().trimmed();
-    qInfo() << "[IPC] Command:" << cmd;
     handleCommand(socket, cmd);
 }
 
 void IpcServer::handleCommand(QLocalSocket* socket, const QByteArray& cmd)
 {
     if (cmd == "quit") {
-        qInfo() << "[IPC] quit: sending OK, scheduling app quit in 50ms";
         socket->write("OK\n");
         socket->flush();
         emit quitRequested();
