@@ -240,6 +240,11 @@ Overwrite?</source>
         <source>+ Add</source>
         <translation>+ 添加</translation>
     </message>
+    <message>
+        <location line="+37"/>
+        <source>Recording...</source>
+        <translation>录制中...</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -431,6 +436,42 @@ Overwrite?</source>
         <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Fatal</source>
         <translation>严重</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>High-frequency verbose logging, typically not needed in daily use</source>
+        <translation>高频详细日志，日常使用通常不需要开启</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>General debugging information</source>
+        <translation>常规调试信息</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Informational messages about normal operation</source>
+        <translation>关于正常运行的信息性消息</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Non-critical issues that should be reviewed</source>
+        <translation>需要关注的非关键问题</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Errors that may affect functionality</source>
+        <translation>可能影响功能的错误</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Critical errors that may cause application crashes</source>
+        <translation>可能导致应用程序崩溃的严重错误</translation>
     </message>
     <message>
         <location line="+9"/>

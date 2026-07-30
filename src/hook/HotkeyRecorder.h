@@ -46,7 +46,8 @@ private:
     QHBoxLayout* m_layout;
     QLabel* m_label;
 
-    int m_recordingIndex = -1; // -1 = not recording
+    QPushButton* m_addBtn = nullptr;
+    int m_recordingIndex = -1;
 };
 
 #endif //WIN_SWITCHER_HOTKEYRECORDER_H

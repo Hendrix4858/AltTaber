@@ -125,6 +125,8 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             refreshLogSize();
         else if (row == 4)
             refreshCacheSize();
+        if (row != 2)
+            m_hotkeyMgr->cancelAllRecordings();
     });
     connect(ui->btnOk, &QPushButton::clicked, this, [this] {
         applySettings();
@@ -356,11 +358,17 @@ void SettingsDialog::retranslateUi() {
 
     ui->logGroup->setTitle(tr("Logging"));
     ui->chkLogTrace->setText(tr("Trace"));
+    ui->chkLogTrace->setToolTip(tr("High-frequency verbose logging, typically not needed in daily use"));
     ui->chkLogDebug->setText(tr("Debug"));
+    ui->chkLogDebug->setToolTip(tr("General debugging information"));
     ui->chkLogInfo->setText(tr("Info"));
+    ui->chkLogInfo->setToolTip(tr("Informational messages about normal operation"));
     ui->chkLogWarn->setText(tr("Warning"));
+    ui->chkLogWarn->setToolTip(tr("Non-critical issues that should be reviewed"));
     ui->chkLogError->setText(tr("Error"));
+    ui->chkLogError->setToolTip(tr("Errors that may affect functionality"));
     ui->chkLogFatal->setText(tr("Fatal"));
+    ui->chkLogFatal->setToolTip(tr("Critical errors that may cause application crashes"));
     ui->logDirLabel->setText(tr("Log Directory:"));
     ui->btnBrowseLogDir->setText(tr("Browse..."));
 
@@ -503,6 +511,8 @@ void SettingsDialog::changeEvent(QEvent* event) {
             m_hotkeyMgr->buildHotkeyPage(ui->stackedWidget, ui->hotkeyPlaceholder);
             m_hotkeyMgr->loadBindings();
         }, Qt::QueuedConnection);
+    } else if (event->type() == QEvent::WindowDeactivate) {
+        m_hotkeyMgr->cancelAllRecordings();
     }
     QDialog::changeEvent(event);
 }
