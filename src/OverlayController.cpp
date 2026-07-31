@@ -31,6 +31,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
     switch (action) {
     case HotkeyAction::SwitchToNextWindow:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::SwitchToNextWindow, SessionEndTrigger::ModifierRelease};
             handleIntent(OverlayIntent::ShowSwitcher);
         } else if (m_overlayState == OverlayState::Visible) {
             emit actionForwarded(HotkeyAction::CycleForward, modifiers);
@@ -39,6 +40,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
 
     case HotkeyAction::SwitchToPreviousWindow:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::SwitchToPreviousWindow, SessionEndTrigger::ModifierRelease};
             handleIntent(OverlayIntent::ShowSwitcherBackward);
         } else if (m_overlayState == OverlayState::Visible) {
             emit actionForwarded(HotkeyAction::CycleBackward, modifiers);
@@ -47,6 +49,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
 
     case HotkeyAction::ShowSwitcherStayOpen:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::ShowSwitcherStayOpen, SessionEndTrigger::ExplicitAction};
             handleIntent(OverlayIntent::ShowSwitcher);
         } else if (m_overlayState == OverlayState::Visible) {
             m_stayOpenMode = true;

@@ -6,6 +6,8 @@
 #include <QObject>
 #include "core/HotkeyAction.h"
 
+class QTimer;
+
 class KeyboardHooker : public QObject {
     Q_OBJECT
 
@@ -60,6 +62,20 @@ private:
 
     Qt::KeyboardModifiers m_activationModifiers = Qt::NoModifier;
     bool m_waitingForModifierRelease = false;
+    // Modifier-release watchdog: guarantees a tracked session ends even when a
+    // keyup is missed by the low-level hook (fast taps, busy message loop).
+    // m_modWatchdog, m_activationModifiers and m_waitingForModifierRelease are
+    // only touched from the main GUI thread (hook callback via the installing
+    // thread's message loop, QTimer timeout, and direct calls from
+    // HotkeyService/Widget). No atomics required; keep it single-threaded.
+    QTimer* m_modWatchdog = nullptr;
+    static constexpr int kModifierWatchdogMs = 30;
+
+    void armModifierReleaseTracking(Qt::KeyboardModifiers mods);
+    void startModifierWatchdog();
+    void stopModifierWatchdog();
+    void checkModifierWatchdog();
+    void finishModifierRelease();
 
     static KeyboardHooker* s_instance;
 

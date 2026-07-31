@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QTimer>
 #include "hook/KeyboardHooker.h"
 #include "utils/Util.h"
 
@@ -31,10 +32,12 @@ void KeyboardHooker::updateModifierState(ModifierState& ms, WPARAM wParam, DWORD
 }
 
 void KeyboardHooker::snapshotModifiersFromOS(ModifierState& ms) {
-    ms.ctrl  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-    ms.shift = (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0;
-    ms.alt   = (GetAsyncKeyState(VK_MENU)    & 0x8000) != 0;
-    ms.meta  = ((GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN)) & 0x8000) != 0;
+    // Check per-side virtual keys so left/right modifiers are both covered
+    // (GetAsyncKeyState(VK_MENU) alone is ambiguous on some layouts).
+    ms.ctrl  = ((GetAsyncKeyState(VK_LCONTROL) | GetAsyncKeyState(VK_RCONTROL)) & 0x8000) != 0;
+    ms.shift = ((GetAsyncKeyState(VK_LSHIFT)   | GetAsyncKeyState(VK_RSHIFT))   & 0x8000) != 0;
+    ms.alt   = ((GetAsyncKeyState(VK_LMENU)    | GetAsyncKeyState(VK_RMENU))    & 0x8000) != 0;
+    ms.meta  = ((GetAsyncKeyState(VK_LWIN)     | GetAsyncKeyState(VK_RWIN))     & 0x8000) != 0;
 }
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -105,6 +108,12 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                     bool match = binding.matchesPhysical(keyEvent->vkCode, keyEvent->scanCode,
                                            (keyEvent->flags & LLKHF_EXTENDED) != 0, mods);
                     if (match) {
+                        // Arm modifier-release tracking synchronously, before the
+                        // queued hotkey delivery, so a fast key release is never
+                        // missed (the old code armed only after the show event
+                        // processed, which could strand the overlay on screen).
+                        if (getActionMetadata(it.key()).lifecycle == HotkeyLifecycle::OverlaySession)
+                            inst->armModifierReleaseTracking(mods);
                         emit inst->hotkeyTriggered(it.key(), mods);
                         return 1;
                     }
@@ -155,15 +164,61 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (inst->m_waitingForModifierRelease) {
                 Qt::KeyboardModifiers currentMods = KeyboardHooker::toQtModifiers(inst->m_modState);
                 bool allReleased = (inst->m_activationModifiers & currentMods) == 0;
-                if (allReleased) {
-                    emit inst->activationModifiersReleased();
-                    inst->m_waitingForModifierRelease = false;
-                    inst->m_activationModifiers = Qt::NoModifier;
-                }
+                if (allReleased)
+                    inst->finishModifierRelease();
             }
         }
     }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
+}
+
+void KeyboardHooker::armModifierReleaseTracking(Qt::KeyboardModifiers mods) {
+    if (mods == Qt::NoModifier)
+        return;
+    m_activationModifiers = mods;
+    m_waitingForModifierRelease = true;
+    startModifierWatchdog();
+}
+
+void KeyboardHooker::startModifierWatchdog() {
+    if (!m_modWatchdog) {
+        // Single lazily-created, reused timer; start() is idempotent so
+        // re-arming never accumulates timers.
+        m_modWatchdog = new QTimer(this);
+        m_modWatchdog->setInterval(kModifierWatchdogMs);
+        connect(m_modWatchdog, &QTimer::timeout, this, [this]() { checkModifierWatchdog(); });
+    }
+    m_modWatchdog->start();
+}
+
+void KeyboardHooker::stopModifierWatchdog() {
+    if (m_modWatchdog)
+        m_modWatchdog->stop();
+}
+
+void KeyboardHooker::checkModifierWatchdog() {
+    if (!m_waitingForModifierRelease) {
+        stopModifierWatchdog();
+        return;
+    }
+    ModifierState ms;
+    snapshotModifiersFromOS(ms);
+    Qt::KeyboardModifiers pressed = toQtModifiers(ms);
+    if ((m_activationModifiers & pressed) == 0)
+        finishModifierRelease();
+}
+
+void KeyboardHooker::finishModifierRelease() {
+    // Single exit point for "activation modifiers released". The guard plus
+    // stopModifierWatchdog() ensure activationModifiersReleased() is emitted at
+    // most once per armed session (keyup path and watchdog both funnel here;
+    // resetActivationModifiers() never emits).
+    stopModifierWatchdog();
+    if (!m_waitingForModifierRelease)
+        return;
+    m_waitingForModifierRelease = false;
+    m_activationModifiers = Qt::NoModifier;
+    emit activationModifiersReleased();
 }
 
 KeyboardHooker::KeyboardHooker(HWND ownerHwnd, QObject* parent)
@@ -231,25 +286,22 @@ void KeyboardHooker::setPaused(bool paused) {
 }
 
 void KeyboardHooker::resetActivationModifiers() {
+    stopModifierWatchdog();
     m_waitingForModifierRelease = false;
     m_activationModifiers = Qt::NoModifier;
 }
 
 void KeyboardHooker::notifyOverlayShown() {
-    Qt::KeyboardModifiers currentMods = toQtModifiers(m_modState);
-    if (currentMods != Qt::NoModifier) {
-        m_activationModifiers = currentMods;
-        m_waitingForModifierRelease = true;
-    }
+    // Only arm if not already armed: a session armed at hotkey-match time must
+    // not be clobbered by the (possibly later) show notification.
+    if (m_waitingForModifierRelease)
+        return;
+    armModifierReleaseTracking(toQtModifiers(m_modState));
 }
 
 void KeyboardHooker::activateTrackingFromPhysicalState() {
     snapshotModifiersFromOS(m_modState);
-    Qt::KeyboardModifiers currentMods = toQtModifiers(m_modState);
-    if (currentMods != Qt::NoModifier) {
-        m_activationModifiers = currentMods;
-        m_waitingForModifierRelease = true;
-    }
+    armModifierReleaseTracking(toQtModifiers(m_modState));
 }
 
 void KeyboardHooker::updateBindings(const HotkeyBindings& bindings) {

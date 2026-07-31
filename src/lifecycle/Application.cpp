@@ -28,6 +28,7 @@
 #include "core/ThemeManager.h"
 #include "core/StyleManager.h"
 #include "core/ConfigManager.h"
+#include "core/HotkeyAction.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
 
@@ -228,7 +229,11 @@ void Application::initControllers() {
 
 void Application::initUI() {
     QObject::connect(&sysTray(), &SystemTray::showRequested, m_widget, [this]() {
-        m_widget->requestShow(OverlayIntent::ShowSwitcher);
+        // Tray show is an explicit, stay-open session: the overlay stays until
+        // the user picks a window (click/Enter) or dismisses it (Esc). Using
+        // ShowSwitcherStayOpen keeps clicks/Enter usable and out of the
+        // modifier-release watchdog's scope.
+        m_widget->requestShow(OverlayIntent::ShowSwitcher, HotkeyAction::ShowSwitcherStayOpen);
     });
 
     m_app.installNativeEventFilter(&m_sessionMon);
