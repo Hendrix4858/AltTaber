@@ -11,10 +11,12 @@
 #include "utils/PathUtils.h"
 
 #include <QApplication>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QScrollArea>
@@ -114,6 +116,20 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     });
 
     connect(ui->btnCleanLogs, &QPushButton::clicked, this, &SettingsDialog::cleanLogFiles);
+
+    connect(ui->btnConfigBrowse, &QPushButton::clicked, this, [this] {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Config Directory"),
+            ui->configCustomPathEdit->text());
+        if (!dir.isEmpty())
+            ui->configCustomPathEdit->setText(dir);
+    });
+
+    connect(ui->configLocationCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+        bool isCustom = ui->configLocationCombo->itemData(index).toString() == "custom";
+        ui->configCustomLabel->setVisible(isCustom);
+        ui->configCustomPathEdit->setVisible(isCustom);
+        ui->btnConfigBrowse->setVisible(isCustom);
+    });
 
     SettingsStyleHelper::applyTheme(this, ui);
 
@@ -238,6 +254,30 @@ void SettingsDialog::loadSettings() {
         ui->pwaTagRadio->setEnabled(pwaEnabled);
     }
 
+    {
+        ui->configLocationCombo->clear();
+        ui->configLocationCombo->addItem(tr("Program Directory"), "program");
+        ui->configLocationCombo->addItem(tr("User Config Directory"), "appdata");
+        ui->configLocationCombo->addItem(tr("Custom..."), "custom");
+
+        auto info = m_config->configLocationInfo();
+        auto location = info.location;
+        for (int i = 0; i < ui->configLocationCombo->count(); ++i) {
+            if (ui->configLocationCombo->itemData(i).toString() ==
+                (location == ConfigLocation::ProgramDir ? "program" :
+                 location == ConfigLocation::Custom ? "custom" : "appdata")) {
+                ui->configLocationCombo->setCurrentIndex(i);
+                break;
+            }
+        }
+
+        ui->configCustomPathEdit->setText(info.customPath);
+        bool isCustom = (location == ConfigLocation::Custom);
+        ui->configCustomLabel->setVisible(isCustom);
+        ui->configCustomPathEdit->setVisible(isCustom);
+        ui->btnConfigBrowse->setVisible(isCustom);
+    }
+
     m_blockedMgr->loadFromConfig();
 
     refreshCacheSize();
@@ -248,6 +288,21 @@ void SettingsDialog::loadSettings() {
 }
 
 void SettingsDialog::applySettings() {
+    {
+        auto typeStr = ui->configLocationCombo->currentData().toString();
+        ConfigLocation loc = ConfigLocation::AppData;
+        if (typeStr == "program") loc = ConfigLocation::ProgramDir;
+        else if (typeStr == "custom") loc = ConfigLocation::Custom;
+
+        if (!m_config->setConfigLocation(loc, ui->configCustomPathEdit->text())) {
+            QMessageBox::warning(this, tr("Config Location"),
+                                 tr("Failed to change the config location.\n"
+                                    "The target directory is invalid or not writable."));
+            loadSettings();
+            return;
+        }
+    }
+
     QString lang = ui->langCombo->currentData().toString();
     m_config->setLanguage(lang);
     switchLanguage(lang);
@@ -321,8 +376,10 @@ void SettingsDialog::retranslateUi() {
         ui->navList->item(6)->setText(tr("About"));
     }
 
-    ui->langGroup->setTitle(tr("Language Settings"));
+    ui->generalGroup->setTitle(tr("General"));
     ui->langLabel->setText(tr("Language:"));
+    ui->configLocationLabel->setText(tr("Config Location:"));
+    ui->configCustomLabel->setText(tr("Custom Path:"));
 
     QString savedLang = ui->langCombo->currentData().toString();
     ui->langCombo->clear();
@@ -398,7 +455,6 @@ void SettingsDialog::retranslateUi() {
     if (m_btnExportBlocked) m_btnExportBlocked->setText(tr("Export"));
     if (m_btnImportBlocked) m_btnImportBlocked->setText(tr("Import"));
 
-    ui->letterJumpGroup->setTitle(tr("Letter Jump"));
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));

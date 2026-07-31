@@ -52,6 +52,8 @@ en.AutoCloseFailed=Automatic close failed. Retry or cancel installation?
 zh.AutoCloseFailed=自动关闭失败。重试或取消安装？
 en.DeleteConfig=Delete configuration and settings?
 zh.DeleteConfig=删除配置和设置？
+en.DeleteProgramConfigWarn=The program directory contains the configuration file (config.json). Uninstalling will delete the entire program directory, including your configuration and settings. Continue uninstalling?
+zh.DeleteProgramConfigWarn=程序目录中包含配置文件(config.json)。卸载将删除整个程序目录,配置和设置会一并丢失。是否继续卸载?
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -311,6 +313,12 @@ end;
 function InitializeUninstall: Boolean;
 begin
   Result := True;
+  if FileExists(ExpandConstant('{app}\config.json')) then begin
+    if MsgBox(CustomMessage('DeleteProgramConfigWarn'), mbConfirmation, MB_YESNO) = IDNO then begin
+      Result := False;
+      Exit;
+    end;
+  end;
   if not IsAppRunning then
     Exit;
   if not PromptAndKillLoop(False) then

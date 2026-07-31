@@ -7,6 +7,7 @@
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include <QDebug>
+#include <QApplication>
 #include <QWindow>
 #include <QScreen>
 #include <QTimer>

@@ -118,41 +118,59 @@
          <property name="bottomMargin">
           <number>0</number>
          </property>
-         <item>
-          <widget class="QGroupBox" name="langGroup">
-           <property name="title">
-            <string>Language Settings</string>
-           </property>
-           <layout class="QFormLayout" name="langLayout">
-            <item row="0" column="0">
-             <widget class="QLabel" name="langLabel">
-              <property name="text">
-               <string>Language:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="langCombo"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="letterJumpGroup">
-           <property name="title">
-            <string>Letter Jump</string>
-           </property>
-           <layout class="QVBoxLayout" name="letterJumpLayout">
-            <item>
-             <widget class="QCheckBox" name="letterJumpCheck">
-              <property name="text">
-               <string>Enable letter jump (A-Z)</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
+          <item>
+           <widget class="QGroupBox" name="generalGroup">
+            <property name="title">
+             <string>General</string>
+            </property>
+        <layout class="QFormLayout" name="generalGroupLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="langLabel">
+                <property name="text">
+                 <string>Language:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QComboBox" name="langCombo"/>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="configLocationLabel">
+                <property name="text">
+                 <string>Config Location:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="configLocationCombo"/>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="configCustomLabel"/>
+              </item>
+              <item row="2" column="1">
+               <layout class="QHBoxLayout" name="configCustomLayout">
+                <item>
+                 <widget class="QLineEdit" name="configCustomPathEdit"/>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnConfigBrowse">
+                  <property name="text">
+                   <string>Browse...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          <item>
+           <widget class="QCheckBox" name="letterJumpCheck">
+            <property name="text">
+             <string>Enable letter jump (A-Z)</string>
+            </property>
+           </widget>
+          </item>
          <item>
           <widget class="QCheckBox" name="startupCheck">
            <property name="text">

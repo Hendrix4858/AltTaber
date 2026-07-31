@@ -27,6 +27,7 @@ add_executable(test_overlay
     test_overlay_main.cpp
     test_overlay_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/OverlayController.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ConfigManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/HotkeyAction.cpp
     # Q_OBJECT headers — AUTOMOC generates MOC metadata from these
     ${CMAKE_SOURCE_DIR}/src/WindowManager.h

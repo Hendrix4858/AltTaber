@@ -262,8 +262,8 @@ Overwrite?</source>
     <message>
         <location line="+68"/>
         <location filename="../src/SettingsDialog.cpp" line="+12"/>
-        <source>Language Settings</source>
-        <translation>语言设置</translation>
+        <source>General</source>
+        <translation>常规</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -272,7 +272,46 @@ Overwrite?</source>
         <translation>语言:</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+2"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Config Location:</source>
+        <translation>配置文件位置:</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Custom Path:</source>
+        <translation>自定义路径:</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>User Config Directory</source>
+        <translation>用户配置目录</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Program Directory</source>
+        <translation>程序目录</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Custom...</source>
+        <translation>自定义...</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Select Config Directory</source>
+        <translation>选择配置目录</translation>
+    </message>
+
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Failed to change the config location.
+The target directory is invalid or not writable.</source>
+        <translation>无法更改配置位置。目标目录无效或不可写。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
         <location filename="../src/SettingsDialog.cpp" line="+69"/>
         <source>Letter Jump</source>
         <translation>字母跳转</translation>

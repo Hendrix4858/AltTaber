@@ -1,10 +1,7 @@
 #ifndef WIN_SWITCHER_CONFIGMANAGER_H
 #define WIN_SWITCHER_CONFIGMANAGER_H
 
-#include <QApplication>
-#include <QStandardPaths>
-#include <QDir>
-#include <QFile>
+#include <QJsonObject>
 #include "ConfigManagerBase.h"
 #include "utils/PathUtils.h"
 #include "core/ThemeManager.h"
@@ -38,21 +35,36 @@ struct BlockedWindowEntry {
     QString processPath;
 };
 
-class ConfigManager : public ConfigManagerBase {
-    inline static const QString FileName = "config.json";
+enum class ConfigLocation {
+    AppData,
+    ProgramDir,
+    Custom,
+};
 
+struct ConfigLocationInfo {
+    ConfigLocation location = ConfigLocation::AppData;
+    QString customPath;
+};
+
+class ConfigManager : public ConfigManagerBase {
 public:
     ConfigManager(const ConfigManager&) = delete;
     ConfigManager& operator=(const ConfigManager&) = delete;
 
-    static ConfigManager& instance() {
-        auto configDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        QDir().mkpath(configDir);
-        auto filePath = configDir + "/" + FileName;
+    // Marker file path for the chosen config location (always in AppData, writable).
+    static QString configLocationFilePath();
+    // Reads the location marker; returns the AppData default when absent.
+    static ConfigLocationInfo readConfigLocationInfo();
+    // Full config.json path for a given location.
+    static QString configFilePathFor(ConfigLocation location, const QString& customPath);
 
-        static ConfigManager instance{filePath};
-        return instance;
-    }
+    static ConfigManager& instance();
+
+    QString configFilePath() const { return m_filePath; }
+
+    // Switches the config location and migrates existing settings; returns true on success.
+    bool setConfigLocation(ConfigLocation location, const QString& customPath = {});
+    ConfigLocationInfo configLocationInfo() const;
 
 public:
     DisplayMonitor getDisplayMonitor() {
