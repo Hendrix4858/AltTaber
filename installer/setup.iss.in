@@ -295,7 +295,7 @@ begin
   ForceDirectories(ExpandConstant('{userappdata}\MrBeanCpp\AltTaber'));
   DeleteFile(ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\rollback_count.txt'));
   MarkerPath := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\update_marker.txt');
-  SaveStringToFile(MarkerPath, 'pending', False);
+  SaveStringToFile(MarkerPath, 'pending:{#MyAppVersion}', False);
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

@@ -1,7 +1,9 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QProcess>
+#include <QVersionNumber>
 #include <QDebug>
 #include "lifecycle/UpdateService.h"
 #include "core/UpdateMarker.h"
@@ -10,16 +12,50 @@
 bool UpdateService::handleUpdateRollback() {
     auto marker = UpdateMarker::read();
 
-    if (marker == "pending" && UpdateMarker::hasBackup()) {
-        int attempts = UpdateMarker::readRollbackCount();
-        UpdateMarker::writeRollbackCount(attempts + 1);
-        if (attempts >= 1) {
-            qWarning() << "[Update] Prior init attempt detected, initiating rollback";
-            if (tryRollback())
-                return true;
-        } else {
-            qInfo() << "[Update] First attempt after update, proceeding normally";
-        }
+    // Marker written by the installer at ssInstall:
+    //   new format:  "pending:<target version>"
+    //   legacy:      "pending"
+    QString targetVersion;
+    if (marker.startsWith("pending:")) {
+        targetVersion = marker.mid(qstrlen("pending:"));
+    } else if (marker == "pending") {
+        // Legacy markers don't record the target version. The installer names
+        // the backup folder after the version it tried to install
+        // (e.g. backup/0.7.12), so derive the target from it.
+        targetVersion = QFileInfo(UpdateMarker::latestBackupDir()).fileName();
+    } else {
+        return false;
+    }
+
+    if (!UpdateMarker::hasBackup())
+        return false;
+
+    // If we are already running the build that the update was supposed to
+    // install, the update succeeded. Never roll back in that case, and
+    // finalize the marker/backup right away so later relaunches (for example
+    // the "always run as admin" elevated restart, or a second manual launch)
+    // can never trigger a rollback of a successfully applied update.
+    const QString currentVersion = QCoreApplication::applicationVersion();
+    const QVersionNumber target = QVersionNumber::fromString(targetVersion);
+    const QVersionNumber current = QVersionNumber::fromString(currentVersion);
+    if (target.isNull() || (!current.isNull() && current >= target)) {
+        qInfo() << "[Update] Running version" << currentVersion
+                << "meets update target" << targetVersion
+                << "- update confirmed, cleaning up update markers";
+        cleanupUpdateMarkers();
+        return false;
+    }
+
+    // The expected build is not in place yet (the old exe is still running),
+    // so treat this as a failed/not-yet-applied update attempt.
+    int attempts = UpdateMarker::readRollbackCount();
+    UpdateMarker::writeRollbackCount(attempts + 1);
+    if (attempts >= 1) {
+        qWarning() << "[Update] Prior init attempt detected and target version not reached, initiating rollback";
+        if (tryRollback())
+            return true;
+    } else {
+        qInfo() << "[Update] First attempt after update, proceeding normally";
     }
     return false;
 }
