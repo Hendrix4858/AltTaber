@@ -8,6 +8,7 @@ target_sources(Win_Switcher PRIVATE
     setWindowBlur.cpp               setWindowBlur.h
     StartMenuHelper.cpp             StartMenuHelper.h
     UwpHelper.cpp                   UwpHelper.h
+    VcRuntimeCheck.cpp              VcRuntimeCheck.h
     VirtualDesktopManager.cpp       VirtualDesktopManager.h
     WindowUtil.cpp                  WindowUtil.h
                                     Util.h

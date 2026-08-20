@@ -2,6 +2,8 @@
 #include <shellapi.h>
 #include <ShlObj_core.h>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QStyleHints>
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -28,6 +30,7 @@
 #include "core/ThemeManager.h"
 #include "core/StyleManager.h"
 #include "core/ConfigManager.h"
+#include "utils/VcRuntimeCheck.h"
 #include "core/HotkeyAction.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
@@ -58,6 +61,32 @@ Application::Application(int argc, char* argv[])
     m_app.setApplicationVersion(APP_VERSION);
     m_config = &cfg();
     Util::Logger::init();
+
+    if (!VcRuntimeCheck::isRuntimeAvailable()) {
+        qWarning() << "[Main] VC++ runtime is not available";
+        const QString url = QString::fromWCharArray(VcRuntimeCheck::vcRedistDownloadUrl());
+
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setWindowTitle(QCoreApplication::translate("Application", "AltTaber"));
+        msgBox.setText(QCoreApplication::translate("Application",
+            "Microsoft Visual C++ Runtime is required but was not found. "
+            "Please download and install it, then restart AltTaber."));
+        msgBox.setInformativeText(url);
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Open download page"),
+            QMessageBox::AcceptRole);
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Exit"),
+            QMessageBox::RejectRole);
+        msgBox.exec();
+
+        if (msgBox.buttonRole(msgBox.clickedButton()) == QMessageBox::AcceptRole)
+            QDesktopServices::openUrl(QUrl(url));
+
+        QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
+        return;
+    }
 
     m_updateService = new UpdateService;
     if (m_updateService->handleUpdateRollback()) {

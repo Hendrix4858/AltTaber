@@ -1148,6 +1148,14 @@ p, li { white-space: pre-wrap; }
         <source>Failed to close old instance.</source>
         <translation>无法关闭旧实例。</translation>
     </message>
+    <message>
+        <source>Microsoft Visual C++ Runtime is required but was not found. Please download and install it, then restart AltTaber.</source>
+        <translation>需要 Microsoft Visual C++ 运行库但未检测到。请下载安装后重新启动 AltTaber。</translation>
+    </message>
+    <message>
+        <source>Open download page</source>
+        <translation>打开下载页面</translation>
+    </message>
 </context>
 <context>
     <name>Widget</name>

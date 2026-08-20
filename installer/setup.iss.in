@@ -1,5 +1,5 @@
 ; AltTaber Inno Setup Script
-; Requires Inno Setup 6.3+ (x64compatible directive)
+; Requires Inno Setup 6.5+ (x64compatible directive, VC runtime manual download)
 
 #define MyAppName "AltTaber"
 #define MyAppVersion "@PROJECT_VERSION@"
@@ -13,6 +13,15 @@
 #define MyAppURL "https://github.com/Hendrix4858/AltTaber"
 #define MyAppExeName "AltTaber.exe"
 #define MyAppId "AltTaber.MrBeanCpp"
+
+; --- VC++ Runtime (Visual C++ Redistributable) ---
+#if MyAppArch == "arm64"
+  #define VCRedistUrl "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
+  #define VCRedistRegKey "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\ARM64"
+#else
+  #define VCRedistUrl "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+  #define VCRedistRegKey "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+#endif
 
 [Setup]
 AppId={#MyAppId}
@@ -54,6 +63,10 @@ en.DeleteConfig=Delete configuration and settings?
 zh.DeleteConfig=删除配置和设置？
 en.DeleteProgramConfigWarn=The program directory contains the configuration file (config.json). Uninstalling will delete the entire program directory, including your configuration and settings. Continue uninstalling?
 zh.DeleteProgramConfigWarn=程序目录中包含配置文件(config.json)。卸载将删除整个程序目录,配置和设置会一并丢失。是否继续卸载?
+en.VCRedistMissing=Microsoft Visual C++ Runtime was not detected. AltTaber needs it to run. Open the download page now?
+zh.VCRedistMissing=未检测到 Microsoft Visual C++ 运行库，AltTaber 运行需要它。是否打开下载页面？
+en.VCRedistManual=You can also download and install it manually from the following address, then re-run setup:
+zh.VCRedistManual=也可以从以下地址手动下载安装后，重新运行安装程序：
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -250,9 +263,44 @@ begin
   end;
 end;
 
+// ── VC++ Runtime (Visual C++ Redistributable) ───────────────────────────────
+// Detects the runtime via the registry (Microsoft recommended check). When it
+// is missing, offers to open the official download page in the default browser
+// for a manual install. Setup continues either way — AltTaber re-checks the
+// runtime on first launch.
+
+function VCRedistInstalled: Boolean;
+var
+  Installed, Major: Cardinal;
+begin
+  Result := False;
+  if RegQueryDWordValue(HKEY_LOCAL_MACHINE, '{#VCRedistRegKey}', 'Installed', Installed)
+  and (Installed = 1)
+  and RegQueryDWordValue(HKEY_LOCAL_MACHINE, '{#VCRedistRegKey}', 'Major', Major) then
+    Result := (Major >= 14);
+end;
+
+procedure OpenVCRedistDownloadPage;
+var
+  ResultCode: Integer;
+begin
+  if not ShellExec('open', '{#VCRedistUrl}', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode) then
+    MsgBox(CustomMessage('VCRedistManual') + #13#10 + '{#VCRedistUrl}', mbError, MB_OK);
+end;
+
+procedure EnsureVCRedistInstalled;
+begin
+  if VCRedistInstalled or WizardSilent then
+    Exit;
+
+  if MsgBox(CustomMessage('VCRedistMissing'), mbConfirmation, MB_YESNO) = IDYES then
+    OpenVCRedistDownloadPage;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
+  EnsureVCRedistInstalled;
   if not IsAppRunning then
     Exit;
   if not PromptAndKillLoop(True) then

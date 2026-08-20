@@ -81,7 +81,7 @@ Without admin rights, AltTaber cannot see elevated windows.
 | MSVC | 2022 |
 | Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
 | Windows SDK | 10.0+ |
-| Inno Setup | 6.3+ (x64compatible) |
+| Inno Setup | 6.5+ (x64compatible, VC runtime download) |
 
 ### Build
 Inno Setup is required for installer packaging.
@@ -105,6 +105,9 @@ cmake --build "build/x64" --target zip
 ## 📦 Download
 
 Get the latest release from [GitHub Releases](https://github.com/Hendrix4858/AltTaber/releases).
+
+> **Requirements**: Windows 10+. The [Microsoft Visual C++ Runtime](https://aka.ms/vs/17/release/vc_redist.x64.exe) is required (ARM64: [here](https://aka.ms/vs/17/release/vc_redist.arm64.exe)).
+> When missing, the installer offers to open the download page in your browser; AltTaber also checks on first launch. For the portable zip, install it manually when prompted.
 
 ---
 

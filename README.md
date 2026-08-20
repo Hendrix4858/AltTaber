@@ -107,6 +107,9 @@ cmake --build "build/x64" --target zip
 
 从 [GitHub Releases](https://github.com/Hendrix4858/AltTaber/releases) 获取最新版本
 
+> **系统要求**：Windows 10+。需要 [Microsoft Visual C++ 运行库](https://aka.ms/vs/17/release/vc_redist.x64.exe)（ARM64 版点击 [这里](https://aka.ms/vs/17/release/vc_redist.arm64.exe)）。
+> 缺失时安装包会提示并打开浏览器跳转下载页面，AltTaber 首次运行时也会检查；便携版如遇缺少运行库，请按提示手动安装。
+
 ---
 
 ## 🧐 参考
