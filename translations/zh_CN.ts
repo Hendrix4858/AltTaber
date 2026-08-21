@@ -884,6 +884,10 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
         <source>AltTaber - Window Switcher&lt;br&gt;Version: %1&lt;br&gt;&lt;br&gt;A modern Alt+Tab replacement for Windows.&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</source>
         <translation>AltTaber - 窗口切换器&lt;br&gt;版本: %1&lt;br&gt;&lt;br&gt;一个现代化的 Windows Alt+Tab 增强工具。&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</translation>
     </message>
+    <message>
+        <source>No matching settings</source>
+        <translation>没有匹配的设置项</translation>
+    </message>
 </context>
 <context>
     <name>SystemTray</name>
