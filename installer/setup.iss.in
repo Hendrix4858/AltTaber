@@ -61,8 +61,8 @@ en.AutoCloseFailed=Automatic close failed. Retry or cancel installation?
 zh.AutoCloseFailed=自动关闭失败。重试或取消安装？
 en.DeleteConfig=Delete configuration and settings?
 zh.DeleteConfig=删除配置和设置？
-en.DeleteProgramConfigWarn=The program directory contains the configuration file (config.json). Uninstalling will delete the entire program directory, including your configuration and settings. Continue uninstalling?
-zh.DeleteProgramConfigWarn=程序目录中包含配置文件(config.json)。卸载将删除整个程序目录,配置和设置会一并丢失。是否继续卸载?
+en.DeleteProgramConfigWarn=The program directory contains the configuration file (config.json). Uninstalling will delete the entire program directory. Continue uninstalling? (Your settings will be backed up and restored on the next install.)
+zh.DeleteProgramConfigWarn=程序目录中包含配置文件(config.json)。卸载将删除整个程序目录。是否继续卸载？(设置会自动备份，重新安装后可恢复)
 en.VCRedistMissing=Microsoft Visual C++ Runtime was not detected. AltTaber needs it to run. Open the download page now?
 zh.VCRedistMissing=未检测到 Microsoft Visual C++ 运行库，AltTaber 运行需要它。是否打开下载页面？
 en.VCRedistManual=You can also download and install it manually from the following address, then re-run setup:
@@ -75,7 +75,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Temporary copy for setup-time IPC (extracted via ExtractTemporaryFile)
 Source: "{#MyAppBuildDir}\AltTaberCtl.exe"; Flags: dontcopy
 ; All files including AltTaberCtl.exe (installed to {app} for later use)
-Source: "{#MyAppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
+; config.json is excluded so reinstalling never overwrites user settings
+Source: "{#MyAppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace; Excludes: "config.json"
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -346,16 +347,50 @@ begin
   SaveStringToFile(MarkerPath, 'pending:{#MyAppVersion}', False);
 end;
 
+// Safety net for user settings: config.json lives in {app} (portable mode),
+// so uninstalling or a failed install could wipe it. A copy is kept in
+// AppData and restored on the next successful install.
+procedure BackupProgramConfig;
+var
+  ConfigPath, BackupDir: String;
+begin
+  ConfigPath := ExpandConstant('{app}\config.json');
+  if FileExists(ConfigPath) then begin
+    BackupDir := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\backup');
+    ForceDirectories(BackupDir);
+    WinCopyFile(ConfigPath, BackupDir + '\config.json', False);
+  end;
+end;
+
+procedure RestoreProgramConfig;
+var
+  ConfigPath, BackupPath, AppDataConfig: String;
+begin
+  ConfigPath := ExpandConstant('{app}\config.json');
+  BackupPath := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\backup\config.json');
+  AppDataConfig := ExpandConstant('{userappdata}\MrBeanCpp\AltTaber\config.json');
+  // Only restore when the app is not already using an AppData config,
+  // otherwise the stale portable copy would shadow nothing but confuse
+  // later location probing.
+  if (not FileExists(ConfigPath)) and FileExists(BackupPath)
+     and (not FileExists(AppDataConfig)) then
+    WinCopyFile(BackupPath, ConfigPath, False);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
 begin
-  if CurStep = ssInstall then
+  if CurStep = ssInstall then begin
+    BackupProgramConfig;
     BackupAndWriteMarker;
-  if CurStep = ssDone then
+  end;
+  if CurStep = ssDone then begin
+    RestoreProgramConfig;
     if CmdLineParamExists('/AUTOUPDATE') then
       Exec('cmd.exe', '/c (timeout /t 3 /nobreak > nul) & del /f /q "' + ExpandConstant('{srcexe}') + '"',
         '', SW_HIDE, ewNoWait, ResultCode);
+  end;
 end;
 
 function InitializeUninstall: Boolean;
@@ -366,6 +401,7 @@ begin
       Result := False;
       Exit;
     end;
+    BackupProgramConfig;
   end;
   if not IsAppRunning then
     Exit;
