@@ -12,7 +12,7 @@
 
 ![ui](img/ui.png)
 
-[中文](README.md) [en](docs/README.en.md)
+[中文](README.md) [en](docs/README.en.md) | [构建](docs/BUILD_CN.md) · [翻译](docs/TRANSLATIONS_CN.md)　|　[Build](docs/BUILD.md) · [Translations](docs/TRANSLATIONS.md)
 
 ---
 ## ✨ 主要功能
@@ -74,6 +74,8 @@
 
 ## 🤖 从源码构建
 
+> 完整的构建说明（Qt 路径配置、全部构建目标、测试、版本管理）见 [构建指南](docs/BUILD_CN.md)；翻译工作流见 [翻译系统](docs/TRANSLATIONS_CN.md)。English: [Build](docs/BUILD.md) · [Translations](docs/TRANSLATIONS.md)。
+
 ### 前置要求
 
 | 依赖 | 版本 |
@@ -99,6 +101,7 @@ cmake --build "build/x64" --target installer
 cmake --preset "release-x64"
 cmake --build "build/x64" --target zip
 ```
+[详细构建](docs/BUILD_CN.md)
 
 
 ---

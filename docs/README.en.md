@@ -12,7 +12,7 @@
 
 ![ui](../img/ui.png)
 
-[中文](../README.md) [en](README.en.md)
+[中文](../README.md) [en](README.en.md) | [构建](BUILD_CN.md) · [翻译](TRANSLATIONS_CN.md)　|　[Build](BUILD.md) · [Translations](TRANSLATIONS.md)
 
 ---
 ## ✨ Features
@@ -73,6 +73,8 @@ Without admin rights, AltTaber cannot see elevated windows.
 
 ## 🤖 Build from Source
 
+> For the full build guide (Qt path setup, all build targets, tests, versioning), see [Building AltTaber](BUILD.md); for the i18n workflow, see [Translations](TRANSLATIONS.md). 中文版：[构建指南](BUILD_CN.md) · [翻译系统](TRANSLATIONS_CN.md)。
+
 ### Prerequisites
 
 | Requirement | Version |
@@ -98,6 +100,7 @@ cmake --build "build/x64" --target installer
 cmake --preset "release-x64"
 cmake --build "build/x64" --target zip
 ```
+[Detailed build guide](BUILD.md)
 
 
 ---
