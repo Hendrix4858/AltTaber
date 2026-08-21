@@ -45,7 +45,7 @@ bool WheelEventProcessor::handleWheelEvent(QWheelEvent* event, QListView* listVi
 
         HWND nextFocus = m_lastHwnd;
         if (isScrollForward) {
-            Util::focusWindow(m_lastHwnd, nullptr);
+            Util::focusWindow(m_lastHwnd, reinterpret_cast<HWND>(listView->window()->winId()));
         } else {
             auto& orderForNormal = cyc->groupWindowOrder();
             if (auto normal = GroupWindowCycler::rotateToNormalWindow(orderForNormal, m_lastHwnd, false)) {

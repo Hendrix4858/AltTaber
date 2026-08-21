@@ -16,7 +16,6 @@
 
 #include "UpdateDialog.h"
 #include "ui_UpdateDialog.h"
-#include "lifecycle/Logger.h"
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include "core/ConfigManager.h"
@@ -33,7 +32,6 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
         SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
     }
     retranslateTexts();
-    qDebug() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::supportsSsl();
 
     applyThemeStyle();
 
@@ -78,7 +76,6 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
     });
     qInfo() << "UpdateDialog initialized in" << t.elapsed() << "ms";
     connect(this, &UpdateDialog::downloadSucceed, this, [this](const QString& filePath) {
-        qInfo() << "Download succeed" << filePath;
         if (!filePath.endsWith(".exe", Qt::CaseInsensitive)) {
             qWarning() << "Downloaded file is not an executable, skip launch:" << filePath;
             m_phase = Phase::DownloadFailed;
@@ -101,7 +98,6 @@ UpdateDialog::UpdateDialog(QWidget* parent) : QDialog(parent), ui(new Ui::Update
 
 UpdateDialog::~UpdateDialog() {
     delete ui;
-    qDebug() << "UpdateDialog destroyed";
 }
 
 void UpdateDialog::applyThemeStyle() {
@@ -180,21 +176,11 @@ void UpdateDialog::fetchGithubReleaseInfo() {
 
 QJsonObject UpdateDialog::selectInstallerAsset(const QJsonArray& assets) const {
     auto runtimeArch = detectRuntimeArch();
-    qInfo() << "[Update] Runtime architecture:" << runtimeArchToString(runtimeArch);
-
-    qInfo() << "[Update] Available release assets:";
-    for (const auto& a : assets) {
-        auto obj = a.toObject();
-        auto arch = parseAssetArch(obj["name"].toString());
-        qInfo() << "  -" << obj["name"].toString()
-                << "arch=" << runtimeArchToString(arch);
-    }
 
     for (const auto& a : assets) {
         auto obj = a.toObject();
         auto assetArch = parseAssetArch(obj["name"].toString());
         if (assetArch == runtimeArch) {
-            qInfo() << "[Update] Selected:" << obj["name"].toString();
             return obj;
         }
     }
@@ -251,8 +237,6 @@ void UpdateDialog::applyRelease(const QJsonObject& obj) {
     }
 
     relInfo.downloadUrl = asset["browser_download_url"].toString();
-    qInfo() << "[Update] Selected asset:" << asset["name"].toString();
-    qInfo() << "Update info applied" << relInfo.ver << relInfo.downloadUrl;
 
     bool needUpdate = relInfo.ver > version;
     m_phase = needUpdate ? Phase::HasUpdate : Phase::UpToDate;
@@ -278,8 +262,7 @@ void UpdateDialog::download(const QString& url, const QString& savePath) {
     });
 
     connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 bytesReceived, qint64 bytesTotal) {
-        LOG_TRACE(QStringLiteral("Download progress %1 %2").arg(bytesReceived).arg(bytesTotal));
-        if (bytesReceived == bytesTotal)
+    if (bytesReceived == bytesTotal)
             downloadStatus.success = true;
 
         ui->progressBar->setMaximum(bytesTotal);
@@ -333,7 +316,6 @@ void UpdateDialog::verifyUpdate(const QCoreApplication& app) {
         if (versions.size() == 2) {
             auto vFrom = QVersionNumber::fromString(versions.first());
             auto vTo = QVersionNumber::fromString(versions.last());
-            qDebug() << "vFrom" << vFrom << "vTo" << vTo << "compare" << QVersionNumber::compare(vFrom, vTo);
 
             auto vCur = QVersionNumber::fromString(QCoreApplication::applicationVersion());
             if (vCur.normalized() == vTo.normalized()) {

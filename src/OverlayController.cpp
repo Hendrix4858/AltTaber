@@ -7,6 +7,7 @@
 #include "lifecycle/SystemTray.h"
 #include "core/ThemeManager.h"
 #include <QDebug>
+#include <QApplication>
 #include <QWindow>
 #include <QScreen>
 #include <QTimer>
@@ -27,12 +28,10 @@ void OverlayController::setOverlayBindings(const HotkeyBindings& bindings) {
 }
 
 void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModifiers modifiers) {
-    qInfo() << "[OverlayCtrl] handleGlobalAction" << hotkeyActionName(action)
-            << "state=" << (int)m_overlayState;
-
     switch (action) {
     case HotkeyAction::SwitchToNextWindow:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::SwitchToNextWindow, SessionEndTrigger::ModifierRelease};
             handleIntent(OverlayIntent::ShowSwitcher);
         } else if (m_overlayState == OverlayState::Visible) {
             emit actionForwarded(HotkeyAction::CycleForward, modifiers);
@@ -41,6 +40,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
 
     case HotkeyAction::SwitchToPreviousWindow:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::SwitchToPreviousWindow, SessionEndTrigger::ModifierRelease};
             handleIntent(OverlayIntent::ShowSwitcherBackward);
         } else if (m_overlayState == OverlayState::Visible) {
             emit actionForwarded(HotkeyAction::CycleBackward, modifiers);
@@ -49,6 +49,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
 
     case HotkeyAction::ShowSwitcherStayOpen:
         if (m_overlayState == OverlayState::Hidden) {
+            m_sessionInfo = {HotkeyAction::ShowSwitcherStayOpen, SessionEndTrigger::ExplicitAction};
             handleIntent(OverlayIntent::ShowSwitcher);
         } else if (m_overlayState == OverlayState::Visible) {
             m_stayOpenMode = true;
@@ -63,10 +64,7 @@ void OverlayController::handleGlobalAction(HotkeyAction action, Qt::KeyboardModi
 }
 
 bool OverlayController::forceShow() {
-    static int s_showCount = 0;
-    ++s_showCount;
     HWND hwnd = m_view.hWnd();
-    qInfo() << "[Show] forceShow (via view) showCount=" << s_showCount;
     m_view.showOverlay();
     return true;
 }
@@ -130,60 +128,44 @@ int OverlayController::calculateInitialIndex() const {
 }
 
 void OverlayController::handleIntent(OverlayIntent intent) {
-    LOG_TRACE(QString("[OverlayCtrl] handleIntent intent=%1 state=%2")
-                 .arg((int)intent).arg((int)m_overlayState));
     transition(intent);
 }
 
 void OverlayController::transition(OverlayIntent intent) {
-    LOG_TRACE(QString("[Transition] state=%1 intent=%2 stayOpen=%3 listDirty=%4")
-                 .arg((int)m_overlayState).arg((int)intent)
-                 .arg(m_stayOpenMode).arg(m_listDirty));
-
     switch (m_overlayState) {
 
     case OverlayState::Hidden:
         if (intent == OverlayIntent::ShowSwitcher || intent == OverlayIntent::FallbackShow ||
             intent == OverlayIntent::ShowSwitcherBackward) {
             m_wasInvokedBackward = (intent == OverlayIntent::ShowSwitcherBackward);
-            LOG_TRACE(QStringLiteral("[Transition] Hidden + Show = show (backward=%1)").arg(m_wasInvokedBackward));
             showWindow();
-        } else {
-            LOG_TRACE(QStringLiteral("[Transition] Hidden + %1  ->  no-op").arg((int)intent));
         }
         break;
 
     case OverlayState::Visible:
         if (intent == OverlayIntent::SessionEndConditionMet) {
             if (m_sessionInfo.endTrigger == SessionEndTrigger::ModifierRelease && !m_stayOpenMode) {
-                qInfo() << "[Transition] ModifierRelease  ->  emit sessionFinished + hide";
                 emit sessionFinished();
                 hideWindow();
-            } else {
-                qInfo() << "[Transition] SessionEndConditionMet  ->  no-op (stayOpen or explicit action)";
             }
         } else if (intent == OverlayIntent::Dismiss) {
-            qInfo() << "[Transition] Dismiss  ->  hide";
             hideWindow();
-        } else {
-            LOG_TRACE(QStringLiteral("[Transition] Visible + %1  ->  no-op").arg((int)intent));
         }
         break;
 
     default:
-        LOG_TRACE(QStringLiteral("[Transition] state=%1 intent=%2  ->  no-op (unused state)")
-                     .arg((int)m_overlayState).arg((int)intent));
         break;
     }
 }
 
 void OverlayController::showWindow() {
-    qInfo() << "[OverlayCtrl] showWindow state=" << (int)m_overlayState;
-
     if (m_listDirty) {
-        LOG_TRACE("[OverlayCtrl] list dirty, refreshing...");
+        QElapsedTimer t;
+        t.start();
         if (!refreshWindowList())
             return;
+        auto e = t.elapsed();
+        Util::checkSlowInit("refreshWindowList", e, 200);
     }
 
     int idx = calculateInitialIndex();
@@ -194,15 +176,12 @@ void OverlayController::showWindow() {
     emit stateChanged(m_overlayState);
     emit showRequested();
     m_stayOpenMode = (m_sessionInfo.endTrigger == SessionEndTrigger::ExplicitAction);
-    LOG_TRACE(QStringLiteral("[OverlayCtrl] stayOpenMode=%1 endTrigger=%2")
-                 .arg(m_stayOpenMode).arg((int)m_sessionInfo.endTrigger));
     Util::closeSystemWindows();
 
     forceShow();
 }
 
 void OverlayController::hideWindow() {
-    qInfo() << "[OverlayCtrl] hideWindow state=" << (int)m_overlayState;
     m_overlayState = OverlayState::Hidden;
     emit stateChanged(m_overlayState);
     emit hideRequested();
@@ -211,11 +190,9 @@ void OverlayController::hideWindow() {
 }
 
 bool OverlayController::refreshWindowList() {
-    LOG_TRACE("[OverlayCtrl] refreshWindowList");
     bool ok = prepareListWidget();
     if (ok) {
         m_listDirty = false;
-        LOG_TRACE(QStringLiteral("[OverlayCtrl] refreshWindowList ok, groupCount=%1").arg(m_model->groupCount()));
     } else {
         qWarning() << "[OverlayCtrl] refreshWindowList failed";
     }
@@ -223,8 +200,12 @@ bool OverlayController::refreshWindowList() {
 }
 
 bool OverlayController::prepareListWidget() {
+    QElapsedTimer t;
+    t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_view.updateGroups(winGroupList);
+    auto e = t.elapsed();
+    Util::checkSlowInit("prepareWindowGroupList", e, 200);
 
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
@@ -259,10 +240,6 @@ void OverlayController::notifyForegroundChanged(HWND hwnd) {
     if (m_overlayState == OverlayState::Visible && hwnd == m_view.hWnd())
         return;
     if (!Util::isWindowAllowed(hwnd, true)) return;
-    auto path = Util::getWindowProcessPath(hwnd);
-    qInfo() << "Foreground window changed:"
-            << Util::getWindowTitle(hwnd) << Util::getClassName(hwnd) << path
-            << Util::getFileDescription(path);
     auto identity = Util::resolveIdentity(hwnd);
     m_windowManager->recordWindowActivation(identity);
 }
@@ -272,6 +249,7 @@ void OverlayController::warmupCache() {
     t.start();
     auto winGroupList = m_windowManager->prepareWindowGroupList();
     m_view.updateGroups(winGroupList);
+    bool success = false;
     if (m_model->groupCount() > 0) {
         bool displayOnPrimary = (cfg().getDisplayMonitor() == PrimaryMonitor);
         auto screen = displayOnPrimary
@@ -279,8 +257,14 @@ void OverlayController::warmupCache() {
                           : QGuiApplication::screenAt(QCursor::pos());
         if (!screen && !displayOnPrimary)
             screen = QApplication::primaryScreen();
-        if (screen)
+        if (screen) {
             calculateGeometry(screen);
+            success = true;
+        }
     }
-    qInfo() << "[Startup] warmupCache" << t.elapsed() << "ms";
+    if (success)
+        m_listDirty = false;
+    auto elapsed = t.elapsed();
+    qInfo() << "[Startup] warmupCache" << elapsed << "ms";
+    Util::checkSlowInit("warmupCache", elapsed, 200);
 }

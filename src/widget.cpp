@@ -12,6 +12,7 @@
 #include "lifecycle/SystemTray.h"
 #include "utils/setWindowBlur.h"
 #include "lifecycle/IconOnlyDelegate.h"
+#include "lifecycle/Logger.h"
 #include "lifecycle/QtWin.h"
 #include "core/QuitReason.h"
 #include <QApplication>
@@ -178,7 +179,9 @@ Widget::Widget(WindowManager* wm, QWidget* parent)
 
     QTimer::singleShot(0, this, &Widget::applyWindowEffects);
 
-    qInfo() << "Widget initialized in" << t.elapsed() << "ms";
+    auto widgetElapsed = t.elapsed();
+    qInfo() << "Widget initialized in" << widgetElapsed << "ms";
+    Util::checkSlowInit("Widget constructor", widgetElapsed, 100);
 }
 
 void Widget::applyWindowEffects() {
@@ -192,7 +195,9 @@ void Widget::applyWindowEffects() {
     Util::setWindowRoundCorner(hwnd);
     if (cfg().getTransparencyEnabled())
         setWindowBlur(hwnd);
-    qInfo() << "[Widget] applyWindowEffects" << t.elapsed() << "ms";
+    auto effectsElapsed = t.elapsed();
+    qInfo() << "[Widget] applyWindowEffects" << effectsElapsed << "ms";
+    Util::checkSlowInit("applyWindowEffects", effectsElapsed, 100);
 }
 
 Widget::~Widget() {

@@ -2,6 +2,8 @@
 #include <shellapi.h>
 #include <ShlObj_core.h>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QStyleHints>
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -28,6 +30,8 @@
 #include "core/ThemeManager.h"
 #include "core/StyleManager.h"
 #include "core/ConfigManager.h"
+#include "utils/VcRuntimeCheck.h"
+#include "core/HotkeyAction.h"
 #include "core/QuitReason.h"
 #include "UpdateDialog.h"
 
@@ -57,6 +61,32 @@ Application::Application(int argc, char* argv[])
     m_app.setApplicationVersion(APP_VERSION);
     m_config = &cfg();
     Util::Logger::init();
+
+    if (!VcRuntimeCheck::isRuntimeAvailable()) {
+        qWarning() << "[Main] VC++ runtime is not available";
+        const QString url = QString::fromWCharArray(VcRuntimeCheck::vcRedistDownloadUrl());
+
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setWindowTitle(QCoreApplication::translate("Application", "AltTaber"));
+        msgBox.setText(QCoreApplication::translate("Application",
+            "Microsoft Visual C++ Runtime is required but was not found. "
+            "Please download and install it, then restart AltTaber."));
+        msgBox.setInformativeText(url);
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Open download page"),
+            QMessageBox::AcceptRole);
+        msgBox.addButton(
+            QCoreApplication::translate("Application", "Exit"),
+            QMessageBox::RejectRole);
+        msgBox.exec();
+
+        if (msgBox.buttonRole(msgBox.clickedButton()) == QMessageBox::AcceptRole)
+            QDesktopServices::openUrl(QUrl(url));
+
+        QMetaObject::invokeMethod(&m_app, &QApplication::quit, Qt::QueuedConnection);
+        return;
+    }
 
     m_updateService = new UpdateService;
     if (m_updateService->handleUpdateRollback()) {
@@ -151,23 +181,42 @@ Application::Application(int argc, char* argv[])
     phaseTimer.start();
     totalTimer.start();
     initControllers();
-    qInfo() << "[Startup] initControllers" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initControllers" << e << "ms";
+        Util::checkSlowInit("initControllers", e, 100);
+    }
 
     initUI();
-    qInfo() << "[Startup] initUI" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initUI" << e << "ms";
+        Util::checkSlowInit("initUI", e, 100);
+    }
 
     initHotkeys();
-    qInfo() << "[Startup] initHotkeys" << phaseTimer.restart() << "ms";
+    {
+        auto e = phaseTimer.restart();
+        qInfo() << "[Startup] initHotkeys" << e << "ms";
+        Util::checkSlowInit("initHotkeys", e, 100);
+    }
 
     QObject::connect(m_config, &ConfigManager::configEdited, &m_app, [this]() {
         m_hotkeyService->reloadFromConfig();
     });
 
-    StyleManager::applyTheme(ThemeManager::current());
-    if (m_widget) {
-        m_widget->style()->unpolish(m_widget);
-        m_widget->style()->polish(m_widget);
-        m_widget->update();
+    {
+        QElapsedTimer t;
+        t.start();
+        StyleManager::applyTheme(ThemeManager::current());
+        if (m_widget) {
+            m_widget->style()->unpolish(m_widget);
+            m_widget->style()->polish(m_widget);
+            m_widget->update();
+        }
+        auto e = t.elapsed();
+        qInfo() << "[Startup] applyTheme+polish" << e << "ms";
+        Util::checkSlowInit("applyTheme+polish", e, 100);
     }
 
     QObject::connect(&ThemeManager::instance(), &ThemeManager::themeChanged, qApp, []() {
@@ -180,7 +229,11 @@ Application::Application(int argc, char* argv[])
     }
 
     m_updateService->cleanupUpdateMarkers();
-    qInfo() << "[Startup] Application constructor total" << totalTimer.elapsed() << "ms";
+    {
+        auto e = totalTimer.elapsed();
+        qInfo() << "[Startup] Application constructor total" << e << "ms";
+        Util::checkSlowInit("Application constructor total", e, 500);
+    }
     qInfo() << "[Main] Entering event loop";
 }
 
@@ -205,7 +258,11 @@ void Application::initControllers() {
 
 void Application::initUI() {
     QObject::connect(&sysTray(), &SystemTray::showRequested, m_widget, [this]() {
-        m_widget->requestShow(OverlayIntent::ShowSwitcher);
+        // Tray show is an explicit, stay-open session: the overlay stays until
+        // the user picks a window (click/Enter) or dismisses it (Esc). Using
+        // ShowSwitcherStayOpen keeps clicks/Enter usable and out of the
+        // modifier-release watchdog's scope.
+        m_widget->requestShow(OverlayIntent::ShowSwitcher, HotkeyAction::ShowSwitcherStayOpen);
     });
 
     m_app.installNativeEventFilter(&m_sessionMon);

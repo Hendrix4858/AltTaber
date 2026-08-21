@@ -11,15 +11,24 @@
 #include "utils/PathUtils.h"
 
 #include <QApplication>
+#include <QBitArray>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
+#include <QGroupBox>
 #include <QHeaderView>
+#include <QListWidget>
 #include <QMessageBox>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QScrollArea>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QRegularExpression>
 #include "lifecycle/Logger.h"
 #include "utils/Util.h"
 
@@ -115,9 +124,52 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
 
     connect(ui->btnCleanLogs, &QPushButton::clicked, this, &SettingsDialog::cleanLogFiles);
 
+    connect(ui->btnConfigBrowse, &QPushButton::clicked, this, [this] {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Config Directory"),
+            ui->configCustomPathEdit->text());
+        if (!dir.isEmpty())
+            ui->configCustomPathEdit->setText(dir);
+    });
+
+    connect(ui->configLocationCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+        bool isCustom = ui->configLocationCombo->itemData(index).toString() == "custom";
+        ui->configCustomLabel->setVisible(isCustom);
+        ui->configCustomPathEdit->setVisible(isCustom);
+        ui->btnConfigBrowse->setVisible(isCustom);
+    });
+
     SettingsStyleHelper::applyTheme(this, ui);
 
+    m_searchResultsList = new QListWidget(this);
+    m_searchResultsList->setObjectName("searchResultsList");
+    m_searchResultsList->setFrameShape(QFrame::NoFrame);
+    m_searchResultsList->setUniformItemSizes(true);
+    m_searchResultsList->setTextElideMode(Qt::ElideRight);
+    m_searchResultsList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_searchResultsList->hide();
+    applySearchResultsTheme();
+    m_searchResultsList->installEventFilter(this);
+    ui->searchEdit->installEventFilter(this);
+    qApp->installEventFilter(this);
+
     connect(ui->searchEdit, &QLineEdit::textChanged, this, &SettingsDialog::filterPages);
+    connect(ui->searchEdit, &QLineEdit::returnPressed, this, [this] {
+        if (!m_searchResultsList->isVisible())
+            return;
+        if (auto* cur = m_searchResultsList->currentItem();
+            cur && (cur->flags() & Qt::ItemIsEnabled)) {
+            activateSearchResult(cur);
+            return;
+        }
+        for (int i = 0; i < m_searchResultsList->count(); ++i) {
+            if (m_searchResultsList->item(i)->flags() & Qt::ItemIsEnabled) {
+                activateSearchResult(m_searchResultsList->item(i));
+                break;
+            }
+        }
+    });
+    connect(m_searchResultsList, &QListWidget::itemClicked, this,
+            [this](QListWidgetItem* item) { activateSearchResult(item); });
     connect(ui->navList, &QListWidget::currentRowChanged, this, [this](int row) {
         if (row >= 0 && row < ui->stackedWidget->count())
             ui->stackedWidget->setCurrentIndex(row);
@@ -125,6 +177,10 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
             refreshLogSize();
         else if (row == 4)
             refreshCacheSize();
+        if (row != 2)
+            m_hotkeyMgr->cancelAllRecordings();
+        if (m_searchResultsList)
+            m_searchResultsList->hide();
     });
     connect(ui->btnOk, &QPushButton::clicked, this, [this] {
         applySettings();
@@ -155,11 +211,13 @@ SettingsDialog::SettingsDialog(ConfigManager* config, QWidget* parent)
     loadSettings();
     m_hotkeyMgr->buildHotkeyPage(ui->stackedWidget, ui->hotkeyPlaceholder);
     m_hotkeyMgr->loadBindings();
+    rebuildSearchIndex();
     ui->navList->setCurrentRow(0);
     qInfo() << "SettingsDialog initialized in" << t.elapsed() << "ms";
 }
 
 SettingsDialog::~SettingsDialog() {
+    qApp->removeEventFilter(this);
     delete ui;
 }
 
@@ -210,6 +268,8 @@ void SettingsDialog::loadSettings() {
     ui->mouseClickActivateCheck->setChecked(mouseClickEnabled);
     ui->clickShowGroupCheck->setChecked(mouseClickEnabled && m_config->getClickShowGroupForMultiWindow());
     ui->clickShowGroupCheck->setEnabled(mouseClickEnabled);
+    ui->taskbarWheelCheck->setChecked(m_config->getTaskbarWheelEnabled());
+    ui->hideUtilityWindowsCheck->setChecked(m_config->getHideUtilityWindows());
 
     {
         auto flags = m_config->getLogFlags();
@@ -234,6 +294,30 @@ void SettingsDialog::loadSettings() {
         ui->pwaTagRadio->setEnabled(pwaEnabled);
     }
 
+    {
+        ui->configLocationCombo->clear();
+        ui->configLocationCombo->addItem(tr("Program Directory"), "program");
+        ui->configLocationCombo->addItem(tr("User Config Directory"), "appdata");
+        ui->configLocationCombo->addItem(tr("Custom..."), "custom");
+
+        auto info = m_config->configLocationInfo();
+        auto location = info.location;
+        for (int i = 0; i < ui->configLocationCombo->count(); ++i) {
+            if (ui->configLocationCombo->itemData(i).toString() ==
+                (location == ConfigLocation::ProgramDir ? "program" :
+                 location == ConfigLocation::Custom ? "custom" : "appdata")) {
+                ui->configLocationCombo->setCurrentIndex(i);
+                break;
+            }
+        }
+
+        ui->configCustomPathEdit->setText(info.customPath);
+        bool isCustom = (location == ConfigLocation::Custom);
+        ui->configCustomLabel->setVisible(isCustom);
+        ui->configCustomPathEdit->setVisible(isCustom);
+        ui->btnConfigBrowse->setVisible(isCustom);
+    }
+
     m_blockedMgr->loadFromConfig();
 
     refreshCacheSize();
@@ -244,6 +328,21 @@ void SettingsDialog::loadSettings() {
 }
 
 void SettingsDialog::applySettings() {
+    {
+        auto typeStr = ui->configLocationCombo->currentData().toString();
+        ConfigLocation loc = ConfigLocation::AppData;
+        if (typeStr == "program") loc = ConfigLocation::ProgramDir;
+        else if (typeStr == "custom") loc = ConfigLocation::Custom;
+
+        if (!m_config->setConfigLocation(loc, ui->configCustomPathEdit->text())) {
+            QMessageBox::warning(this, tr("Config Location"),
+                                 tr("Failed to change the config location.\n"
+                                    "The target directory is invalid or not writable."));
+            loadSettings();
+            return;
+        }
+    }
+
     QString lang = ui->langCombo->currentData().toString();
     m_config->setLanguage(lang);
     switchLanguage(lang);
@@ -262,6 +361,7 @@ void SettingsDialog::applySettings() {
     if (theme != m_config->getTheme()) {
         m_config->setTheme(theme);
         SettingsStyleHelper::applyTheme(this, ui);
+        applySearchResultsTheme();
         ThemeManager::applyTheme();
     }
 
@@ -274,6 +374,8 @@ void SettingsDialog::applySettings() {
     m_config->setLetterJumpEnabled(ui->letterJumpCheck->isChecked());
     m_config->setMouseClickActivateEnabled(ui->mouseClickActivateCheck->isChecked());
     m_config->setClickShowGroupForMultiWindow(ui->clickShowGroupCheck->isChecked());
+    m_config->setTaskbarWheelEnabled(ui->taskbarWheelCheck->isChecked());
+    m_config->setHideUtilityWindows(ui->hideUtilityWindowsCheck->isChecked());
 
     {
         Util::LogFlags flags = 0;
@@ -315,8 +417,10 @@ void SettingsDialog::retranslateUi() {
         ui->navList->item(6)->setText(tr("About"));
     }
 
-    ui->langGroup->setTitle(tr("Language Settings"));
+    ui->generalGroup->setTitle(tr("General"));
     ui->langLabel->setText(tr("Language:"));
+    ui->configLocationLabel->setText(tr("Config Location:"));
+    ui->configCustomLabel->setText(tr("Custom Path:"));
 
     QString savedLang = ui->langCombo->currentData().toString();
     ui->langCombo->clear();
@@ -352,11 +456,17 @@ void SettingsDialog::retranslateUi() {
 
     ui->logGroup->setTitle(tr("Logging"));
     ui->chkLogTrace->setText(tr("Trace"));
+    ui->chkLogTrace->setToolTip(tr("High-frequency verbose logging, typically not needed in daily use"));
     ui->chkLogDebug->setText(tr("Debug"));
+    ui->chkLogDebug->setToolTip(tr("General debugging information"));
     ui->chkLogInfo->setText(tr("Info"));
+    ui->chkLogInfo->setToolTip(tr("Informational messages about normal operation"));
     ui->chkLogWarn->setText(tr("Warning"));
+    ui->chkLogWarn->setToolTip(tr("Non-critical issues that should be reviewed"));
     ui->chkLogError->setText(tr("Error"));
+    ui->chkLogError->setToolTip(tr("Errors that may affect functionality"));
     ui->chkLogFatal->setText(tr("Fatal"));
+    ui->chkLogFatal->setToolTip(tr("Critical errors that may cause application crashes"));
     ui->logDirLabel->setText(tr("Log Directory:"));
     ui->btnBrowseLogDir->setText(tr("Browse..."));
 
@@ -386,10 +496,11 @@ void SettingsDialog::retranslateUi() {
     if (m_btnExportBlocked) m_btnExportBlocked->setText(tr("Export"));
     if (m_btnImportBlocked) m_btnImportBlocked->setText(tr("Import"));
 
-    ui->letterJumpGroup->setTitle(tr("Letter Jump"));
     ui->letterJumpCheck->setText(tr("Enable letter jump (A-Z)"));
     ui->mouseClickActivateCheck->setText(tr("Activate window on mouse click"));
     ui->clickShowGroupCheck->setText(tr("Show window list for multi-window apps"));
+    ui->taskbarWheelCheck->setText(tr("Enable taskbar wheel switching"));
+    ui->hideUtilityWindowsCheck->setText(tr("Hide utility windows (Chrome/Electron popups)"));
 
     QString version = QApplication::applicationVersion();
     ui->aboutDesc->setText(
@@ -403,23 +514,194 @@ void SettingsDialog::retranslateUi() {
     ui->btnOk->setText(tr("OK"));
     ui->btnCancel->setText(tr("Cancel"));
     ui->btnApply->setText(tr("Apply"));
+
+    rebuildSearchIndex();
 }
 
 void SettingsDialog::filterPages(const QString& text) {
-    for (int i = 0; i < ui->navList->count(); ++i) {
-        auto* item = ui->navList->item(i);
-        item->setHidden(!text.isEmpty() &&
-                        !item->text().contains(text, Qt::CaseInsensitive));
+    clearHighlights();
+
+    if (text.isEmpty()) {
+        for (int i = 0; i < ui->navList->count(); ++i)
+            ui->navList->item(i)->setHidden(false);
+        m_searchResultsList->hide();
+        return;
     }
 
-    if (ui->navList->currentItem() && ui->navList->currentItem()->isHidden()) {
-        for (int i = 0; i < ui->navList->count(); ++i) {
-            if (!ui->navList->item(i)->isHidden()) {
-                ui->navList->setCurrentRow(i);
-                return;
+    const int pageCount = qMin(ui->stackedWidget->count(), ui->navList->count());
+    m_searchResultsList->clear();
+
+    for (const auto& entry : m_searchEntries) {
+        if (!entry.text.contains(text, Qt::CaseInsensitive))
+            continue;
+        if (!entry.widget || entry.widget->isHidden() || entry.pageIndex >= pageCount)
+            continue;
+        auto* item = new QListWidgetItem(
+            QStringLiteral("%1  —  %2")
+                .arg(entry.text, ui->navList->item(entry.pageIndex)->text()),
+            m_searchResultsList);
+        item->setData(Qt::UserRole,
+                      QVariant::fromValue<qintptr>(reinterpret_cast<qintptr>(entry.widget)));
+        item->setData(Qt::UserRole + 1, entry.pageIndex);
+    }
+
+    if (m_searchResultsList->count() == 0) {
+        auto* noMatch = new QListWidgetItem(tr("No matching settings"), m_searchResultsList);
+        noMatch->setFlags(Qt::NoItemFlags);
+    }
+
+    positionSearchResults();
+    m_searchResultsList->show();
+    m_searchResultsList->raise();
+}
+
+void SettingsDialog::rebuildSearchIndex() {
+    m_searchEntries.clear();
+    for (int i = 0; i < ui->stackedWidget->count(); ++i)
+        collectSearchTexts(ui->stackedWidget->widget(i), i);
+}
+
+void SettingsDialog::collectSearchTexts(QWidget* page, int pageIndex) {
+    if (!page)
+        return;
+    const auto children = page->findChildren<QWidget*>();
+    for (auto* w : children) {
+        QString text;
+        if (auto* gb = qobject_cast<QGroupBox*>(w))
+            text = gb->title();
+        else if (auto* lbl = qobject_cast<QLabel*>(w)) {
+            text = lbl->text();
+            if (lbl->textFormat() != Qt::PlainText) {
+                static const QRegularExpression tagRe(QStringLiteral("<[^>]+>"));
+                text = text.replace(tagRe, QStringLiteral(" ")).simplified();
             }
+        } else if (auto* cb = qobject_cast<QCheckBox*>(w))
+            text = cb->text();
+        else if (auto* rb = qobject_cast<QRadioButton*>(w))
+            text = rb->text();
+        else if (auto* btn = qobject_cast<QPushButton*>(w)) {
+            text = btn->text();
+            if (text.startsWith(QLatin1Char('+')))
+                continue;
+        }
+        text.remove(QLatin1Char('&'));
+        if (text.trimmed().isEmpty())
+            continue;
+        m_searchEntries.append({w, pageIndex, text});
+    }
+}
+
+void SettingsDialog::positionSearchResults() {
+    const QPoint origin =
+        ui->searchEdit->mapTo(this, QPoint(0, ui->searchEdit->height() + 2));
+    const int width = ui->searchEdit->width();
+    int rowHeight = 28;
+    if (m_searchResultsList->count() > 0)
+        rowHeight = qMax(rowHeight, m_searchResultsList->sizeHintForRow(0));
+    const int height = qMin(240, m_searchResultsList->count() * rowHeight + 10);
+    m_searchResultsList->setGeometry(origin.x(), origin.y(), width, height);
+}
+
+void SettingsDialog::moveSearchSelection(bool down) {
+    const int count = m_searchResultsList->count();
+    if (count == 0)
+        return;
+    const int step = down ? 1 : -1;
+    for (int i = m_searchResultsList->currentRow() + step; i >= 0 && i < count; i += step) {
+        if (m_searchResultsList->item(i)->flags() & Qt::ItemIsEnabled) {
+            m_searchResultsList->setCurrentRow(i);
+            return;
         }
     }
+}
+
+bool SettingsDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == ui->searchEdit && event->type() == QEvent::KeyPress
+        && m_searchResultsList->isVisible()) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        switch (keyEvent->key()) {
+        case Qt::Key_Escape:
+            m_searchResultsList->hide();
+            return true;
+        case Qt::Key_Up:
+            moveSearchSelection(false);
+            return true;
+        case Qt::Key_Down:
+            moveSearchSelection(true);
+            return true;
+        default:
+            break;
+        }
+    } else if (event->type() == QEvent::MouseButtonPress && m_searchResultsList->isVisible()
+               && watched != m_searchResultsList && watched != ui->searchEdit) {
+        auto* mouseEvent = static_cast<QMouseEvent*>(event);
+        const QPoint globalPos = mouseEvent->globalPosition().toPoint();
+        const QRect popupRect(m_searchResultsList->mapToGlobal(QPoint(0, 0)),
+                              m_searchResultsList->size());
+        if (!popupRect.contains(globalPos))
+            m_searchResultsList->hide();
+    }
+    return QDialog::eventFilter(watched, event);
+}
+
+void SettingsDialog::activateSearchResult(QListWidgetItem* item) {
+    if (!item || !(item->flags() & Qt::ItemIsEnabled))
+        return;
+    auto* widget = reinterpret_cast<QWidget*>(item->data(Qt::UserRole).value<qintptr>());
+    const int page = item->data(Qt::UserRole + 1).toInt();
+    if (!widget || page < 0 || page >= ui->stackedWidget->count())
+        return;
+
+    m_searchResultsList->hide();
+    ui->navList->setCurrentRow(page);
+    scrollToWidget(widget);
+    setWidgetHighlighted(widget, true);
+}
+
+void SettingsDialog::scrollToWidget(QWidget* widget) {
+    for (auto* p = widget->parentWidget(); p; p = p->parentWidget()) {
+        if (auto* area = qobject_cast<QScrollArea*>(p)) {
+            area->ensureWidgetVisible(widget, 12, 12);
+            return;
+        }
+    }
+}
+
+void SettingsDialog::setWidgetHighlighted(QWidget* widget, bool highlighted) {
+    if (!widget)
+        return;
+    if (highlighted) {
+        if (!m_originalStyles.contains(widget))
+            m_originalStyles.insert(widget, widget->styleSheet());
+        if (qobject_cast<QGroupBox*>(widget)) {
+            widget->setStyleSheet(
+                QStringLiteral("QGroupBox{border: 2px solid #E6B800; border-radius: 6px;}"));
+        } else {
+            widget->setStyleSheet(QStringLiteral(
+                "background-color: #FFF3B0; color: #1A1A1A; border-radius: 4px;"));
+        }
+    } else {
+        widget->setStyleSheet(m_originalStyles.take(widget));
+    }
+}
+
+void SettingsDialog::clearHighlights() {
+    for (auto it = m_originalStyles.constBegin(); it != m_originalStyles.constEnd(); ++it)
+        it.key()->setStyleSheet(it.value());
+    m_originalStyles.clear();
+}
+
+void SettingsDialog::applySearchResultsTheme() {
+    const auto& tc = ThemeManager::current();
+    m_searchResultsList->setStyleSheet(QStringLiteral(
+        "QListWidget#searchResultsList {"
+        "  background: %1; color: %2;"
+        "  border: 1px solid %3; border-radius: 6px; padding: 2px;"
+        "}"
+        "QListWidget#searchResultsList::item { padding: 4px 8px; border-radius: 4px; }"
+        "QListWidget#searchResultsList::item:selected { background: %4; color: %1; }")
+        .arg(tc.bgColor.name(), tc.textColor.name(),
+             tc.borderColor.name(), tc.accentColor.name()));
 }
 
 namespace {
@@ -496,7 +778,16 @@ void SettingsDialog::changeEvent(QEvent* event) {
         QMetaObject::invokeMethod(this, [this] {
             m_hotkeyMgr->buildHotkeyPage(ui->stackedWidget, ui->hotkeyPlaceholder);
             m_hotkeyMgr->loadBindings();
+            rebuildSearchIndex();
         }, Qt::QueuedConnection);
+    } else if (event->type() == QEvent::WindowDeactivate) {
+        m_hotkeyMgr->cancelAllRecordings();
     }
     QDialog::changeEvent(event);
+}
+
+void SettingsDialog::resizeEvent(QResizeEvent* event) {
+    QDialog::resizeEvent(event);
+    if (m_searchResultsList && m_searchResultsList->isVisible())
+        positionSearchResults();
 }

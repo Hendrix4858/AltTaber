@@ -159,13 +159,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Move Selection Up</source>
-        <translation>向上移动</translation>
+        <source>Preview Window</source>
+        <translation>预览窗口</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Move Selection Down</source>
-        <translation>向下移动</translation>
+        <source>Minimize Window</source>
+        <translation>最小化窗口</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -240,6 +240,11 @@ Overwrite?</source>
         <source>+ Add</source>
         <translation>+ 添加</translation>
     </message>
+    <message>
+        <location line="+37"/>
+        <source>Recording...</source>
+        <translation>录制中...</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -257,8 +262,8 @@ Overwrite?</source>
     <message>
         <location line="+68"/>
         <location filename="../src/SettingsDialog.cpp" line="+12"/>
-        <source>Language Settings</source>
-        <translation>语言设置</translation>
+        <source>General</source>
+        <translation>常规</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -267,7 +272,46 @@ Overwrite?</source>
         <translation>语言:</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+2"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Config Location:</source>
+        <translation>配置文件位置:</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Custom Path:</source>
+        <translation>自定义路径:</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>User Config Directory</source>
+        <translation>用户配置目录</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Program Directory</source>
+        <translation>程序目录</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Custom...</source>
+        <translation>自定义...</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Select Config Directory</source>
+        <translation>选择配置目录</translation>
+    </message>
+
+    <message>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Failed to change the config location.
+The target directory is invalid or not writable.</source>
+        <translation>无法更改配置位置。目标目录无效或不可写。</translation>
+    </message>
+    <message>
+        <location line="+6"/>
         <location filename="../src/SettingsDialog.cpp" line="+69"/>
         <source>Letter Jump</source>
         <translation>字母跳转</translation>
@@ -303,8 +347,20 @@ Overwrite?</source>
         <translation>多窗口程序显示窗口列表</translation>
     </message>
     <message>
-        <location line="+39"/>
-        <location filename="../src/SettingsDialog.cpp" line="-59"/>
+        <location filename="../ui/SettingsDialog.ui" line="+6"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <source>Enable taskbar wheel switching</source>
+        <translation>启用任务栏滚轮切换</translation>
+    </message>
+    <message>
+        <location filename="../ui/SettingsDialog.ui" line="+5"/>
+        <location filename="../src/SettingsDialog.cpp" line="+1"/>
+        <source>Hide utility windows (Chrome/Electron popups)</source>
+        <translation>隐藏工具窗口（如 Chrome/Electron 弹窗）</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <location filename="../src/SettingsDialog.cpp" line="-65"/>
         <source>Display Settings</source>
         <translation>显示设置</translation>
     </message>
@@ -419,6 +475,42 @@ Overwrite?</source>
         <location filename="../src/SettingsDialog.cpp" line="+1"/>
         <source>Fatal</source>
         <translation>严重</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>High-frequency verbose logging, typically not needed in daily use</source>
+        <translation>高频详细日志，日常使用通常不需要开启</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>General debugging information</source>
+        <translation>常规调试信息</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Informational messages about normal operation</source>
+        <translation>关于正常运行的信息性消息</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Non-critical issues that should be reviewed</source>
+        <translation>需要关注的非关键问题</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Errors that may affect functionality</source>
+        <translation>可能影响功能的错误</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location filename="../src/SettingsDialog.cpp" line="+0"/>
+        <source>Critical errors that may cause application crashes</source>
+        <translation>可能导致应用程序崩溃的严重错误</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -792,6 +884,10 @@ Examples: &quot;cache&quot; → &lt;appdir&gt;/cache, &quot;../icons&quot; → &
         <source>AltTaber - Window Switcher&lt;br&gt;Version: %1&lt;br&gt;&lt;br&gt;A modern Alt+Tab replacement for Windows.&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</source>
         <translation>AltTaber - 窗口切换器&lt;br&gt;版本: %1&lt;br&gt;&lt;br&gt;一个现代化的 Windows Alt+Tab 增强工具。&lt;br&gt;&lt;br&gt;GitHub: &lt;a href=&apos;https://github.com/Hendrix4858/AltTaber&apos; style=&apos;color: #0078D4;&apos;&gt;Hendrix4858/AltTaber&lt;/a&gt;</translation>
     </message>
+    <message>
+        <source>No matching settings</source>
+        <translation>没有匹配的设置项</translation>
+    </message>
 </context>
 <context>
     <name>SystemTray</name>
@@ -1055,6 +1151,14 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Failed to close old instance.</source>
         <translation>无法关闭旧实例。</translation>
+    </message>
+    <message>
+        <source>Microsoft Visual C++ Runtime is required but was not found. Please download and install it, then restart AltTaber.</source>
+        <translation>需要 Microsoft Visual C++ 运行库但未检测到。请下载安装后重新启动 AltTaber。</translation>
+    </message>
+    <message>
+        <source>Open download page</source>
+        <translation>打开下载页面</translation>
     </message>
 </context>
 <context>

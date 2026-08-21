@@ -4,6 +4,7 @@
 #include "WindowFilter.h"
 #include "core/ConfigManager.h"
 #include "utils/Util.h"
+#include <algorithm>
 
 WindowManager::WindowManager(ConfigManager* config, HWND selfHwnd, QObject* parent)
     : QObject(parent), m_config(config), m_selfHwnd(selfHwnd) {
@@ -15,6 +16,16 @@ void WindowManager::setSelfHwnd(HWND hwnd) { m_selfHwnd = hwnd; }
 QList<WindowGroup> WindowManager::prepareWindowGroupList() {
     auto scope = static_cast<int>(m_config->getVirtualDesktopScope());
     auto descriptors = WindowEnumerator::enumValidWindows(scope);
+
+    if (m_config->getHideUtilityWindows()) {
+        descriptors.erase(
+            std::remove_if(descriptors.begin(), descriptors.end(),
+                [](const WindowDescriptor& d) {
+                    return WindowEnumerator::isLikelyUtilityWindow(d.hwnd);
+                }),
+            descriptors.end());
+    }
+
     auto filtered = m_filter.filter(descriptors);
     return WindowGrouper::groupWindows(filtered, &m_activationHistory, m_selfHwnd);
 }

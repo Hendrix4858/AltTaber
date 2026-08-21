@@ -59,14 +59,18 @@ void HotkeyRecorder::rebuildUi() {
         m_layout->addWidget(btn);
     }
 
-    auto* addBtn = new QPushButton(tr("+ Add"), this);
-    addBtn->setFixedHeight(28);
-    addBtn->setCursor(Qt::PointingHandCursor);
-    connect(addBtn, &QPushButton::clicked, this, &HotkeyRecorder::onAddClicked);
-    m_layout->addWidget(addBtn);
+    m_addBtn = new QPushButton(tr("+ Add"), this);
+    m_addBtn->setFixedHeight(28);
+    m_addBtn->setCursor(Qt::PointingHandCursor);
+    connect(m_addBtn, &QPushButton::clicked, this, &HotkeyRecorder::onAddClicked);
+    m_layout->addWidget(m_addBtn);
 }
 
 void HotkeyRecorder::onAddClicked() {
+    if (isRecording()) {
+        cancelRecording();
+        return;
+    }
     startRecording(m_bindings.size());
 }
 
@@ -92,6 +96,12 @@ void HotkeyRecorder::rollback() {
 void HotkeyRecorder::startRecording(int index) {
     saveBackup();
     m_recordingIndex = index;
+
+    if (m_addBtn) {
+        m_addBtn->setText(tr("Recording..."));
+        m_addBtn->setStyleSheet(QStringLiteral(
+            "QPushButton { border: 2px solid #3498db; color: #3498db; }"));
+    }
 
     HWND targetHwnd = reinterpret_cast<HWND>(window()->winId());
     KeyboardHooker::setRecordingTarget(targetHwnd);
@@ -119,6 +129,10 @@ void HotkeyRecorder::cancelRecording() {
     if (m_recordingIndex < 0) return;
     qApp->removeEventFilter(this);
     m_recordingIndex = -1;
+    if (m_addBtn) {
+        m_addBtn->setText(tr("+ Add"));
+        m_addBtn->setStyleSheet(QString());
+    }
     rebuildUi();
 }
 
@@ -130,7 +144,6 @@ bool HotkeyRecorder::eventFilter(QObject* obj, QEvent* event) {
     if (event->type() == QEvent::KeyPress) {
         auto* ke = static_cast<QKeyEvent*>(event);
         if (ke->key() == Qt::Key_Escape) {
-            qDebug() << "[RecordFallback] Escape -> cancelRecording";
             cancelRecording();
             return true;
         }

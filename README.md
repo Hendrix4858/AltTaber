@@ -12,7 +12,7 @@
 
 ![ui](img/ui.png)
 
-[中文](README.md) [en](docs/README.en.md)
+[中文](README.md) [en](docs/README.en.md) | [构建](docs/BUILD_CN.md) · [翻译](docs/TRANSLATIONS_CN.md)　|　[Build](docs/BUILD.md) · [Translations](docs/TRANSLATIONS.md)
 
 ---
 ## ✨ 主要功能
@@ -74,6 +74,8 @@
 
 ## 🤖 从源码构建
 
+> 完整的构建说明（Qt 路径配置、全部构建目标、测试、版本管理）见 [构建指南](docs/BUILD_CN.md)；翻译工作流见 [翻译系统](docs/TRANSLATIONS_CN.md)。English: [Build](docs/BUILD.md) · [Translations](docs/TRANSLATIONS.md)。
+
 ### 前置要求
 
 | 依赖 | 版本 |
@@ -82,7 +84,7 @@
 | MSVC | 2022 |
 | Qt | 6.8+ (Core, Gui, Widgets, Xml, Network, LinguistTools) |
 | Windows SDK | 10.0+ |
-| INNO setup | Inno Setup 6+ |
+| Inno Setup | 6.3+ (x64compatible) |
 
 ### 调试构建
 构建安装包需要使用 INNO setup 来打包.
@@ -99,6 +101,7 @@ cmake --build "build/x64" --target installer
 cmake --preset "release-x64"
 cmake --build "build/x64" --target zip
 ```
+[详细构建](docs/BUILD_CN.md)
 
 
 ---
@@ -106,6 +109,9 @@ cmake --build "build/x64" --target zip
 ## 📦 下载
 
 从 [GitHub Releases](https://github.com/Hendrix4858/AltTaber/releases) 获取最新版本
+
+> **系统要求**：Windows 10+。需要 [Microsoft Visual C++ 运行库](https://aka.ms/vs/17/release/vc_redist.x64.exe)（ARM64 版点击 [这里](https://aka.ms/vs/17/release/vc_redist.arm64.exe)）。
+> 缺失时安装包会提示并打开浏览器跳转下载页面，AltTaber 首次运行时也会检查；便携版如遇缺少运行库，请按提示手动安装。
 
 ---
 

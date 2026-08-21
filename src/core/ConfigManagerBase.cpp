@@ -9,7 +9,6 @@ ConfigManagerBase::ConfigManagerBase(const QString& filepath)
         load();
 
     connect(&proc_editor, &QProcess::finished, this, [this] {
-        qDebug() << "#Config file edit finished";
         load();
         emit configEdited();
     });
@@ -90,7 +89,6 @@ void ConfigManagerBase::remove(const QString& key) {
 
 void ConfigManagerBase::editConfigFile() {
     if (proc_editor.state() == QProcess::Running) {
-        qDebug() << "Editor is running";
         return;
     }
 
@@ -103,7 +101,6 @@ void ConfigManagerBase::editConfigFile() {
         file.commit();
     }
 
-    qDebug() << "#Editing config file" << m_filePath;
     proc_editor.start("notepad", {m_filePath});
 }
 

@@ -223,8 +223,6 @@ bool HotkeyPageManager::handleRecordedKey(quint32 vk, quint32 scan, DWORD flags,
         b.extended = (flags & LLKHF_EXTENDED) != 0;
         b.mode = HotkeyBinding::KeyMode::Physical;
 
-        qDebug() << "[RecordRaw] finishRecording vk=" << vk << "sc=" << scan
-                 << "ext=" << b.extended << b.toString();
         it.value()->finishRecording(b);
         return true;
     }
