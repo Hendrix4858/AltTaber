@@ -246,6 +246,7 @@ void UpdateDialog::applyRelease(const QJsonObject& obj) {
 
 void UpdateDialog::download(const QString& url, const QString& savePath) {
     QNetworkRequest request(url);
+    request.setTransferTimeout(120000); // per-request override: 10s is too short for a ~10MB installer
     auto* reply = manager.get(request);
     ui->progressBar->show();
     ui->progressBar->setValue(0);
